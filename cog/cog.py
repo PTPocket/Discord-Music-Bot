@@ -146,9 +146,7 @@ class music_cog(commands.Cog):
                 print_log(f"RECONNECTED -> '{user.voice.channel}' voice channel",guild_id)
         
         flac_song_list = os.listdir(LOCAL_MUSIC_PATH)
-        print(flac_song_list)
         query = query.lower()
-        print(query)
         query_matches = [song for song in flac_song_list if query in song.lower()]
 
         if not query_matches: #If there are no matches for query from list of songs
