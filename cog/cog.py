@@ -1,10 +1,10 @@
+import discord, os, random
 from typing import Any, List, Optional
 from discord.components import SelectOption
 from discord.interactions import Interaction
 from discord.utils import MISSING
 from yt_dlp import YoutubeDL
 from datetime import datetime, timedelta
-import discord, os
 from discord import app_commands, FFmpegPCMAudio
 from discord.ext import commands, tasks
 from discord.ui import View, Select
@@ -29,24 +29,27 @@ class SearchView(View):
     def __init__(self, song_list):
         super().__init__(timeout=30)
         self.add_item(self.SongSelectMenu(song_list))
-        self.choice = None
+        self.song_choice = None
     class SongSelectMenu(Select):
         def __init__(self, song_list):
             options = []
-            for song in song_list:
+            for i, song in enumerate(song_list):
                 path = LOCAL_MUSIC_PATH + '\\'+ song
                 file = TinyTag.get(path)
-                title = file.title
-                author = file.artist
                 options.append(discord.SelectOption(
-                    label = f"{title} - {author}",
-                    value = song
+                    label = f"{file.title} - {file.artist}",
+                    value = i
                 ))
 
             super().__init__(placeholder='Search Results', options = options)
-
+            self.song_list = song_list
         async def callback(self, interaction:discord.Interaction):
-            self.view.choice = self.values[0]
+            song = self.song_list[int(self.values[0])]
+            path = LOCAL_MUSIC_PATH + '\\'+ song
+            song_metadata = TinyTag.get(path)
+            title = f"{song_metadata.title} - {song_metadata.artist}"
+            song = {'title': title, 'source': f'{LOCAL_MUSIC_PATH}\{song}'}
+            self.view.song_choice = song
             self.view.stop()
             await interaction.response.send_message()
 
@@ -57,6 +60,7 @@ class music_cog(commands.Cog):
         self.song_queues = {}
         self.current_song = {}
         self.loop_song = {}
+        self.local_shuffle = {}
 
 #####STATIC FUNCTIONS########################################################
     #Searches Youtube
@@ -106,17 +110,38 @@ class music_cog(commands.Cog):
             authorized =  False
 
         if authorized is False:
+            print_log(f"ACCESS DENIED -> {user}",user.guild.id)
             msg = embed.unauthorized(interaction.client)
-            await interaction.response.send_message(embed= msg)  
+            await interaction.response.send_message(embed= msg)
+        else: print_log(f"ACCESS GRANTED -> {user}",user.guild.id)  
         return authorized
-    
+
+    def guild_initialize(self, interaction):
+        user = interaction.user
+        guild_id = user.guild.id
+        bot_voice = interaction.client.get_guild(guild_id).voice_client
+        if bot_voice is None:
+            self.song_queues  [guild_id] = []
+            self.current_song [guild_id] = None
+            self.loop_song    [guild_id] = False
+            self.local_shuffle[guild_id] = False
+
     def start_queue(self, bot_voice, guild_id):
         if self.loop_song[guild_id] is True:
             self.song_queues[guild_id].insert(0,self.current_song[guild_id])
-        if not self.song_queues[guild_id]:
-            self.current_song[guild_id] = None
-            print_log(f"QUEUE EMPTY",guild_id)
-            return
+        elif not self.song_queues[guild_id]:
+            if self.local_shuffle[guild_id] is True:
+                flac_song_list = os.listdir(LOCAL_MUSIC_PATH)
+                song = random.choice(flac_song_list)
+                path = LOCAL_MUSIC_PATH + '\\'+ song
+                song_metadata = TinyTag.get(path)
+                title = f"{song_metadata.title} - {song_metadata.artist}"
+                song = {'title': title, 'source': f'{LOCAL_MUSIC_PATH}\{song}'}
+                self.song_queues[guild_id].append(song)
+            else:
+                self.current_song[guild_id] = None
+                print_log(f"QUEUE EMPTY",guild_id)
+                return
 
         self.current_song[guild_id]= self.song_queues[guild_id].pop(0)
 
@@ -132,72 +157,8 @@ class music_cog(commands.Cog):
                 executable= FFMPEG_LOC)
         print_log(f"PLAYING -> '{self.current_song[guild_id]['title']}'",guild_id)
         bot_voice.play(player, after= lambda x=None: self.start_queue(bot_voice, guild_id))
-        
+    
 ############COMMANDS#################################################################
-    @app_commands.check(valid_play_command)
-    @app_commands.command(name= "flac", description="Search and play downloaded files on bot server")
-    async def flac(self, interaction:discord.Interaction, query:str):
-        user = interaction.user
-        guild_id = user.guild.id
-        bot_voice = interaction.client.get_guild(guild_id).voice_client
-        if bot_voice is None:
-            self.song_queues[guild_id]   = []
-            self.current_song[guild_id]  = None
-            self.loop_song[guild_id]     = False
-            try:
-                await user.voice.channel.connect()
-            except Exception as e:
-                print_log(e,guild_id)
-            print_log(f"CONNECTED -> '{user.voice.channel}' voice channel",guild_id)
-            bot_voice = interaction.client.get_guild(guild_id).voice_client
-        else:
-            # Already exists
-            if not bot_voice.is_connected():
-                await bot_voice.move_to(user.voice.channel)
-                print_log(f"RECONNECTED -> '{user.voice.channel}' voice channel",guild_id)
-        
-        flac_song_list = os.listdir(LOCAL_MUSIC_PATH)
-        query = query.lower()
-        query_matches = [song for song in flac_song_list if query in song.lower()]
-
-        if not query_matches: #If there are no matches for query from list of songs
-            emb_msg = embed.no_match(self.bot, query)
-            await interaction.response.send_message(embed= emb_msg, ephemeral=True)
-            return
-        if len(query_matches) > 25:
-            query_matches = query_matches[0:25]
-
-        sview = SearchView(query_matches)
-        emb_msg = embed.search_list_prompt(self.bot)
-        await interaction.response.send_message(embed =emb_msg, view=sview, ephemeral=True)
-        timeout = await sview.wait()
-        if timeout is True:
-            emb_msg = embed.timeout_error(self.bot)
-            await interaction.edit_original_response(embed=emb_msg, view = None)
-            return
-        await interaction.delete_original_response()
-        song = sview.choice
-
-        song = {'title': song.split('.')[0], 'source': f'{LOCAL_MUSIC_PATH}\{song}'}
-        self.song_queues[guild_id].append(song)
-        
-        if self.current_song[guild_id] is None:
-            self.current_song[guild_id]= self.song_queues[guild_id].pop(0)
-            play_emb= embed.play(self.bot, song['title'])
-            await interaction.followup.send(embed = play_emb)
-            try:
-                player = FFmpegPCMAudio(
-                    self.current_song[guild_id]['source'],
-                    executable=FFMPEG_LOC)
-            except Exception as e:
-                print_log(e,guild_id)
-            print_log(f"PLAYING -> '{self.current_song[guild_id]['title']}'",guild_id)
-            bot_voice.play(player, after= lambda x=None: self.start_queue(bot_voice, guild_id))
-        else:
-            queue_sum_emb = embed.queue_summary(self.bot, self.song_queues[guild_id])
-            await interaction.followup.send(embed= queue_sum_emb)
-
-        
 
     @app_commands.check(valid_play_command)
     @app_commands.command(name= "play", description="Play song or add to song queue")
@@ -206,14 +167,9 @@ class music_cog(commands.Cog):
         user = interaction.user
         guild_id = user.guild.id
         bot_voice = interaction.client.get_guild(guild_id).voice_client
+        self.guild_initialize(interaction)
         if bot_voice is None:
-            self.song_queues[guild_id]   = []
-            self.current_song[guild_id]  = None
-            self.loop_song[guild_id]     = False
-            try:
-                await user.voice.channel.connect()
-            except Exception as e:
-                print_log(e,guild_id)
+            await user.voice.channel.connect()
             print_log(f"CONNECTED -> '{user.voice.channel}' voice channel",guild_id)
             bot_voice = interaction.client.get_guild(guild_id).voice_client
         else:
@@ -236,18 +192,10 @@ class music_cog(commands.Cog):
         print_log(f"QUEUED -> '{song['title']}'",guild_id)
 
         if self.current_song[guild_id] is None:
-            self.current_song[guild_id]= self.song_queues[guild_id].pop(0)
+            self.current_song[guild_id]= self.song_queues[guild_id][0]
             play_emb= embed.play(self.bot, song['title'])
             await interaction.followup.send(embed = play_emb)
-            try:
-                player = FFmpegPCMAudio(
-                    self.current_song[guild_id]['source'],
-                    **FFMPEG_OPTIONS,
-                    executable= FFMPEG_LOC)
-            except Exception as e:
-                print_log(e,guild_id)
-            print_log(f"PLAYING -> '{self.current_song[guild_id]['title']}'",guild_id)
-            bot_voice.play(player, after= lambda x=None: self.start_queue(bot_voice, guild_id))
+            self.start_queue(bot_voice, guild_id)
         else:
             queue_sum_emb = embed.queue_summary(self.bot, self.song_queues[guild_id])
             await interaction.followup.send(embed= queue_sum_emb)
@@ -340,6 +288,95 @@ class music_cog(commands.Cog):
         else:
             queue_sum_emb = embed.queue_summary(self.bot, self.song_queues[guild_id])
         await interaction.response.send_message(embed= queue_sum_emb)
+    
+    #LOCAL FILE ACCESS COMMANDS
+    @app_commands.check(valid_play_command)
+    @app_commands.command(name= "flac", description="Search and play downloaded song on bot server")
+    async def flac(self, interaction:discord.Interaction, query:str):
+        user = interaction.user
+        guild_id = user.guild.id
+        bot_voice = interaction.client.get_guild(guild_id).voice_client
+        self.guild_initialize(interaction)
+        if bot_voice is None:
+            await user.voice.channel.connect()
+            print_log(f"CONNECTED -> '{user.voice.channel}' voice channel",guild_id)
+            bot_voice = interaction.client.get_guild(guild_id).voice_client
+        else:
+            # Already exists
+            if not bot_voice.is_connected():
+                await bot_voice.move_to(user.voice.channel)
+                print_log(f"RECONNECTED -> '{user.voice.channel}' voice channel",guild_id)
+        
+        flac_song_list = os.listdir(LOCAL_MUSIC_PATH)
+        query = query.lower()
+        query_matches = [song for song in flac_song_list if query in song.lower()]
+
+        if not query_matches: #If there are no matches for query from list of songs
+            emb_msg = embed.no_match(self.bot, query)
+            await interaction.response.send_message(embed= emb_msg, ephemeral=True)
+            return
+        if len(query_matches) > 25:
+            query_matches = query_matches[0:25]
+
+        sview = SearchView(query_matches)
+        emb_msg = embed.search_list_prompt(self.bot)
+        await interaction.response.send_message(embed =emb_msg, view=sview, ephemeral=True)
+        timeout = await sview.wait()
+
+        if timeout is True:
+            emb_msg = embed.timeout_error(self.bot)
+            await interaction.edit_original_response(embed=emb_msg, view = None)
+            return
+        await interaction.delete_original_response()
+        song = sview.song_choice
+        self.song_queues[guild_id].append(song)
+        if self.current_song[guild_id] is None:
+            self.current_song[guild_id]= self.song_queues[guild_id][0]
+            play_emb= embed.play(self.bot, song['title'])
+            await interaction.followup.send(embed = play_emb)
+            self.start_queue(bot_voice, guild_id)
+        else:
+            queue_sum_emb = embed.queue_summary(self.bot, self.song_queues[guild_id])
+            await interaction.followup.send(embed= queue_sum_emb)
+
+    @app_commands.check(valid_play_command)
+    @app_commands.command(name= "flac_shuffle", description="Play all downloaded songs on bot server shuffled")
+    async def flac_shuffle(self, interaction:discord.Interaction):
+        user = interaction.user
+        guild_id = user.guild.id
+        bot_voice = interaction.client.get_guild(guild_id).voice_client
+        self.guild_initialize(interaction)
+        if bot_voice is None:
+            await user.voice.channel.connect()
+            print_log(f"CONNECTED -> '{user.voice.channel}' voice channel",guild_id)
+            bot_voice = interaction.client.get_guild(guild_id).voice_client
+        else:
+            # Already exists
+            if not bot_voice.is_connected():
+                await bot_voice.move_to(user.voice.channel)
+                print_log(f"RECONNECTED -> '{user.voice.channel}' voice channel",guild_id)
+        self.local_shuffle[guild_id] = True
+        emb_msg = embed.shuffle_local_music(self.bot)
+        await interaction.response.send_message(embed= emb_msg)
+        if self.current_song[guild_id] is None:
+            self.start_queue(bot_voice, guild_id)
+    
+    @app_commands.check(valid_user_REGULAR_FUNC)
+    @app_commands.command(name= "stop", description="Stops player and resets all values")
+    async def stop(self, interaction:discord.Interaction):
+        user = interaction.user
+        guild_id = user.guild.id
+        bot_voice = interaction.client.get_guild(guild_id).voice_client  
+        self.song_queues[guild_id]   = []
+        self.loop_song[guild_id]     = False
+        self.current_song[guild_id]  = None
+        self.local_shuffle[guild_id] = False
+        if bot_voice is not None and (bot_voice.is_playing() or bot_voice.is_paused()):
+            bot_voice.stop()        
+        print_log("RESET", guild_id)
+        emb_msg = embed.reset(self.bot)
+        await interaction.response.send_message(embed= emb_msg)
+
 
 ##########LISTENERS#################################################################
     @commands.Cog.listener() #RESET BOT FOR GUILD IF DISCONNECTED FROM VOICE CHANNEL
@@ -348,15 +385,13 @@ class music_cog(commands.Cog):
         if member.id == self.bot.user.id:
             bot_voice = self.bot.get_guild(guild_id).voice_client
             if after.channel is None:
-                self.song_queues[guild_id]= []
-                self.loop_song[guild_id] = False
-                self.current_song[guild_id] = None
+                self.song_queues[guild_id]   = []
+                self.loop_song[guild_id]     = False
+                self.current_song[guild_id]  = None
+                self.local_shuffle[guild_id] = False
                 if bot_voice is not None and (bot_voice.is_playing() or bot_voice.is_paused()):
                     bot_voice.stop()
                 print_log("RESET", guild_id)
-                return
-
-            
 
 
 #####################################################################################

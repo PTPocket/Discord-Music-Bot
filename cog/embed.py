@@ -187,11 +187,30 @@ def search_list_prompt(bot):
     embed.set_thumbnail(url=MUSIC_ICON)
     embed.set_author(name=COG_NAME, icon_url=bot_avatar)     
     return embed
+
 def timeout_error(bot):
     bot_avatar = bot.user.display_avatar
     embed = discord.Embed(
         title=f":alarm_clock: Options Timed Out :alarm_clock:",
         color=discord.Color.red())  
+    embed.set_author(name=COG_NAME, icon_url=bot_avatar)  
+    embed.set_thumbnail(url=MUSIC_ICON)   
+    return embed
+
+def shuffle_local_music(bot):
+    bot_avatar = bot.user.display_avatar
+    embed = discord.Embed(
+        title=f":twisted_rightwards_arrows: **Shuffling Pocket Songs** :twisted_rightwards_arrows:",
+        color=discord.Color.blurple()) 
+    embed.set_thumbnail(url=MUSIC_ICON)
+    embed.set_author(name=COG_NAME, icon_url=bot_avatar)     
+    return embed
+
+def reset(bot):
+    bot_avatar = bot.user.display_avatar
+    embed = discord.Embed(
+        title=f":arrows_counterclockwise: Pocket Bot Reset :arrows_counterclockwise:",
+        color=discord.Color.green())  
     embed.set_author(name=COG_NAME, icon_url=bot_avatar)  
     embed.set_thumbnail(url=MUSIC_ICON)   
     return embed
@@ -205,12 +224,6 @@ def queue(bot, song):
     embed.set_thumbnail(url=MUSIC_ICON)
     embed.set_author(name=COG_NAME, icon_url=bot_avatar)     
     return embed
-def reset(bot):
-    bot_avatar = bot.user.display_avatar
-    embed = discord.Embed(
-        title=f":arrows_counterclockwise: Bot Reset :arrows_counterclockwise:",
-        color=discord.Color.green())  
-    embed.set_author(name=COG_NAME, icon_url=bot_avatar)  
-    embed.set_thumbnail(url=MUSIC_ICON)   
-    return embed
+
+
 
