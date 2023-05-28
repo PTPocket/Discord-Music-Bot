@@ -16,7 +16,7 @@ YDL_OPTIONS = {'format': 'bestaudio', 'noplaylist':'True'}
 FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
 FFMPEG_LOC = "C:\\Users\\SERVER\\Documents\\ffmpeg\\bin\\ffmpeg.exe"
 
-LOCAL_MUSIC_PATH = "F:\music"
+LOCAL_MUSIC_PATH = "D:\music"
 
 def print_log(text, guild_id):
     time= str(datetime.now())
@@ -124,7 +124,7 @@ class music_cog(commands.Cog):
         
 ############COMMANDS#################################################################
     @app_commands.check(valid_play_command)
-    @app_commands.command(name= "flac", description="Search and play flac file type")
+    @app_commands.command(name= "flac", description="Search and play downloaded files on bot server")
     async def flac(self, interaction:discord.Interaction, query:str):
         user = interaction.user
         guild_id = user.guild.id
