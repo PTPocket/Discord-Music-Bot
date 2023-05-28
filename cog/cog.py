@@ -113,7 +113,9 @@ class music_cog(commands.Cog):
 
         if '.mp3' in self.current_song[guild_id]['source']\
             or '.flac' in self.current_song[guild_id]['source']:
-            player = FFmpegPCMAudio(self.current_song[guild_id]['source'])
+            player = FFmpegPCMAudio(
+                self.current_song[guild_id]['source'],
+                executable=FFMPEG_LOC)
         else:
             player = FFmpegPCMAudio(
                 self.current_song[guild_id]['source'],
@@ -151,37 +153,39 @@ class music_cog(commands.Cog):
 
         if not query_matches: #If there are no matches for query from list of songs
             emb_msg = embed.no_match(self.bot, query)
-            await interaction.response.send_message(embed= emb_msg)
+            await interaction.response.send_message(embed= emb_msg, ephemeral=True)
             return
         if len(query_matches) > 25:
             query_matches = query_matches[0:25]
         sview = SearchView(query_matches)
         emb_msg = embed.search_list_prompt(self.bot)
-        await interaction.response.send_message(embed =emb_msg, view=sview)
+        await interaction.response.send_message(embed =emb_msg, view=sview, ephemeral=True)
         timeout = await sview.wait()
         if timeout is True:
             emb_msg = embed.timeout_error(self.bot)
             await interaction.edit_original_response(embed=emb_msg, view = None)
             return
+        await interaction.delete_original_response()
         song = sview.choice
 
         song = {'title': song.split('.')[0], 'source': f'{LOCAL_MUSIC_PATH}\{song}'}
         self.song_queues[guild_id].append(song)
-
+        
         if self.current_song[guild_id] is None:
             self.current_song[guild_id]= self.song_queues[guild_id].pop(0)
             play_emb= embed.play(self.bot, song['title'])
-            await interaction.edit_original_response(embed = play_emb, view = None)
+            await interaction.followup.send(embed = play_emb)
             try:
                 player = FFmpegPCMAudio(
-                    self.current_song[guild_id]['source'])
+                    self.current_song[guild_id]['source'],
+                    executable=FFMPEG_LOC)
             except Exception as e:
                 print_log(e,guild_id)
             print_log(f"PLAYING -> '{self.current_song[guild_id]['title']}'",guild_id)
             bot_voice.play(player, after= lambda x=None: self.start_queue(bot_voice, guild_id))
         else:
             queue_sum_emb = embed.queue_summary(self.bot, self.song_queues[guild_id])
-            await interaction.edit_original_response(embed= queue_sum_emb, view = None)
+            await interaction.followup.send(embed= queue_sum_emb)
 
         
 
