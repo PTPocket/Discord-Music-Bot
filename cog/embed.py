@@ -200,7 +200,7 @@ def timeout_error(bot):
 def shuffle_local_music(bot):
     bot_avatar = bot.user.display_avatar
     embed = discord.Embed(
-        title=f":twisted_rightwards_arrows: **Shuffling Pocket Songs** :twisted_rightwards_arrows:",
+        title=f":twisted_rightwards_arrows: **Playing Random Songs** :infinity:",
         color=discord.Color.blurple()) 
     embed.set_thumbnail(url=MUSIC_ICON)
     embed.set_author(name=COG_NAME, icon_url=bot_avatar)     
