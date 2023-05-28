@@ -8,6 +8,7 @@ import discord, os
 from discord import app_commands, FFmpegPCMAudio
 from discord.ext import commands, tasks
 from discord.ui import View, Select
+from tinytag import TinyTag
 
 from cog import embed
 
@@ -16,7 +17,7 @@ YDL_OPTIONS = {'format': 'bestaudio', 'noplaylist':'True'}
 FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
 FFMPEG_LOC = "C:\\Users\\SERVER\\Documents\\ffmpeg\\bin\\ffmpeg.exe"
 
-LOCAL_MUSIC_PATH = "D:\music"
+LOCAL_MUSIC_PATH = "F:\music"
 
 def print_log(text, guild_id):
     time= str(datetime.now())
@@ -31,9 +32,17 @@ class SearchView(View):
         self.choice = None
     class SongSelectMenu(Select):
         def __init__(self, song_list):
-            options = [
-                discord.SelectOption(label = song) for song in song_list
-            ]
+            options = []
+            for song in song_list:
+                path = LOCAL_MUSIC_PATH + '\\'+ song
+                file = TinyTag.get(path)
+                title = file.title
+                author = file.artist
+                options.append(discord.SelectOption(
+                    label = f"{title} - {author}",
+                    value = song
+                ))
+
             super().__init__(placeholder='Search Results', options = options)
 
         async def callback(self, interaction:discord.Interaction):
@@ -157,6 +166,7 @@ class music_cog(commands.Cog):
             return
         if len(query_matches) > 25:
             query_matches = query_matches[0:25]
+
         sview = SearchView(query_matches)
         emb_msg = embed.search_list_prompt(self.bot)
         await interaction.response.send_message(embed =emb_msg, view=sview, ephemeral=True)
