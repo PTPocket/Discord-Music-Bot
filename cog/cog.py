@@ -8,6 +8,7 @@ from cog import embed
 
 YDL_OPTIONS = {'format': 'bestaudio', 'noplaylist':'True'}
 FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
+FFMPEG_LOC = "C:\\Users\\SERVER\\Documents\\ffmpeg\\bin\\ffmpeg.exe"
 
 def print_log(text, guild_id):
     time= str(datetime.now())
@@ -141,7 +142,8 @@ class music_cog(commands.Cog):
             try:
                 player = FFmpegPCMAudio(
                     self.current_song[guild_id]['source'],
-                    **FFMPEG_OPTIONS)
+                    **FFMPEG_OPTIONS,
+                    executable= FFMPEG_LOC)
             except Exception as e:
                 print_log(e,guild_id)
             print_log(f"PLAYING -> '{self.current_song[guild_id]['title']}'",guild_id)
