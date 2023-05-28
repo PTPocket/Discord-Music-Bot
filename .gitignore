@@ -1,2 +1,6 @@
 config.py
 cog/temp_cog.py
+test.ipynb
+cog/__pycache__/cog.cpython-38.pyc
+cog/__pycache__/embed.cpython-38.pyc
+__pycache__/config.cpython-38.pyc

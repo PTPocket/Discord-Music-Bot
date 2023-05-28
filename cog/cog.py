@@ -1,15 +1,14 @@
-import discord, asyncio, json, os
+import discord, asyncio
 from discord import app_commands, FFmpegPCMAudio
 from discord.ext import commands, tasks
 from yt_dlp import YoutubeDL
 from datetime import datetime, timedelta
-from discord.ui import Button, View
 from cog import embed
 
 
 YDL_OPTIONS = {'format': 'bestaudio', 'noplaylist':'True'}
 FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
-PLAYLIST_FILENAME = "cog/playlists.json"
+
 def print_log(text, guild_id):
     time= str(datetime.now())
     msg = f"{time} | Guild ID: {guild_id} | Master Pocket Bot - {text}"
@@ -37,6 +36,8 @@ class music_cog(commands.Cog):
             except Exception: 
                 return None
         return {'source': info['url'], 'title': info['title']}
+
+
 
     async def valid_play_command(interaction:discord.Interaction):
         user = interaction.user
@@ -238,92 +239,6 @@ class music_cog(commands.Cog):
             queue_sum_emb = embed.queue_summary(self.bot, self.song_queues[guild_id])
         await interaction.response.send_message(embed= queue_sum_emb)
 
-    @app_commands.command(name="create_playlist", description= "Create a playlist with a name")
-    async def create_playlist(self, interaction: discord.Interaction, name: str):
-        user = interaction.user
-        user_id = str(user.id)
-        name = name.upper()
-        if not os.path.exists(PLAYLIST_FILENAME):
-            with open(PLAYLIST_FILENAME, 'w') as playlist_file:
-                json.dump({}, playlist_file)
-
-        playlists_by_id = None
-        with open(PLAYLIST_FILENAME, 'r') as playlist_file:
-            playlists_by_id = json.load(playlist_file)
-            if playlists_by_id == {}:
-                playlists_by_id[user_id] = {}
-            elif user_id in playlists_by_id and name in playlists_by_id[user_id]:
-                emb_msg = embed.playlist_exists(self.bot)
-                await interaction.response.send_message(embed=emb_msg, ephemeral=True)
-            playlists_by_id[user_id][name] = []
-        with open(PLAYLIST_FILENAME, 'w') as playlist_file:
-            json.dump(playlists_by_id, playlist_file)
-
-        emb_msg = embed.created_playlist(self.bot, name)
-        await interaction.response.send_message(embed=emb_msg, ephemeral=True)
-    
-    class playlist_View(View):
-        def __init__(self, playlists, song, playlists_by_id):
-            super().__init__()
-            for playlist in playlists:
-                button = self.playlist_Button(playlist, song, playlists_by_id)
-                self.add_item(button)
-
-        class playlist_Button(Button):
-            def __init__(self, label, song, playlists_by_id):
-                super().__init__(label=label)
-                self.name = label
-                self.song = song
-                self.playlists_by_id = playlists_by_id
-
-            async def callback(self, interaction: discord.Interaction):
-                self.playlists_by_id[str(interaction.user.id)][self.name].append(self.song)
-                with open(PLAYLIST_FILENAME, 'w') as p_file:
-                    json.dump(self.playlists_by_id, p_file)
-                emb_msg = embed.add_success(self.name, self.song)
-                await interaction.response.edit_message(embed = emb_msg,view=None)
-
-                self.stop()
-        
-
-
-
-    @app_commands.command(name="add_to_playlist", description= "Add a song to your playlist")
-    async def add_to_playlist(self, interaction: discord.Interaction, song: str):
-        user = interaction.user
-        user_id = str(user.id)
-        guild_name = user.guild.name
-        if not os.path.exists(PLAYLIST_FILENAME):
-            msg = embed.add_to_playlist_error(self.bot)
-            await interaction.response.send_message(embed = msg, ephemeral=True)
-            return
-
-        print_log(f"SEARCHING YOUTUBE -> '{song}'",guild_name)
-        song = self.search_yt(song)
-        if song is None:
-            msg = embed.yt_search_error(self.bot, song)
-            await interaction.response.send_message(embed= msg, ephemeral=True)
-            print_log(f"YOUTUBE SEARCH ERROR -> '{song}'",guild_name)
-            return
-        
-        playlists_by_id = None
-        with open(PLAYLIST_FILENAME, 'r+') as playlist_file:
-            playlists_by_id = json.load(playlist_file)
-
-        pl_view = self.playlist_View(playlists_by_id[user_id], song, playlists_by_id)
-        print('here')
-        try:
-            emb_msg = embed.adding_to_playlist(self.bot, song['title'])
-            await interaction.response.send_message(embed=emb_msg,view= pl_view, ephemeral=True)
-            timeout = await pl_view.wait()
-        except Exception as e:
-            print(e)
-        print("hi")
-        print("test")
-
-        
-
-        
 ##########LISTENERS#################################################################
     @commands.Cog.listener() #RESET BOT FOR GUILD IF DISCONNECTED FROM VOICE CHANNEL
     async def on_voice_state_update(self, member, before, after):
@@ -339,7 +254,7 @@ class music_cog(commands.Cog):
                 print_log("RESET", guild_id)
                 return
 
-
+            
 
 
 #####################################################################################
@@ -351,3 +266,4 @@ class music_cog(commands.Cog):
             print_log(f"SYNCED {len(synced)} COMMAND(S)",None)
         except Exception as e:
             print_log(e, None)
+    

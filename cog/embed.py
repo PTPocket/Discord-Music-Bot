@@ -170,66 +170,6 @@ def yt_search_error(bot, song):
     return embed
 
 
-def timout_error(bot):
-    bot_avatar = bot.user.display_avatar
-    embed = discord.Embed(
-        title=f":alarm_clock: Options Timed Out :alarm_clock:",
-        color=discord.Color.green())  
-    embed.set_author(name=COG_NAME, icon_url=bot_avatar)  
-    embed.set_thumbnail(url=MUSIC_ICON)   
-    return embed
-
-
-def created_playlist(bot, name):
-    bot_avatar = bot.user.display_avatar
-    embed = discord.Embed(
-        title=f":raised_hands: Created Playlist :raised_hands:",
-        description=f"***```{name}```***",
-        color=discord.Color.green())  
-    embed.set_author(name=COG_NAME, icon_url=bot_avatar)  
-    embed.set_thumbnail(url=MUSIC_ICON)   
-    return embed
-
-def playlist_exists(bot):
-    bot_avatar = bot.user.display_avatar
-    embed = discord.Embed(
-        title=f":hear_no_evil: Playlist already exists! :hear_no_evil:",
-        color=discord.Color.red())  
-    embed.set_author(name=COG_NAME, icon_url=bot_avatar)  
-    embed.set_thumbnail(url=MUSIC_ICON)   
-    return embed
-
-def adding_to_playlist(bot, name):
-    bot_avatar = bot.user.display_avatar
-    embed = discord.Embed(
-        title=f":see_no_evil: Song :see_no_evil:",
-        description=f"***```{name}```***\\:arrow_down_small:Choose a playlist:arrow_down_small:",
-        color=discord.Color.green())  
-    embed.set_author(name=COG_NAME, icon_url=bot_avatar)  
-    embed.set_thumbnail(url=MUSIC_ICON)   
-    return embed
-
-def add_success(bot, playlist_name, song):
-    bot_avatar = bot.user.display_avatar
-    embed = discord.Embed(
-        title=f":thumbsup: Added Song to {playlist_name} :thumbsup:",
-        description=f"***```{song}```***",
-        color=discord.Color.green())  
-    embed.set_author(name=COG_NAME, icon_url=bot_avatar)  
-    embed.set_thumbnail(url=MUSIC_ICON)   
-    return embed
-
-def add_to_playlist_error(bot):
-    bot_avatar = bot.user.display_avatar
-    embed = discord.Embed(
-        title=f":hear_no_evil: Create a Playlist First! :hear_no_evil:",
-        description=f"***```Command: /create_playlist```***",
-        color=discord.Color.red())  
-    embed.set_author(name=COG_NAME, icon_url=bot_avatar)  
-    embed.set_thumbnail(url=MUSIC_ICON)   
-    return embed
-
-
 ####### NOT USING ####################
 def queue(bot, song):
     bot_avatar = bot.user.display_avatar
