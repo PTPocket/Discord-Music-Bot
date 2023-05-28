@@ -1,8 +1,14 @@
-import discord, asyncio
-from discord import app_commands, FFmpegPCMAudio
-from discord.ext import commands, tasks
+from typing import Any, List, Optional
+from discord.components import SelectOption
+from discord.interactions import Interaction
+from discord.utils import MISSING
 from yt_dlp import YoutubeDL
 from datetime import datetime, timedelta
+import discord, os
+from discord import app_commands, FFmpegPCMAudio
+from discord.ext import commands, tasks
+from discord.ui import View, Select
+
 from cog import embed
 
 
@@ -10,12 +16,30 @@ YDL_OPTIONS = {'format': 'bestaudio', 'noplaylist':'True'}
 FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
 FFMPEG_LOC = "C:\\Users\\SERVER\\Documents\\ffmpeg\\bin\\ffmpeg.exe"
 
+LOCAL_MUSIC_PATH = "F:\music"
+
 def print_log(text, guild_id):
     time= str(datetime.now())
     msg = f"{time} | Guild ID: {guild_id} | Master Pocket Bot - {text}"
     print(msg)
     
 
+class SearchView(View):
+    def __init__(self, song_list):
+        super().__init__(timeout=30)
+        self.add_item(self.SongSelectMenu(song_list))
+        self.choice = None
+    class SongSelectMenu(Select):
+        def __init__(self, song_list):
+            options = [
+                discord.SelectOption(label = song) for song in song_list
+            ]
+            super().__init__(placeholder='Search Results', options = options)
+
+        async def callback(self, interaction:discord.Interaction):
+            self.view.choice = self.values[0]
+            self.view.stop()
+            await interaction.response.send_message()
 
 class music_cog(commands.Cog):
     def __init__(self, bot):
@@ -24,7 +48,6 @@ class music_cog(commands.Cog):
         self.song_queues = {}
         self.current_song = {}
         self.loop_song = {}
-
 
 #####STATIC FUNCTIONS########################################################
     #Searches Youtube
@@ -37,8 +60,6 @@ class music_cog(commands.Cog):
             except Exception: 
                 return None
         return {'source': info['url'], 'title': info['title']}
-
-
 
     async def valid_play_command(interaction:discord.Interaction):
         user = interaction.user
@@ -89,17 +110,83 @@ class music_cog(commands.Cog):
             return
 
         self.current_song[guild_id]= self.song_queues[guild_id].pop(0)
-        try:
+
+        if '.mp3' in self.current_song[guild_id]['source']\
+            or '.flac' in self.current_song[guild_id]['source']:
+            player = FFmpegPCMAudio(self.current_song[guild_id]['source'])
+        else:
             player = FFmpegPCMAudio(
                 self.current_song[guild_id]['source'],
                 **FFMPEG_OPTIONS,
                 executable= FFMPEG_LOC)
-        except Exception as e:
-            print_log(e,guild_id)
         print_log(f"PLAYING -> '{self.current_song[guild_id]['title']}'",guild_id)
         bot_voice.play(player, after= lambda x=None: self.start_queue(bot_voice, guild_id))
         
 ############COMMANDS#################################################################
+    @app_commands.check(valid_play_command)
+    @app_commands.command(name= "flac", description="Search and play flac file type")
+    async def flac(self, interaction:discord.Interaction, query:str):
+        user = interaction.user
+        guild_id = user.guild.id
+        bot_voice = interaction.client.get_guild(guild_id).voice_client
+        if bot_voice is None:
+            self.song_queues[guild_id]   = []
+            self.current_song[guild_id]  = None
+            self.loop_song[guild_id]     = False
+            try:
+                await user.voice.channel.connect()
+            except Exception as e:
+                print_log(e,guild_id)
+            print_log(f"CONNECTED -> '{user.voice.channel}' voice channel",guild_id)
+            bot_voice = interaction.client.get_guild(guild_id).voice_client
+        else:
+            # Already exists
+            if not bot_voice.is_connected():
+                await bot_voice.move_to(user.voice.channel)
+                print_log(f"RECONNECTED -> '{user.voice.channel}' voice channel",guild_id)
+        
+        flac_song_list = os.listdir(LOCAL_MUSIC_PATH)
+        print(flac_song_list)
+        query = query.lower()
+        print(query)
+        query_matches = [song for song in flac_song_list if query in song.lower()]
+
+        if not query_matches: #If there are no matches for query from list of songs
+            emb_msg = embed.no_match(self.bot, query)
+            await interaction.response.send_message(embed= emb_msg)
+            return
+        if len(query_matches) > 25:
+            query_matches = query_matches[0:25]
+        sview = SearchView(query_matches)
+        emb_msg = embed.search_list_prompt(self.bot)
+        await interaction.response.send_message(embed =emb_msg, view=sview)
+        timeout = await sview.wait()
+        if timeout is True:
+            emb_msg = embed.timeout_error(self.bot)
+            await interaction.edit_original_response(embed=emb_msg, view = None)
+            return
+        song = sview.choice
+
+        song = {'title': song.split('.')[0], 'source': f'{LOCAL_MUSIC_PATH}\{song}'}
+        self.song_queues[guild_id].append(song)
+
+        if self.current_song[guild_id] is None:
+            self.current_song[guild_id]= self.song_queues[guild_id].pop(0)
+            play_emb= embed.play(self.bot, song['title'])
+            await interaction.edit_original_response(embed = play_emb, view = None)
+            try:
+                player = FFmpegPCMAudio(
+                    self.current_song[guild_id]['source'])
+            except Exception as e:
+                print_log(e,guild_id)
+            print_log(f"PLAYING -> '{self.current_song[guild_id]['title']}'",guild_id)
+            bot_voice.play(player, after= lambda x=None: self.start_queue(bot_voice, guild_id))
+        else:
+            queue_sum_emb = embed.queue_summary(self.bot, self.song_queues[guild_id])
+            await interaction.edit_original_response(embed= queue_sum_emb, view = None)
+
+        
+
     @app_commands.check(valid_play_command)
     @app_commands.command(name= "play", description="Play song or add to song queue")
     async def play(self, interaction:discord.Interaction, song:str):

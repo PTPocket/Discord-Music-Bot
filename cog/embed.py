@@ -169,7 +169,32 @@ def yt_search_error(bot, song):
     embed.set_author(name=COG_NAME, icon_url=bot_avatar)     
     return embed
 
+def no_match(bot, query):
+    bot_avatar = bot.user.display_avatar
+    embed = discord.Embed(
+        title=f":no_entry_sign: **No search results** :no_entry_sign:",
+        description=f"***```Query: {query}```***",
+        color=discord.Color.red()) 
+    embed.set_thumbnail(url=MUSIC_ICON)
+    embed.set_author(name=COG_NAME, icon_url=bot_avatar)     
+    return embed
 
+def search_list_prompt(bot):
+    bot_avatar = bot.user.display_avatar
+    embed = discord.Embed(
+        title=f":arrow_down: **Select Song from List** :arrow_down:",
+        color=discord.Color.blurple()) 
+    embed.set_thumbnail(url=MUSIC_ICON)
+    embed.set_author(name=COG_NAME, icon_url=bot_avatar)     
+    return embed
+def timeout_error(bot):
+    bot_avatar = bot.user.display_avatar
+    embed = discord.Embed(
+        title=f":alarm_clock: Options Timed Out :alarm_clock:",
+        color=discord.Color.red())  
+    embed.set_author(name=COG_NAME, icon_url=bot_avatar)  
+    embed.set_thumbnail(url=MUSIC_ICON)   
+    return embed
 ####### NOT USING ####################
 def queue(bot, song):
     bot_avatar = bot.user.display_avatar
