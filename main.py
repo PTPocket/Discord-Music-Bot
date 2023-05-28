@@ -29,7 +29,7 @@ async def main():
 
             print_log("LOADED -> music cog")
 
-            await client.start(TOKEN)
+            await client.start(TEST_TOKEN)
         except Exception as e:
             print_log(e)
             print_log("ERROR -> starting bot")

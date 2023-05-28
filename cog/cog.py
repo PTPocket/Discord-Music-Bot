@@ -92,7 +92,8 @@ class music_cog(commands.Cog):
         try:
             player = FFmpegPCMAudio(
                 self.current_song[guild_id]['source'],
-                **FFMPEG_OPTIONS)
+                **FFMPEG_OPTIONS,
+                executable= FFMPEG_LOC)
         except Exception as e:
             print_log(e,guild_id)
         print_log(f"PLAYING -> '{self.current_song[guild_id]['title']}'",guild_id)
