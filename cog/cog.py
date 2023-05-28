@@ -17,7 +17,7 @@ YDL_OPTIONS = {'format': 'bestaudio', 'noplaylist':'True'}
 FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
 FFMPEG_LOC = "C:\\Users\\SERVER\\Documents\\ffmpeg\\bin\\ffmpeg.exe"
 
-LOCAL_MUSIC_PATH = "F:\music"
+LOCAL_MUSIC_PATH = "C:\\Users\\SERVER\\Music"
 
 def print_log(text, guild_id):
     time= str(datetime.now())
