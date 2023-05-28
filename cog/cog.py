@@ -340,8 +340,8 @@ class music_cog(commands.Cog):
             await interaction.followup.send(embed= queue_sum_emb)
 
     @app_commands.check(valid_play_command)
-    @app_commands.command(name= "flac_shuffle", description="Play random songs from pocket bot library forever")
-    async def flac_shuffle(self, interaction:discord.Interaction):
+    @app_commands.command(name= "play_random", description="Play random songs from pocket bot library forever")
+    async def play_random(self, interaction:discord.Interaction):
         user = interaction.user
         guild_id = user.guild.id
         bot_voice = interaction.client.get_guild(guild_id).voice_client
