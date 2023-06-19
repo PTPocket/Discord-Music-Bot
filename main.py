@@ -21,7 +21,7 @@ async def main():
     async with client:
         try:
             await client.add_cog(Music_Cog(client))
-            await client.start(TEST_TOKEN)
+            await client.start(TOKEN)
         except Exception as e:
             print(e)
 
