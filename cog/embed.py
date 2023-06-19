@@ -1,9 +1,75 @@
 import discord
+from cog.help_functions import Guild_Music_Properties
 MUSIC_ICON = "https://cdn1.iconfinder.com/data/icons/music-audio-9/24/vinyl_player_retro_dj_disk_music_mix_2-512.png"
 COG_NAME = "Pocket Muse"   
 
 BLANK = '\u200b'
 
+#####USING########
+def title(song):
+    if song is None:
+        return 'None'
+    song = song['title']
+    if len(song) > 25:
+        song = song[0:25]+'...'
+    return song
+def queued(song):
+    embed = discord.Embed(
+        title=f":musical_note: **Queued** :musical_note:",
+        description=f"***```{title(song)}```***",
+        color=discord.Color.blue()) 
+    embed.set_thumbnail(url=MUSIC_ICON)
+    return embed
+
+def music_player(data:Guild_Music_Properties, guild_id):
+    embed = discord.Embed(
+        title=f":musical_note:   **Music Player**   :musical_note:",
+        #description=f"***```{song}```***",
+        color=discord.Color.blurple()) 
+    embed.set_thumbnail(url=MUSIC_ICON)
+    embed.add_field(
+        name='Now Playing', 
+        value = f'*```{title(data.get_current_song(guild_id))}```*')
+
+    queue_msg = ''
+    for ind, song in enumerate(data.get_queue(guild_id)):
+        if ind == 0:
+            queue_msg += f"Next : {title(song)}\n"
+        else: queue_msg += f"{ind} : {title(song)}\n"
+        if ind > 3:
+            break
+    if queue_msg == '': queue_msg = 'Empty'
+    embed.add_field(
+        name='**Queue**', 
+        value = f"*```{queue_msg}```*",
+        inline = False)
+ 
+    msg = ''
+    if data.get_loop(guild_id) is True:
+        msg +=   '**Loop** : On'
+    else: msg += '**Loop** : Off'
+    embed.add_field(
+        name = '', 
+        value = msg,
+        inline = True)
+    msg = ''
+    if data.get_random(guild_id) is True:
+        msg +=   '**Random** : On'
+    else: msg += '**Random** : Off'
+    embed.add_field(
+        name = '', 
+        value = msg,
+        inline = True)
+    
+    return embed
+
+
+
+
+
+
+
+#########NOT USING##########################################
 def pause(bot, song):
     bot_avatar = bot.user.display_avatar
     embed = discord.Embed(
@@ -197,11 +263,20 @@ def timeout_error(bot):
     embed.set_thumbnail(url=MUSIC_ICON)   
     return embed
 
-def shuffle_local_music(bot):
+def shuffle_on(bot):
     bot_avatar = bot.user.display_avatar
     embed = discord.Embed(
-        title=f":twisted_rightwards_arrows: **Playing Random Songs** :infinity:",
+        title=f":twisted_rightwards_arrows: **Shuffle On** :infinity:",
         color=discord.Color.blurple()) 
+    embed.set_thumbnail(url=MUSIC_ICON)
+    embed.set_author(name=COG_NAME, icon_url=bot_avatar)     
+    return embed
+
+def shuffle_off(bot):
+    bot_avatar = bot.user.display_avatar
+    embed = discord.Embed(
+        title=f":twisted_rightwards_arrows: **Shuffle Off** :infinity:",
+        color=discord.Color.dark_orange()) 
     embed.set_thumbnail(url=MUSIC_ICON)
     embed.set_author(name=COG_NAME, icon_url=bot_avatar)     
     return embed
@@ -214,16 +289,5 @@ def reset(bot):
     embed.set_author(name=COG_NAME, icon_url=bot_avatar)  
     embed.set_thumbnail(url=MUSIC_ICON)   
     return embed
-####### NOT USING ####################
-def queue(bot, song):
-    bot_avatar = bot.user.display_avatar
-    embed = discord.Embed(
-        title=f":arrows_counterclockwise: **Queued** :arrows_counterclockwise:",
-        description=f"***```{song}```***",
-        color=discord.Color.yellow()) 
-    embed.set_thumbnail(url=MUSIC_ICON)
-    embed.set_author(name=COG_NAME, icon_url=bot_avatar)     
-    return embed
-
 
 

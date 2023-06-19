@@ -1,406 +1,219 @@
 import discord, os, random
-from typing import Any, List, Optional
-from discord.components import SelectOption
-from discord.interactions import Interaction
-from discord.utils import MISSING
-from yt_dlp import YoutubeDL
-from datetime import datetime, timedelta
+
 from discord import app_commands, FFmpegPCMAudio
 from discord.ext import commands, tasks
-from discord.ui import View, Select
 from tinytag import TinyTag
-
 from cog import embed
+from cog.help_functions import *
 
 
 YDL_OPTIONS = {'format': 'bestaudio', 'noplaylist':'True'}
 FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
 FFMPEG_LOC = "C:\\Users\\SERVER\\Documents\\ffmpeg\\bin\\ffmpeg.exe"
-
 LOCAL_MUSIC_PATH = "C:\\Users\\SERVER\\Music"
 
-def print_log(text, guild_id):
-    time= str(datetime.now())
-    msg = f"{time} | Guild ID: {guild_id} | Master Pocket Bot - {text}"
-    print(msg)
-    
-
-class SearchView(View):
-    def __init__(self, song_list):
-        super().__init__(timeout=30)
-        self.add_item(self.SongSelectMenu(song_list))
-        self.song_choice = None
-    class SongSelectMenu(Select):
-        def __init__(self, song_list):
-            options = []
-            for i, song in enumerate(song_list):
-                path = LOCAL_MUSIC_PATH + '\\'+ song
-                file = TinyTag.get(path)
-                options.append(discord.SelectOption(
-                    label = f"{file.title} - {file.artist}",
-                    value = i
-                ))
-
-            super().__init__(placeholder='Search Results', options = options)
-            self.song_list = song_list
-        async def callback(self, interaction:discord.Interaction):
-            song = self.song_list[int(self.values[0])]
-            path = LOCAL_MUSIC_PATH + '\\'+ song
-            song_metadata = TinyTag.get(path)
-            title = f"{song_metadata.title} - {song_metadata.artist}"
-            song = {'title': title, 'source': f'{LOCAL_MUSIC_PATH}\{song}'}
-            self.view.song_choice = song
-            self.view.stop()
-            await interaction.response.send_message()
-
-class music_cog(commands.Cog):
-    def __init__(self, bot):
+class Music_Cog(commands.Cog):
+    def __init__(self, bot:commands.Bot):
         self.bot = bot
+        self.data = Guild_Music_Properties()
+        self.song_print_loop.start()
+        
+    #prints current song
+    @tasks.loop(seconds=5)
+    async def song_print_loop(self):
+        for guild_id in self.data.get_guild_ids():
+            if self.data.get_channel(guild_id) is None:
+                continue
 
-        self.song_queues = {}
-        self.current_song = {}
-        self.loop_song = {}
-        self.local_shuffle = {}
+            #If its history is empty
+            song = self.data.get_current_song(guild_id) 
+            if self.data.empty_history(guild_id) or self.data.get_history(guild_id)[0] != song:
+                await print_music_player(self, guild_id, self.data)
+                self.data.current_to_history(guild_id)
 
-#####STATIC FUNCTIONS########################################################
-    #Searches Youtube
-    #   Input  : song name(string)
-    #   Returns: song url and title(Dictionary)
-    def search_yt(self, query):
-        with YoutubeDL(YDL_OPTIONS) as ydl:
-            try: 
-                info = ydl.extract_info("ytsearch:%s" % query, download=False)['entries'][0]
-            except Exception: 
-                return None
-        return {'source': info['url'], 'title': info['title']}
 
-    async def valid_play_command(interaction:discord.Interaction):
-        user = interaction.user
-        authorized = None
-        bot_voice = interaction.client.get_guild(user.guild.id).voice_client
+            
 
-        if user.voice is None:
-            authorized = False
-        elif bot_voice is None or not bot_voice.is_connected():
-            authorized = True
-        elif user.voice.channel.id == bot_voice.channel.id:
-            authorized = True
-        else:
-            authorized = False
 
-        if not authorized:
-            msg = embed.unauthorized(interaction.client)
-            await interaction.response.send_message(embed= msg)
-            print_log(f"ACCESS DENIED -> {user}",user.guild.id)
-        else:
-            print_log(f"ACCESS GRANTED -> {user}",user.guild.id)
-        return authorized
-    
-    async def valid_user_REGULAR_FUNC(interaction:discord.Interaction):
-        user = interaction.user
-        authorized = None
-        bot_voice = interaction.client.get_guild(user.guild.id).voice_client
-        if user.voice is None or \
-                bot_voice is None or \
-                not bot_voice.is_connected():
-            authorized = False
-        elif bot_voice.channel.id == user.voice.channel.id:
-            authorized =  True
-        else: 
-            authorized =  False
-
-        if authorized is False:
-            print_log(f"ACCESS DENIED -> {user}",user.guild.id)
-            msg = embed.unauthorized(interaction.client)
-            await interaction.response.send_message(embed= msg)
-        else: print_log(f"ACCESS GRANTED -> {user}",user.guild.id)  
-        return authorized
-
-    def guild_initialize(self, interaction):
-        user = interaction.user
-        guild_id = user.guild.id
+    #MUSIC PLAYER LOOP (not recursive)
+    def music_player(self, interaction:discord.Interaction):
+        guild_name = interaction.user.guild.name
+        guild_id = interaction.user.guild.id
         bot_voice = interaction.client.get_guild(guild_id).voice_client
-        if bot_voice is None:
-            self.song_queues  [guild_id] = []
-            self.current_song [guild_id] = None
-            self.loop_song    [guild_id] = False
-            self.local_shuffle[guild_id] = False
-
-    def start_queue(self, bot_voice, guild_id):
-        if self.loop_song[guild_id] is True:
-            self.song_queues[guild_id].insert(0,self.current_song[guild_id])
-        elif not self.song_queues[guild_id]:
-            if self.local_shuffle[guild_id] is True:
+        
+        if self.data.get_loop(guild_id) is True:
+            self.data.current_to_queue(guild_id)
+        elif self.data.empty_queue(guild_id):
+            if self.data.get_random(guild_id) is True:
                 flac_song_list = os.listdir(LOCAL_MUSIC_PATH)
                 song = random.choice(flac_song_list)
                 path = LOCAL_MUSIC_PATH + '\\'+ song
                 song_metadata = TinyTag.get(path)
                 title = f"{song_metadata.title} - {song_metadata.artist}"
                 song = {'title': title, 'source': f'{LOCAL_MUSIC_PATH}\{song}'}
-                self.song_queues[guild_id].append(song)
+                self.data.queue_song(guild_id, song)
             else:
-                self.current_song[guild_id] = None
-                print_log(f"QUEUE EMPTY",guild_id)
+                self.data.soft_reset(guild_id)
+                send_log(guild_name, 'QUEUE', 'Empty')
                 return
-
-        self.current_song[guild_id]= self.song_queues[guild_id].pop(0)
-
-        if '.mp3' in self.current_song[guild_id]['source']\
-            or '.flac' in self.current_song[guild_id]['source']:
+        song = self.data.queue_to_current(guild_id)
+        if '.mp3' in song['source']\
+            or '.flac' in song['source']:
             player = FFmpegPCMAudio(
-                self.current_song[guild_id]['source'],
+                song['source'],
                 executable=FFMPEG_LOC)
         else:
             player = FFmpegPCMAudio(
-                self.current_song[guild_id]['source'],
+                song['source'],
                 **FFMPEG_OPTIONS,
                 executable= FFMPEG_LOC)
-        print_log(f"PLAYING -> '{self.current_song[guild_id]['title']}'",guild_id)
-        bot_voice.play(player, after= lambda x=None: self.start_queue(bot_voice, guild_id))
-    
-############COMMANDS#################################################################
 
+        send_log(guild_name, "Now Playing", f'\"{song["title"]}\"')
+        bot_voice.play(player, after= lambda x=None: self.music_player(interaction))
+
+    #CHECKS IF MUSIC_PLAYER LOOP SHOULD START
+    def music_player_start(self, interaction:discord.Interaction):
+        guild_name = interaction.user.guild.name
+        guild_id = interaction.user.guild.id
+        bot_voice = interaction.client.get_guild(guild_id).voice_client
+        if bot_voice.is_playing() == bot_voice.is_paused() == False:
+            send_log(guild_name, 'MUSIC PLAYER', 'Start')
+            self.music_player(interaction)
+            return True
+        return False
+    
+#######PLAY FUNCTIONS######################################################
     @app_commands.check(valid_play_command)
     @app_commands.command(name= "play", description="Play song or add to song queue")
     async def play(self, interaction:discord.Interaction, song:str):
+        guild_name = interaction.user.guild.name
+        guild_id = interaction.user.guild.id
+        self.data.initialize(interaction)
 
-        user = interaction.user
-        guild_id = user.guild.id
-        bot_voice = interaction.client.get_guild(guild_id).voice_client
-        self.guild_initialize(interaction)
-        if bot_voice is None:
-            await user.voice.channel.connect()
-            print_log(f"CONNECTED -> '{user.voice.channel}' voice channel",guild_id)
-            bot_voice = interaction.client.get_guild(guild_id).voice_client
-        else:
-            # Already exists
-            if not bot_voice.is_connected():
-                await bot_voice.move_to(user.voice.channel)
-                print_log(f"RECONNECTED -> '{user.voice.channel}' voice channel",guild_id)
-
-        await interaction.response.defer()
+        self.data.set_channel(guild_id, interaction.channel)
+        await voice_connect(interaction)
+        await interaction.response.defer(ephemeral=True)
         query= song
-        print_log(f"SEARCHING YOUTUBE -> '{query}'",guild_id)
-        song = self.search_yt(song)
+        song = youtube_search(query)
         if song is None:
+            send_log(guild_name, 'ERROR', 'Youtube Search')
             msg = embed.yt_search_error(self.bot, query)
-            await interaction.followup.send(embed= msg)
-            print_log(f"YOUTUBE SEARCH ERROR -> '{query}'",guild_id)
-            return
-        song['query'] = query
-        self.song_queues[guild_id].append(song)
-        print_log(f"QUEUED -> '{song['title']}'",guild_id)
+            await interaction.followup.send(embed= msg, ephemeral=True)
+        self.data.queue_song(guild_id, song)
+        self.data.set_current_song(guild_id, song)
+        send_log(guild_name, "Queued", song['title'])
+        embed_msg = embed.queued(song)
+        await interaction.followup.send(embed = embed_msg, ephemeral=True)
+        if self.music_player_start(interaction) is False:
+            await print_music_player(self, guild_id, self.data)
 
-        if self.current_song[guild_id] is None:
-            self.current_song[guild_id]= self.song_queues[guild_id][0]
-            play_emb= embed.play(self.bot, song['title'])
-            await interaction.followup.send(embed = play_emb)
-            self.start_queue(bot_voice, guild_id)
-        else:
-            queue_sum_emb = embed.queue_summary(self.bot, self.song_queues[guild_id])
-            await interaction.followup.send(embed= queue_sum_emb)
 
-    @app_commands.check(valid_user_REGULAR_FUNC)
-    @app_commands.command(name="pause", description= "Pause Song")
-    async def pause(self, interaction:discord.Interaction):
-        user = interaction.user
-        guild_id = user.guild.id
-        current_song = self.current_song[guild_id]
-        bot_voice = interaction.client.get_guild(guild_id).voice_client
-        if bot_voice.is_playing() and not bot_voice.is_paused():
-            print_log(f"PAUSED -> '{current_song['title']}'",guild_id)
-            bot_voice.pause()
-            await interaction.response.send_message(embed = embed.pause(self.bot, current_song['title']))
-        else:
-            await interaction.response.send_message(embed = embed.pause_err(self.bot, current_song))
-    
-    @app_commands.check(valid_user_REGULAR_FUNC)
-    @app_commands.command(name="resume", description= "Resume Song")
-    async def resume(self, interaction:discord.Interaction):
-        user = interaction.user
-        guild_id = user.guild.id
-        current_song = self.current_song[guild_id]
-        bot_voice = interaction.client.get_guild(guild_id).voice_client
-        if not bot_voice.is_playing() and bot_voice.is_paused():
-            print_log(f"RESUMED -> '{current_song['title']}'",guild_id)
-            bot_voice.resume()
-            await interaction.response.send_message(embed = embed.resume(self.bot, current_song['title']))
-        else:
-            await interaction.response.send_message(embed = embed.resume_err(self.bot, current_song))
-
-    @app_commands.check(valid_user_REGULAR_FUNC)
-    @app_commands.command(name="loop", description= "Loop currently playing song")
-    async def loop(self, interaction:discord.Interaction):
-        user = interaction.user
-        msg= None
-        guild_id = user.guild.id
-        current_song = self.current_song[guild_id]
-        if current_song is not None:
-            if self.loop_song[guild_id] is False:
-                self.loop_song[guild_id] = True
-                print_log(f"LOOP START-> {current_song['title']}",guild_id)
-                msg = embed.loop(self.bot, current_song['title'], True)
-            else:
-                self.loop_song[guild_id] = False
-                print_log(f"LOOP STOP-> {current_song['title']}",guild_id)
-                msg = embed.loop(self.bot, current_song['title'], False)
-        else:
-            msg = embed.loop(self.bot, None, None)
-        await interaction.response.send_message(embed = msg)
-    
-    @app_commands.check(valid_user_REGULAR_FUNC)
-    @app_commands.command(name="skip", description= "Skip song")
-    async def skip(self, interaction:discord.Interaction):
-        user = interaction.user
-        msg= None
-        guild_id = user.guild.id
-        current_song = self.current_song[guild_id]
-        bot_voice = interaction.client.get_guild(guild_id).voice_client
-        if current_song is not None:
-            self.loop = False
-            print_log(f"SKIP -> {current_song['title']}",guild_id)
-            bot_voice.stop()
-            msg = embed.skip(self.bot, current_song['title'])
-        else:
-            msg = embed.skip(self.bot , None)
-        await interaction.response.send_message(embed= msg)
-
-    @app_commands.check(valid_user_REGULAR_FUNC)
-    @app_commands.command(name="delete", description= "Deletes a song from queue. Position starts from 0.")
-    async def delete(self, interaction:discord.Interaction, pos: int):
-        user = interaction.user
-        guild_id = user.guild.id
-        if pos < len(self.song_queues[guild_id]) and pos >= 0:
-            del self.song_queues[guild_id][pos]
-            queue_sum_emb = embed.queue_summary(self.bot, self.song_queues[guild_id])
-            await interaction.response.send_message(embed= queue_sum_emb)
-        else:
-            queue_sum_emb = embed.queue_summary(self.bot, self.song_queues[guild_id])
-            await interaction.response.send_message(embed= queue_sum_emb)
-
-    @app_commands.check(valid_user_REGULAR_FUNC)
-    @app_commands.command(name="queue", description= "Shows queue list")
-    async def queue(self, interaction:discord.Interaction):
-        user = interaction.user
-        guild_id = user.guild.id
-        if guild_id not in self.song_queues:
-            queue_sum_emb = embed.queue_summary(self.bot, [])
-        else:
-            queue_sum_emb = embed.queue_summary(self.bot, self.song_queues[guild_id])
-        await interaction.response.send_message(embed= queue_sum_emb)
-    
-    #LOCAL FILE ACCESS COMMANDS
     @app_commands.check(valid_play_command)
-    @app_commands.command(name= "flac", description="Search and play downloaded song on bot server")
-    async def flac(self, interaction:discord.Interaction, query:str):
-        user = interaction.user
-        guild_id = user.guild.id
-        bot_voice = interaction.client.get_guild(guild_id).voice_client
-        self.guild_initialize(interaction)
-        if bot_voice is None:
-            await user.voice.channel.connect()
-            print_log(f"CONNECTED -> '{user.voice.channel}' voice channel",guild_id)
-            bot_voice = interaction.client.get_guild(guild_id).voice_client
-        else:
-            # Already exists
-            if not bot_voice.is_connected():
-                await bot_voice.move_to(user.voice.channel)
-                print_log(f"RECONNECTED -> '{user.voice.channel}' voice channel",guild_id)
-        
-        flac_song_list = os.listdir(LOCAL_MUSIC_PATH)
-        query = query.lower()
-        query_matches = [song for song in flac_song_list if query in song.lower()]
+    @app_commands.command(name= "play_random", description="Play random songs from pocket bot library forever")
+    async def play_random(self, interaction:discord.Interaction):
+        guild_name = interaction.user.guild.name
+        guild_id = interaction.user.guild.id
 
+        self.data.initialize(interaction)
+        self.data.set_channel(guild_id, interaction.channel)
+        random_song = self.data.flip_random(guild_id)
+        await interaction.response.send_message('-_-', ephemeral=True)
+        if random_song is True:
+            await voice_connect(interaction)
+            send_log(guild_name, 'RANDOM SONG', 'On')
+            if self.music_player_start(interaction) is False:
+                await print_music_player(self, guild_id, self.data)
+        else: 
+            send_log(guild_name, 'RANDOM SONG', 'Off')
+            await print_music_player(self, guild_id, self.data)
+
+
+    @app_commands.check(valid_play_command)
+    @app_commands.command(name= "flac", description="Search and play downloaded songs on bot server")
+    async def flac(self, interaction:discord.Interaction, query:str):
+        guild_name = interaction.user.guild.name
+        guild_id = interaction.user.guild.id
+        self.data.initialize(interaction)
+        self.data.set_channel(guild_id, interaction.channel)
+        local_song_list = os.listdir(LOCAL_MUSIC_PATH)
+        query = query.lower()
+        query_matches = [song for song in local_song_list if query in song.lower()]
         if not query_matches: #If there are no matches for query from list of songs
             emb_msg = embed.no_match(self.bot, query)
             await interaction.response.send_message(embed= emb_msg, ephemeral=True)
             return
         if len(query_matches) > 25:
             query_matches = query_matches[0:25]
-
         sview = SearchView(query_matches)
         emb_msg = embed.search_list_prompt(self.bot)
         await interaction.response.send_message(embed =emb_msg, view=sview, ephemeral=True)
         timeout = await sview.wait()
-
-        if timeout is True:
-            emb_msg = embed.timeout_error(self.bot)
-            await interaction.edit_original_response(embed=emb_msg, view = None)
-            return
         await interaction.delete_original_response()
+        if timeout is True:
+            return
         song = sview.song_choice
-        self.song_queues[guild_id].append(song)
-        if self.current_song[guild_id] is None:
-            self.current_song[guild_id]= self.song_queues[guild_id][0]
-            play_emb= embed.play(self.bot, song['title'])
-            await interaction.followup.send(embed = play_emb)
-            self.start_queue(bot_voice, guild_id)
-        else:
-            queue_sum_emb = embed.queue_summary(self.bot, self.song_queues[guild_id])
-            await interaction.followup.send(embed= queue_sum_emb)
+        self.data.queue_song(guild_id, song)
+        send_log(guild_name, "Queued", song['title'])
+        embed_msg = embed.queued(song)
+        await interaction.followup.send(embed = embed_msg, ephemeral=True)
+        await voice_connect(interaction)
+        if self.music_player_start(interaction) is False:
+            await print_music_player(self, guild_id, self.data)
 
-    @app_commands.check(valid_play_command)
-    @app_commands.command(name= "play_random", description="Play random songs from pocket bot library forever")
-    async def play_random(self, interaction:discord.Interaction):
-        user = interaction.user
-        guild_id = user.guild.id
-        bot_voice = interaction.client.get_guild(guild_id).voice_client
-        self.guild_initialize(interaction)
-        if bot_voice is None:
-            await user.voice.channel.connect()
-            print_log(f"CONNECTED -> '{user.voice.channel}' voice channel",guild_id)
-            bot_voice = interaction.client.get_guild(guild_id).voice_client
-        else:
-            # Already exists
-            if not bot_voice.is_connected():
-                await bot_voice.move_to(user.voice.channel)
-                print_log(f"RECONNECTED -> '{user.voice.channel}' voice channel",guild_id)
-        self.local_shuffle[guild_id] = True
-        emb_msg = embed.shuffle_local_music(self.bot)
-        await interaction.response.send_message(embed= emb_msg)
-        if self.current_song[guild_id] is None:
-            self.start_queue(bot_voice, guild_id)
-    
+
+
+#######MUSIC PLAYER GENERAL FUNCTIONS######################################################
     @app_commands.check(valid_user_REGULAR_FUNC)
-    @app_commands.command(name= "stop", description="Stops player and resets all values")
-    async def stop(self, interaction:discord.Interaction):
-        user = interaction.user
-        guild_id = user.guild.id
-        bot_voice = interaction.client.get_guild(guild_id).voice_client  
-        self.song_queues[guild_id]   = []
-        self.loop_song[guild_id]     = False
-        self.current_song[guild_id]  = None
-        self.local_shuffle[guild_id] = False
-        if bot_voice is not None and (bot_voice.is_playing() or bot_voice.is_paused()):
-            bot_voice.stop()        
-        print_log("RESET", guild_id)
-        emb_msg = embed.reset(self.bot)
-        await interaction.response.send_message(embed= emb_msg)
+    @app_commands.command(name="skip", description= "Skip song")
+    async def skip(self, interaction:discord.Interaction):
+        guild_name = interaction.user.guild.name
+        guild_id = interaction.user.guild.id
+        bot_voice = interaction.client.get_guild(guild_id).voice_client
+
+        if bot_voice.is_playing() or bot_voice.is_paused():
+            song = self.data.get_current_song(guild_id)
+            self.data.set_loop(guild_id, False)
+            send_log(guild_name, 'SKIP', f"{song['title']}")
+            bot_voice.stop()
+            msg = embed.skip(self.bot, song['title'])
+            await interaction.response.send_message(embed= msg)
+        else:
+            msg = embed.skip(self.bot , None)
+            await interaction.response.send_message(embed= msg)
 
 
-##########LISTENERS#################################################################
+        
+
+
+        
+        
+
+#####################################################################################
     @commands.Cog.listener() #RESET BOT FOR GUILD IF DISCONNECTED FROM VOICE CHANNEL
     async def on_voice_state_update(self, member, before, after):
+        guild_name = member.guild.name
+        description = 'Voice Disconnected'
         guild_id= member.guild.id
-        if member.id == self.bot.user.id:
-            bot_voice = self.bot.get_guild(guild_id).voice_client
-            if after.channel is None:
-                self.song_queues[guild_id]   = []
-                self.loop_song[guild_id]     = False
-                self.current_song[guild_id]  = None
-                self.local_shuffle[guild_id] = False
-                if bot_voice is not None and (bot_voice.is_playing() or bot_voice.is_paused()):
-                    bot_voice.stop()
-                print_log("RESET", guild_id)
+
+        if member.id == self.bot.user.id and after.channel is None:
+            self.data.soft_reset(guild_id)
+            send_log(guild_name, description)
 
 
+
+            
 #####################################################################################
     @commands.command(name= "sync", description= "Sync app commands with discord server")
     async def sync(self,ctx):
-        print_log("SYNCING COMMANDS", None)
+        log_name = ctx.guild.name
+        description = 'SYNCED COMMANDS'
         try:
-            synced = await ctx.bot.tree.sync()
-            print_log(f"SYNCED {len(synced)} COMMAND(S)",None)
+            try:
+                await ctx.bot.tree.sync()
+            except Exception as e:
+                pass
+            send_log(log_name, description)
         except Exception as e:
-            print_log(e, None)
-    
+            print(e)
+
+
