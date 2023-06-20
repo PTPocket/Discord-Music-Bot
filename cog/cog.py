@@ -66,7 +66,6 @@ class Music_Cog(commands.Cog):
         or self.data.get_history(guild_id)[0]['title'] != song['title']:
             self.data.current_to_history(guild_id)
 
-
         if '.mp3' in song['source']\
             or '.flac' in song['source']:
             player = FFmpegPCMAudio(
@@ -77,7 +76,7 @@ class Music_Cog(commands.Cog):
                 song['source'],
                 **FFMPEG_OPTIONS,
                 executable= FFMPEG_LOC)
-
+        player = discord.PCMVolumeTransformer(player, volume=0.3)
         send_log(guild_name, "Now Playing", f'\"{song["title"]}\"')
         bot_voice.play(player, after= lambda x=None: self.music_player(interaction, recall=True))
 
@@ -114,8 +113,6 @@ class Music_Cog(commands.Cog):
         await print_music_player(self, guild_id, self.data)
         await interaction.delete_original_response()
         
-
-
     @app_commands.check(valid_play_command)
     @app_commands.command(name= "play_random", description="Play random songs from pocket bot library forever")
     async def play_random(self, interaction:discord.Interaction):
@@ -134,9 +131,6 @@ class Music_Cog(commands.Cog):
         await interaction.delete_original_response()
         await print_music_player(self, guild_id, self.data)
         
-
-
-
     @app_commands.check(valid_play_command)
     @app_commands.command(name= "flac", description="Search and play downloaded songs on bot server")
     async def flac(self, interaction:discord.Interaction, query:str):

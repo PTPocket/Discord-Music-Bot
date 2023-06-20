@@ -194,6 +194,7 @@ class MusicFunctions(View):
                 send_log(guild_name, 'RANDOM SONG', 'Off')
                 await print_music_player(self.music_cog, guild_id, self.data)
             await interaction.response.send_message()
+    
     class PreviousButton(Button):
         def __init__(self,music_cog, data, guild_id):
             super().__init__(emoji = "⏮", style= discord.ButtonStyle.blurple)
