@@ -142,27 +142,29 @@ class MusicFunctions(View):
             guild_id = interaction.user.guild.id
             bot_voice = interaction.client.get_guild(guild_id).voice_client
             
-
             if self.data.get_history(guild_id) == []:
                 return
-
 
             if bot_voice.is_playing() or bot_voice.is_paused():
                 if len(self.data.get_history(guild_id)) == 1:
                     recent = self.data.data[guild_id]['history'].pop(0)
                     self.data.prepend_to_queue(guild_id, recent)
+                    no_print = True
                 else:
                     recent = self.data.data[guild_id]['history'].pop(0)
                     self.data.prepend_to_queue(guild_id, recent)
                     recent = self.data.data[guild_id]['history'].pop(0)
                     self.data.prepend_to_queue(guild_id, recent)
+                    no_print = False
                 send_log(guild_name, 'LAST TRACK')
                 self.data.set_loop(guild_id, False)
                 self.music_cog.to_print.append(guild_id)
                 bot_voice.stop()
                 await interaction.response.defer()
-                await print_music_player(self.music_cog, guild_id, self.data)
+                if no_print is False:
+                    await print_music_player(self.music_cog, guild_id, self.data)
             else:
+                no_print = False
                 recent = self.data.data[guild_id]['history'].pop(0)
                 self.data.prepend_to_queue(guild_id, recent)
                 await voice_connect(interaction)
@@ -171,7 +173,7 @@ class MusicFunctions(View):
                 await interaction.response.defer()
                 await print_music_player(self.music_cog, guild_id, self.data)
 
-                    
+    
 
     class PlayPause(Button):
         def __init__(self,music_cog, data,guild_id):
