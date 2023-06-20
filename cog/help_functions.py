@@ -129,51 +129,25 @@ class MusicFunctions(View):
         self.add_item(self.PreviousButton(music_cog, data,guild_id))
         self.add_item(self.PlayPause(music_cog, data,guild_id))
         self.add_item(self.NextButton(music_cog, data,guild_id))
-        #self.add_item(self.LoopButton(data,guild_id))
         self.add_item(self.RandomButton(music_cog, data,guild_id))
-        
-    class PreviousButton(Button):
-        def __init__(self,music_cog, data, guild_id):
-            super().__init__(emoji = "⏮", style= discord.ButtonStyle.blurple)
-            self.data = data
-            self.music_cog = music_cog
-        async def callback(self, interaction: discord.Interaction):
-            guild_name = interaction.user.guild.name
-            guild_id = interaction.user.guild.id
-            bot_voice = interaction.client.get_guild(guild_id).voice_client
-            
-            if self.data.get_history(guild_id) == []:
-                return
+        self.add_item(self.LoopButton(music_cog, data,guild_id))
 
-            if bot_voice.is_playing() or bot_voice.is_paused():
-                if len(self.data.get_history(guild_id)) == 1:
-                    recent = self.data.data[guild_id]['history'].pop(0)
-                    self.data.prepend_to_queue(guild_id, recent)
-                    no_print = True
-                else:
-                    recent = self.data.data[guild_id]['history'].pop(0)
-                    self.data.prepend_to_queue(guild_id, recent)
-                    recent = self.data.data[guild_id]['history'].pop(0)
-                    self.data.prepend_to_queue(guild_id, recent)
-                    no_print = False
-                send_log(guild_name, 'LAST TRACK')
-                self.data.set_loop(guild_id, False)
-                self.music_cog.to_print.append(guild_id)
-                bot_voice.stop()
-                await interaction.response.defer()
-                if no_print is False:
-                    await print_music_player(self.music_cog, guild_id, self.data)
-            else:
-                no_print = False
-                recent = self.data.data[guild_id]['history'].pop(0)
-                self.data.prepend_to_queue(guild_id, recent)
-                await voice_connect(interaction)
-                self.music_cog.to_print.append(guild_id)
-                self.music_cog.music_player_start(interaction)
-                await interaction.response.defer()
-                await print_music_player(self.music_cog, guild_id, self.data)
+    async def interaction_check(self, interaction: discord.Interaction):
+        user = interaction.user
+        guild_name = interaction.user.guild.name
+        guild_id = interaction.user.guild.id
+        bot_voice = interaction.client.get_guild(guild_id).voice_client
+        if user.voice is None or bot_voice is None:
+            await interaction.response.defer()
+            send_log(guild_name, 'ACCESS DENIED', user)
+            return False
+        elif bot_voice.channel.id == user.voice.channel.id:
+            send_log(guild_name, 'ACCESS GRANTED', user) 
+            return True
+        await interaction.response.defer()
+        send_log(guild_name, 'ACCESS DENIED', user)
+        return False
 
-    
 
     class PlayPause(Button):
         def __init__(self,music_cog, data,guild_id):
@@ -220,6 +194,45 @@ class MusicFunctions(View):
                 send_log(guild_name, 'RANDOM SONG', 'Off')
                 await print_music_player(self.music_cog, guild_id, self.data)
             await interaction.response.send_message()
+    class PreviousButton(Button):
+        def __init__(self,music_cog, data, guild_id):
+            super().__init__(emoji = "⏮", style= discord.ButtonStyle.blurple)
+            self.data = data
+            self.music_cog = music_cog
+        async def callback(self, interaction: discord.Interaction):
+            guild_name = interaction.user.guild.name
+            guild_id = interaction.user.guild.id
+            bot_voice = interaction.client.get_guild(guild_id).voice_client
+            if self.data.get_history(guild_id) == []:
+                return
+
+            if bot_voice.is_playing() or bot_voice.is_paused():
+                if len(self.data.get_history(guild_id)) == 1:
+                    recent = self.data.data[guild_id]['history'].pop(0)
+                    self.data.prepend_to_queue(guild_id, recent)
+                    no_print = True
+                else:
+                    recent = self.data.data[guild_id]['history'].pop(0)
+                    self.data.prepend_to_queue(guild_id, recent)
+                    recent = self.data.data[guild_id]['history'].pop(0)
+                    self.data.prepend_to_queue(guild_id, recent)
+                    no_print = False
+                send_log(guild_name, 'LAST TRACK')
+                self.data.set_loop(guild_id, False)
+                self.music_cog.to_print.append(guild_id)
+                bot_voice.stop()
+                await interaction.response.defer()
+                if no_print is False:
+                    await print_music_player(self.music_cog, guild_id, self.data)
+            else:
+                no_print = False
+                recent = self.data.data[guild_id]['history'].pop(0)
+                self.data.prepend_to_queue(guild_id, recent)
+                await voice_connect(interaction)
+                self.music_cog.to_print.append(guild_id)
+                self.music_cog.music_player_start(interaction)
+                await interaction.response.defer()
+                await print_music_player(self.music_cog, guild_id, self.data)
 
     class NextButton(Button):
         def __init__(self,music_cog, data, guild_id):
@@ -243,8 +256,13 @@ class MusicFunctions(View):
                 await interaction.response.defer()
 
     class LoopButton(Button):
-        def __init__(self, data, guild_id):
-            super().__init__(emoji = "🔁", style=discord.ButtonStyle.blurple)
+        def __init__(self,music_cog, data, guild_id):
+            if data.get_loop(guild_id) is True:
+                style= discord.ButtonStyle.blurple
+            else:
+                style= discord.ButtonStyle.grey
+            super().__init__(emoji = "🔁", style=style)
+            self.music_cog = music_cog
             self.data = data
         async def callback(self, interaction: discord.Interaction):
             guild_name = interaction.user.guild.name
@@ -255,23 +273,40 @@ class MusicFunctions(View):
                 self.data.flip_loop(guild_id)
                 send_log(guild_name, 'LOOP', f"{song['title']}")
                 await print_music_player(self.music_cog, guild_id, self.data)
-            await interaction.response.send_message()
+            await interaction.response.defer()
 
-async def print_music_player(music_cog, guild_id, data):
+async def print_music_player(music_cog, guild_id, data, reprint = False):
     player_embed = embed.music_player(data, guild_id)
     view = MusicFunctions(music_cog, guild_id, data)
-    msg_del = data.get_message(guild_id)
-    message = await data.get_channel(guild_id).send(embed = player_embed, view = view)
-    if msg_del is not None:
-        await msg_del.delete()
-    data.set_message(guild_id, message)
+    last_message = data.get_message(guild_id)
+    if reprint is True:
+        message = await data.get_channel(guild_id).send(embed = player_embed, view = view)
+        if last_message is not None:
+            await last_message.delete()
+        data.set_message(guild_id, message)
+        print('move to bottom')
+        return
+    if last_message is not None:
+        if data.get_channel(guild_id).id == last_message.channel.id:
+            msg = data.get_message(guild_id)
+            await msg.edit(embed = player_embed, view = view)
+            print('edit message')
+        else:
+            message = await data.get_channel(guild_id).send(embed = player_embed, view = view)
+            await last_message.delete()
+            data.set_message(guild_id, message)
+            print('new channel move message')
+    else:
+        print('print first message')
+        message = await data.get_channel(guild_id).send(embed = player_embed, view = view)
+        data.set_message(guild_id, message)
+
 
 
 
 class Guild_Music_Properties():
     def __init__(self):
         self.data = {}
-    
     def initialize(self, interaction:discord.Interaction):
         log_name = interaction.user.guild.name
         description = 'Initialized Variables for Guild'

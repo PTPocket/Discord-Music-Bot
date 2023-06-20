@@ -23,13 +23,10 @@ def queued(song):
 
 def music_player(data:Guild_Music_Properties, guild_id):
     embed = discord.Embed(
-        title=f":musical_note:   **Music Player**   :musical_note:",
+        title=f":musical_note:   **MUSIC PLAYER**   :musical_note:",
         #description=f"***```{song}```***",
         color=discord.Color.blurple()) 
     embed.set_thumbnail(url=MUSIC_ICON)
-
-
-
 
     queue_msg = ''
     for ind, song in enumerate(data.get_queue(guild_id)):
@@ -51,23 +48,21 @@ def music_player(data:Guild_Music_Properties, guild_id):
 
     msg = ''
     if data.get_loop(guild_id) is True:
-        msg +=   '**Loop** : On'
-    else: msg += '**Loop** : Off'
+        msg =   '**Loop** : ``On ``'
+    else: msg = '**Loop** : ``Off``'
     embed.add_field(
         name = '', 
         value = msg,
         inline = True)
-    msg = ''
     if data.get_random(guild_id) is True:
-        msg +=   '**Random** : On'
-    else: msg += '**Random** : Off'
+        msg =   '**Random** : ``On ``'
+    else: msg = '**Random** : ``Off``'
     embed.add_field(
         name = '', 
         value = msg,
         inline = True)
     
     return embed
-
 
 
 #########NOT USING##########################################

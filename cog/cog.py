@@ -128,9 +128,9 @@ class Music_Cog(commands.Cog):
         if random_song is True:
             await voice_connect(interaction)
             send_log(guild_name, 'RANDOM SONG', 'On')
-            self.music_player_start(interaction)
         else: 
             send_log(guild_name, 'RANDOM SONG', 'Off')
+        self.music_player_start(interaction)
         await interaction.delete_original_response()
         await print_music_player(self, guild_id, self.data)
         
@@ -172,23 +172,23 @@ class Music_Cog(commands.Cog):
 
 
 #######MUSIC PLAYER GENERAL FUNCTIONS######################################################
-    @app_commands.check(valid_user_REGULAR_FUNC)
-    @app_commands.command(name="skip", description= "Skip song")
-    async def skip(self, interaction:discord.Interaction):
-        guild_name = interaction.user.guild.name
-        guild_id = interaction.user.guild.id
-        bot_voice = interaction.client.get_guild(guild_id).voice_client
+    # @app_commands.check(valid_user_REGULAR_FUNC)
+    # @app_commands.command(name="skip", description= "Skip song")
+    # async def skip(self, interaction:discord.Interaction):
+    #     guild_name = interaction.user.guild.name
+    #     guild_id = interaction.user.guild.id
+    #     bot_voice = interaction.client.get_guild(guild_id).voice_client
 
-        if bot_voice.is_playing() or bot_voice.is_paused():
-            song = self.data.get_current_song(guild_id)
-            self.data.set_loop(guild_id, False)
-            send_log(guild_name, 'SKIP', f"{song['title']}")
-            bot_voice.stop()
-            msg = embed.skip(self.bot, song['title'])
-            await interaction.response.send_message(embed= msg)
-        else:
-            msg = embed.skip(self.bot , None)
-            await interaction.response.send_message(embed= msg)
+    #     if bot_voice.is_playing() or bot_voice.is_paused():
+    #         song = self.data.get_current_song(guild_id)
+    #         self.data.set_loop(guild_id, False)
+    #         send_log(guild_name, 'SKIP', f"{song['title']}")
+    #         bot_voice.stop()
+    #         msg = embed.skip(self.bot, song['title'])
+    #         await interaction.response.send_message(embed= msg)
+    #     else:
+    #         msg = embed.skip(self.bot , None)
+    #         await interaction.response.send_message(embed= msg)
 
 
         
@@ -197,10 +197,9 @@ class Music_Cog(commands.Cog):
     async def on_message(self, message):
         guild_name = message.guild.name
         guild_id = message.guild.id
-
         if message.author.id == self.bot.user.id:
             return
-        await print_music_player(self, guild_id, self.data)
+        await print_music_player(self, guild_id, self.data, reprint = True)
 
 
         
