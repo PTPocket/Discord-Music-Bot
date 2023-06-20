@@ -8,7 +8,7 @@ BLANK = '\u200b'
 #####USING########
 def title(song):
     if song is None:
-        return 'None'
+        return '...'
     song = song['title']
     if len(song) > 25:
         song = song[0:25]+'...'
@@ -27,23 +27,28 @@ def music_player(data:Guild_Music_Properties, guild_id):
         #description=f"***```{song}```***",
         color=discord.Color.blurple()) 
     embed.set_thumbnail(url=MUSIC_ICON)
-    embed.add_field(
-        name='Now Playing', 
-        value = f'*```{title(data.get_current_song(guild_id))}```*')
+
+
+
 
     queue_msg = ''
     for ind, song in enumerate(data.get_queue(guild_id)):
         if ind == 0:
-            queue_msg += f"Next : {title(song)}\n"
-        else: queue_msg += f"{ind} : {title(song)}\n"
+            queue_msg = f"Next : {title(song)}"
+        else: queue_msg = f"{ind} : {title(song)}\n" + queue_msg
         if ind > 3:
             break
-    if queue_msg == '': queue_msg = 'Empty'
+    if queue_msg == '': queue_msg = '...'
     embed.add_field(
         name='**Queue**', 
-        value = f"*```{queue_msg}```*",
-        inline = False)
+        value = f"*```{queue_msg}```*")
  
+    embed.add_field(
+        name='Now Playing', 
+        value = f'*```{title(data.get_current_song(guild_id))}```*',
+        inline=False)
+
+
     msg = ''
     if data.get_loop(guild_id) is True:
         msg +=   '**Loop** : On'
@@ -62,10 +67,6 @@ def music_player(data:Guild_Music_Properties, guild_id):
         inline = True)
     
     return embed
-
-
-
-
 
 
 

@@ -1,11 +1,11 @@
-import discord, os, random
+import discord, os, random, time
 from tinytag import TinyTag
 from discord import FFmpegPCMAudio
 from discord.ui import View, Select, Button
 from datetime import datetime
 from yt_dlp import YoutubeDL
 from cog import embed
-
+BLANK = '\u200b'
 YDL_OPTIONS = {'format': 'bestaudio', 'noplaylist':'True'}
 FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
 FFMPEG_LOC = "C:\\Users\\SERVER\\Documents\\ffmpeg\\bin\\ffmpeg.exe"
@@ -126,13 +126,48 @@ class MusicFunctions(View):
     def __init__(self,music_cog,guild_id, data):
         super().__init__(timeout=None)
         self.bot = music_cog.bot
-        #self.add_item(self.button('prev', "⏮"))
+        self.add_item(self.PreviousButton(music_cog, data,guild_id))
         self.add_item(self.PlayPause(music_cog, data,guild_id))
         self.add_item(self.NextButton(music_cog, data,guild_id))
         #self.add_item(self.LoopButton(data,guild_id))
         self.add_item(self.RandomButton(music_cog, data,guild_id))
         
-    
+    class PreviousButton(Button):
+        def __init__(self,music_cog, data, guild_id):
+            super().__init__(emoji = "⏮", style= discord.ButtonStyle.blurple)
+            self.data = data
+            self.music_cog = music_cog
+        async def callback(self, interaction: discord.Interaction):
+            guild_name = interaction.user.guild.name
+            guild_id = interaction.user.guild.id
+            bot_voice = interaction.client.get_guild(guild_id).voice_client
+            
+
+            if self.data.get_history(guild_id) == []:
+                return
+            if len(self.data.get_history(guild_id)) == 1:
+                recent = self.data.data[guild_id]['history'].pop(0)
+                self.data.prepend_to_queue(guild_id, recent)
+            else:
+                recent = self.data.data[guild_id]['history'].pop(0)
+                self.data.prepend_to_queue(guild_id, recent)
+                recent = self.data.data[guild_id]['history'].pop(0)
+                self.data.prepend_to_queue(guild_id, recent)
+
+            if bot_voice.is_playing() or bot_voice.is_paused():
+                send_log(guild_name, 'LAST TRACK')
+                self.data.set_loop(guild_id, False)
+                self.music_cog.to_print.append(guild_id)
+                bot_voice.stop()
+                await interaction.response.defer()
+                await print_music_player(self.music_cog, guild_id, self.data)
+            else:
+                await voice_connect(interaction)
+                self.music_cog.music_player_start(interaction)
+                await interaction.response.defer()
+                await print_music_player(self.music_cog, guild_id, self.data)
+
+                    
 
     class PlayPause(Button):
         def __init__(self,music_cog, data,guild_id):
@@ -144,20 +179,26 @@ class MusicFunctions(View):
             guild_name = interaction.user.guild.name
             guild_id = interaction.user.guild.id
             bot_voice = interaction.client.get_guild(guild_id).voice_client
-            song = self.data.get_current_song(guild_id)['title']
+            song = self.data.get_current_song(guild_id)
             if bot_voice.is_playing() and not bot_voice.is_paused():
-                send_log(guild_name, 'PAUSED',song)
-                await print_music_player(self.music_cog, guild_id, self.data)
+                send_log(guild_name, 'PAUSED',song['title'])
                 bot_voice.pause()
+                self.style = discord.ButtonStyle.grey
+                await interaction.response.edit_message(view=self.view)
             elif not bot_voice.is_playing() and bot_voice.is_paused():
-                send_log(guild_name, 'RESUMED',song)
-                await print_music_player(self.music_cog, guild_id, self.data)
+                send_log(guild_name, 'RESUMED',song['title'])
                 bot_voice.resume()
-            await interaction.response.send_message()
+                self.style = discord.ButtonStyle.blurple
+                await interaction.response.edit_message(view=self.view)
+            await interaction.response.defer()
 
     class RandomButton(Button):
         def __init__(self, music_cog, data, guild_id):
-            super().__init__(label = 'Random Song', style= discord.ButtonStyle.blurple)
+            if data.get_random(guild_id) == True:
+                style= discord.ButtonStyle.blurple
+            else:
+                style= discord.ButtonStyle.grey
+            super().__init__(label = 'Random Song', style= style)
             self.data = data
             self.music_cog = music_cog
         async def callback(self, interaction: discord.Interaction):
@@ -169,7 +210,6 @@ class MusicFunctions(View):
                 await voice_connect(interaction)
                 self.music_cog.music_player_start(interaction)
                 await print_music_player(self.music_cog, guild_id, self.data)
-                    
             else: 
                 send_log(guild_name, 'RANDOM SONG', 'Off')
                 await print_music_player(self.music_cog, guild_id, self.data)
@@ -184,13 +224,17 @@ class MusicFunctions(View):
             guild_name = interaction.user.guild.name
             guild_id = interaction.user.guild.id
             bot_voice = interaction.client.get_guild(guild_id).voice_client
+            
             if bot_voice.is_playing() or bot_voice.is_paused():
                 song = self.data.get_current_song(guild_id)
-                self.data.set_loop(guild_id, False)
                 send_log(guild_name, 'SKIP', f"{song['title']}")
+                self.data.set_loop(guild_id, False)
+                self.music_cog.to_print.append(guild_id)
                 bot_voice.stop()
+                await interaction.response.defer()
                 await print_music_player(self.music_cog, guild_id, self.data)
-            await interaction.response.send_message()
+            else:
+                await interaction.response.defer()
 
     class LoopButton(Button):
         def __init__(self, data, guild_id):
@@ -209,17 +253,12 @@ class MusicFunctions(View):
 
 async def print_music_player(music_cog, guild_id, data):
     player_embed = embed.music_player(data, guild_id)
-    try:
-        view = MusicFunctions(music_cog, guild_id, data)
-    except Exception as e:
-        print(e)
+    view = MusicFunctions(music_cog, guild_id, data)
+    msg_del = data.get_message(guild_id)
     message = await data.get_channel(guild_id).send(embed = player_embed, view = view)
-    if data.get_message(guild_id) is not None:
-        await data.get_message(guild_id).delete()
+    if msg_del is not None:
+        await msg_del.delete()
     data.set_message(guild_id, message)
-
-
-
 
 
 
@@ -280,17 +319,36 @@ class Guild_Music_Properties():
     #SPECIFIC FUNCTIONS
     def queue_song(self, guild_id, song):
         self.data[guild_id]['queue'].append(song)
+    def prepend_to_queue(self, guild_id, song):
+        self.data[guild_id]['queue'].insert(0,song)
     def queue_to_current(self, guild_id):
-        self.data[guild_id]['current'] = self.data[guild_id]['queue'].pop(0)
-        return self.data[guild_id]['current']
+        if self.data[guild_id]['queue'] != []:
+            self.data[guild_id]['current'] = self.data[guild_id]['queue'].pop(0)
+            return self.data[guild_id]['current']
+        return None
+
     def current_to_queue(self, guild_id):
         if self.data[guild_id]['current'] is not None:
             self.data[guild_id]['queue'].insert(0,self.data[guild_id]['current'])
     def current_to_history(self, guild_id):
         if self.data[guild_id]['current'] is not None:
             self.data[guild_id]['history'].insert(0,self.data[guild_id]['current'])
-            if len(self.data[guild_id]['history']) > 25:
-                self.data[guild_id]['history'] = self.data[guild_id]['history'][0:25]
+            if len(self.data[guild_id]['history']) > 30:
+                self.data[guild_id]['history'] = self.data[guild_id]['history'][0:30]
+    def history_to_queue(self,guild_id):
+        if self.data[guild_id]['history'] == []:
+            return
+        if len(self.data[guild_id]['history']) > 1:
+            recent = self.data[guild_id]['history'].pop(0)
+            self.prepend_to_queue(guild_id, recent)
+            recent = self.data[guild_id]['history'].pop(0)
+            self.prepend_to_queue(guild_id, recent)
+        elif len(self.data[guild_id]['history']) == 1:
+            recent = self.data[guild_id]['history'].pop(0)
+            self.prepend_to_queue(guild_id, recent)
+
+
+    
     def flip_loop(self,guild_id):  
         if self.data[guild_id]['loop'] is False:
             self.data[guild_id]['loop'] = True
@@ -316,9 +374,11 @@ class Guild_Music_Properties():
         self.data[guild_id]['loop']   = False
         self.data[guild_id]['random'] = False
     def soft_reset(self, guild_id):
+        self.data[guild_id]['current']= None
         self.data[guild_id]['queue']  = []
         self.data[guild_id]['loop']   = False
         self.data[guild_id]['random'] = False
+
     def hard_reset(self, guild_id):
         self.data[guild_id]['queue']  = []
         self.data[guild_id]['history']  = []
