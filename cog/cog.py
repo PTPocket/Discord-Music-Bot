@@ -231,7 +231,7 @@ class Music_Cog(commands.Cog):
         description = 'SYNCED COMMANDS'
         try:
             try:
-                ctx.bot.tree.sync()
+                await ctx.bot.tree.sync()
             except Exception as e:
                 pass
             send_log(log_name, description)
