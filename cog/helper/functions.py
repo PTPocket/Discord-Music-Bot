@@ -358,5 +358,8 @@ class MusicFunctions(View):
                     voice_client.stop()
                 await voice_client.disconnect()
             await interaction.response.defer()
-            await self.music_cog.GUI_HANDLER(guild_id)
+            try:
+                await self.music_cog.GUI_HANDLER(guild_id)
+            except Exception as e:
+                print(e)
 

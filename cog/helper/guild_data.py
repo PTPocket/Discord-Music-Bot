@@ -161,13 +161,24 @@ class Guild_Music_Properties():
         self.loop[guild_id]   = False
         self.random[guild_id] = False
     def soft_reset(self, guild_id):
+        self.voice[guild_id]   = False
         self.queue[guild_id]  = []
+        self.history[guild_id] = []
         self.loop[guild_id]   = False
         self.random[guild_id] = False
+        self.loop[guild_id]    = False
+        self.back[guild_id]    = False
+        self.mystery[guild_id] = False
+
     def hard_reset(self, guild_id):
-        self.queue[guild_id]['queue']     = []
-        self.history[guild_id]['history'] = []
-        self.loop[guild_id]['loop']       = False
-        self.random[guild_id]['random']   = False
-        self.channel[guild_id]['channel'] = None
-        self.message[guild_id]['message'] = None
+        
+        self.queue[guild_id]   = []
+        self.history[guild_id] = []
+        self.loop[guild_id]    = False
+        self.back[guild_id]    = False
+        self.random[guild_id]  = False
+        self.mystery[guild_id] = False
+        
+        self.current[guild_id] = None
+        self.channel[guild_id] = None
+        self.message[guild_id] = None
