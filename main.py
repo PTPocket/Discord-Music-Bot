@@ -16,12 +16,12 @@ client = commands.Bot(command_prefix="master pocket bot ", intents = intents)
 async def on_ready():
     send_log(None, client.user, 'Connected to Discord')
 
-
 async def main():
     async with client:
         try:
             await client.add_cog(Music_Cog(client))
-            await client.start(TOKEN)
+            await client.start(TEST_TOKEN)
+            print('READY')
         except Exception as e:
             print(e)
 

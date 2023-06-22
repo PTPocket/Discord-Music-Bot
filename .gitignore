@@ -13,3 +13,8 @@ log_format
 cog/__pycache__/help_functions.cpython-38.pyc
 cog/newcog.py
 cog/oldcog.py
+oldcog.py
+cog/helper/__pycache__/embed.cpython-38.pyc
+.gitignore
+cog/helper/__pycache__/guild_data.cpython-38.pyc
+cog/helper/__pycache__/functions.cpython-38.pyc

@@ -1,10 +1,10 @@
 import discord, os, random
-
 from discord import app_commands, FFmpegPCMAudio
 from discord.ext import commands, tasks
 from tinytag import TinyTag
-from cog import embed
-from cog.help_functions import *
+from cog.helper import embed
+from cog.helper.guild_data import Guild_Music_Properties
+from cog.helper.functions import *
 
 
 YDL_OPTIONS = {'format': 'bestaudio', 'noplaylist':'True'}
@@ -12,62 +12,77 @@ FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconne
 FFMPEG_LOC = "C:\\Users\\SERVER\\Documents\\ffmpeg\\bin\\ffmpeg.exe"
 LOCAL_MUSIC_PATH = "C:\\Users\\SERVER\\Music"
 
+
+
 class Music_Cog(commands.Cog):
     def __init__(self, bot:commands.Bot):
         self.bot = bot
         self.data = Guild_Music_Properties()
-        self.to_print = []
-        self.print_player.start()
+        self.gui_print = set()
+        self.gui_loop.start()
 
+    async def GUI_HANDLER(self, guild_id, reprint = False, connect = False):
+        player_embed = embed.gui_embed(self.bot, self.data, guild_id, connect = connect)
+        view = MusicFunctions(self, self.data, guild_id)
+        last_message = self.data.get_message(guild_id)
 
-    @tasks.loop(seconds = 5)
-    async def print_player(self):
-        while self.to_print:
-            await print_music_player(self, self.to_print.pop(), self.data)
-            print('printed')
-
-
+        #First message
+        if last_message is None:
+            message = await self.data.get_channel(guild_id).send(embed = player_embed, view = view)
+            self.data.set_message(guild_id, message)
+            return
+        #New message when last message not at bottom
+        if reprint is True:
+            message = await self.data.get_channel(guild_id).send(embed = player_embed, view = view)
+            if last_message is not None:
+                await last_message.delete()
+            self.data.set_message(guild_id, message)
+            return
+        #Edit message when its at bottom and same channel
+        if self.data.get_channel(guild_id).id == last_message.channel.id:
+            msg = self.data.get_message(guild_id)
+            await msg.edit(embed = player_embed, view = view)
+            return
+        else:#new message when its new channel
+            message = await self.data.get_channel(guild_id).send(embed = player_embed, view = view)
+            await last_message.delete()
+            self.data.set_message(guild_id, message)
+            return
 
 
     #MUSIC PLAYER LOOP (not recursive)
     def music_player(self, interaction:discord.Interaction, recall = False):
+        
         guild_name = interaction.user.guild.name
         guild_id = interaction.user.guild.id
-        bot_voice = interaction.client.get_guild(guild_id).voice_client
-
-        if self.data.get_loop(guild_id) is True:
-            self.data.current_to_queue(guild_id)
-        elif self.data.empty_queue(guild_id):
-            if self.data.get_random(guild_id) is True:
-                flac_song_list = os.listdir(LOCAL_MUSIC_PATH)
-                song = random.choice(flac_song_list)
-                path = LOCAL_MUSIC_PATH + '\\'+ song
-                song_metadata = TinyTag.get(path)
-                title = f"{song_metadata.title} - {song_metadata.artist}"
-                song = {'title': title, 'source': f'{LOCAL_MUSIC_PATH}\{song}'}
-                self.data.queue_song(guild_id, song)
-            else:
-                self.data.soft_reset(guild_id)
-                if recall is True and guild_id not in self.to_print:
-                    self.to_print.append(guild_id)
-                elif guild_id in self.to_print:
-                    self.to_print.pop(self.to_print.index(guild_id))
-                send_log(guild_name, 'QUEUE', 'Empty')
-                return
         
-        song = self.data.queue_to_current(guild_id)
-
-        if guild_id in self.to_print:
-            self.to_print.pop(self.to_print.index(guild_id))
-        elif recall is True:
-            self.to_print.append(guild_id)
-        #add to history
-        if self.data.get_history(guild_id) == [] \
-        or self.data.get_history(guild_id)[0]['title'] != song['title']:
+        if recall is True:
             self.data.current_to_history(guild_id)
 
-        if '.mp3' in song['source']\
-            or '.flac' in song['source']:
+        check_features(self.data, guild_id)
+        if self.data.empty_queue(guild_id):
+            send_log(guild_name, 'QUEUE', 'Empty')
+            self.data.soft_reset(guild_id)
+            if guild_id in self.gui_print:
+                self.gui_print.remove(guild_id)
+            elif recall is True:
+                self.gui_print.add(guild_id)
+            return
+
+        
+        self.data.queue_to_current(guild_id)
+        song = self.data.get_current_song(guild_id)
+        if guild_id in self.gui_print:
+            self.gui_print.remove(guild_id)
+        elif recall is True:
+            self.gui_print.add(guild_id)
+        # #IF GUI HAS ALREADY BEEN UPDATED
+        # if guild_id in self.gui_print:
+        #     self.gui_print.remove(guild_id)
+        # elif recall is True:
+        #     self.gui_print.add(guild_id)
+            
+        if LOCAL_MUSIC_PATH in song['source']:
             player = FFmpegPCMAudio(
                 song['source'],
                 executable=FFMPEG_LOC)
@@ -78,20 +93,34 @@ class Music_Cog(commands.Cog):
                 executable= FFMPEG_LOC)
         player = discord.PCMVolumeTransformer(player, volume=0.3)
         send_log(guild_name, "Now Playing", f'\"{song["title"]}\"')
-        bot_voice.play(player, after= lambda x=None: self.music_player(interaction, recall=True))
-
+        voice_client = interaction.client.get_guild(guild_id).voice_client
+        if voice_client.is_connected() is False:
+            print('VOICE NOT CONNECTED!!@#!@#!')
+            self.data.current_to_history(guild_id)
+            return False
+        self.data.set_voice(guild_id, voice_client)
+        voice_client.play(player, after= lambda x=None: self.music_player(interaction, recall=True))
+        return True
+    
     #CHECKS IF MUSIC_PLAYER LOOP SHOULD START
-    def music_player_start(self, interaction:discord.Interaction):
+    async def music_player_start(self, interaction:discord.Interaction):
         guild_name = interaction.user.guild.name
         guild_id = interaction.user.guild.id
-        bot_voice = interaction.client.get_guild(guild_id).voice_client
+        await voice_connect(interaction)
+        voice_client = interaction.client.get_guild(guild_id).voice_client
         self.data.set_channel(guild_id, interaction.channel)
-        if bot_voice.is_playing() == bot_voice.is_paused() == False :
+        connect_only = False
+        if voice_client.is_playing() == voice_client.is_paused() == False and self.data.get_current_song(guild_id) is None:
             send_log(guild_name, 'MUSIC PLAYER', 'Start')
-            self.music_player(interaction)
-            return True
-        return False
-    
+            try:
+                if self.music_player(interaction) is False:
+                    connect_only = True
+            except Exception as e:
+                print(e)
+                connect_only = True
+        await self.GUI_HANDLER(guild_id, connect= connect_only)
+        
+
 #######PLAY FUNCTIONS######################################################
     @app_commands.check(valid_play_command)
     @app_commands.command(name= "play", description="Play song or add to song queue")
@@ -99,37 +128,36 @@ class Music_Cog(commands.Cog):
         guild_name = interaction.user.guild.name
         guild_id = interaction.user.guild.id
         self.data.initialize(interaction)
-        await voice_connect(interaction)
-        await interaction.response.defer(ephemeral=True)
 
+        await interaction.response.defer(ephemeral=True)
         query= song
         song = youtube_search(query)
         if song is None:
             send_log(guild_name, 'ERROR', 'Youtube Search')
             msg = embed.yt_search_error(self.bot, query)
             await interaction.followup.send(embed= msg, ephemeral=True)
+            await self.GUI_HANDLER(guild_id)
         self.data.queue_song(guild_id, song)
-        self.music_player_start(interaction)
-        await print_music_player(self, guild_id, self.data)
+        send_log(guild_name, "Queued", song['title'])
+        await self.music_player_start(interaction)
         await interaction.delete_original_response()
-        
+
     @app_commands.check(valid_play_command)
     @app_commands.command(name= "play_random", description="Play random songs from pocket bot library forever")
     async def play_random(self, interaction:discord.Interaction):
         guild_name = interaction.user.guild.name
         guild_id = interaction.user.guild.id
-
         self.data.initialize(interaction)
-        random_song = self.data.flip_random(guild_id)
+        self.data.flip_random(guild_id)
+
         await interaction.response.defer()
-        if random_song is True:
-            await voice_connect(interaction)
+        if self.data.get_random(guild_id) is True:
             send_log(guild_name, 'RANDOM SONG', 'On')
         else: 
             send_log(guild_name, 'RANDOM SONG', 'Off')
-        self.music_player_start(interaction)
+        await self.music_player_start(interaction)
         await interaction.delete_original_response()
-        await print_music_player(self, guild_id, self.data)
+
         
     @app_commands.check(valid_play_command)
     @app_commands.command(name= "flac", description="Search and play downloaded songs on bot server")
@@ -143,6 +171,7 @@ class Music_Cog(commands.Cog):
         if not query_matches: #If there are no matches for query from list of songs
             emb_msg = embed.no_match(self.bot, query)
             await interaction.response.send_message(embed= emb_msg, ephemeral=True)
+            await self.GUI_HANDLER(guild_id, reprint = True)
             return
         if len(query_matches) > 25:
             query_matches = query_matches[0:25]
@@ -156,62 +185,45 @@ class Music_Cog(commands.Cog):
         song = sview.song_choice
         self.data.queue_song(guild_id, song)
         send_log(guild_name, "Queued", song['title'])
-        await voice_connect(interaction)
-        self.music_player_start(interaction)
-        await print_music_player(self, guild_id, self.data)
+        await self.music_player_start(interaction)
         await interaction.delete_original_response()
 
-        
 
+######## LOOP TO AUTO CHANGE GUI ##############################################################
+    @tasks.loop(seconds = 5)
+    async def gui_loop(self):
+        while self.gui_print:
+            await self.GUI_HANDLER(self.gui_print.pop())
+            print('printed')
 
-
-#######MUSIC PLAYER GENERAL FUNCTIONS######################################################
-    # @app_commands.check(valid_user_REGULAR_FUNC)
-    # @app_commands.command(name="skip", description= "Skip song")
-    # async def skip(self, interaction:discord.Interaction):
-    #     guild_name = interaction.user.guild.name
-    #     guild_id = interaction.user.guild.id
-    #     bot_voice = interaction.client.get_guild(guild_id).voice_client
-
-    #     if bot_voice.is_playing() or bot_voice.is_paused():
-    #         song = self.data.get_current_song(guild_id)
-    #         self.data.set_loop(guild_id, False)
-    #         send_log(guild_name, 'SKIP', f"{song['title']}")
-    #         bot_voice.stop()
-    #         msg = embed.skip(self.bot, song['title'])
-    #         await interaction.response.send_message(embed= msg)
-    #     else:
-    #         msg = embed.skip(self.bot , None)
-    #         await interaction.response.send_message(embed= msg)
-
-
-        
-    
+############# LISTENERS ########################################################################
     @commands.Cog.listener() #keep music player at bottom of channel
     async def on_message(self, message):
         guild_name = message.guild.name
         guild_id = message.guild.id
-        if message.author.id == self.bot.user.id:
-            return
-        await print_music_player(self, guild_id, self.data, reprint = True)
+        if message.author.id != self.bot.user.id and message.channel.id == self.data.get_message(guild_id).channel.id:
+            await self.GUI_HANDLER(guild_id, reprint = True)
 
-
-        
-        
-#####################################################################################
     @commands.Cog.listener() #RESET BOT FOR GUILD IF DISCONNECTED FROM VOICE CHANNEL
-    async def on_voice_state_update(self, member, before, after):
+    async def on_voice_state_update(self, member:discord.member.Member, before, after):
         guild_name = member.guild.name
-        description = 'Voice Disconnected'
         guild_id= member.guild.id
-        
         if member.id == self.bot.user.id and after.channel is None:
+            #voice_client = self.bot.get_guild(guild_id).voice_client
+            voice_client = self.data.get_voice(guild_id)
             self.data.soft_reset(guild_id)
-            send_log(guild_name, description)
+            if voice_client is not None:
+                if voice_client.is_playing() or voice_client.is_paused():
+                    self.gui_print.add(guild_id)
+                    voice_client.stop()
+                if voice_client.is_connected():
+                    voice_client.disconnect()
+            send_log(guild_name, 'VOICE DISCONNECTED', before.channel.name)
+            self.data.current_to_history(guild_id)
+            await self.GUI_HANDLER(guild_id)
+            self.data.set_voice(guild_id, None)
 
 
-
-            
 #####################################################################################
     @commands.command(name= "sync", description= "Sync app commands with discord server")
     async def sync(self,ctx):
@@ -219,7 +231,7 @@ class Music_Cog(commands.Cog):
         description = 'SYNCED COMMANDS'
         try:
             try:
-                await ctx.bot.tree.sync()
+                ctx.bot.tree.sync()
             except Exception as e:
                 pass
             send_log(log_name, description)
