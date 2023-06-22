@@ -227,15 +227,12 @@ class Music_Cog(commands.Cog):
 #####################################################################################
     @commands.command(name= "sync", description= "Sync app commands with discord server")
     async def sync(self,ctx):
-        log_name = ctx.guild.name
-        description = 'SYNCED COMMANDS'
+        guild_name = ctx.guild.name
         try:
-            try:
-                await ctx.bot.tree.sync()
-            except Exception as e:
-                pass
-            send_log(log_name, description)
+            sync_num = await ctx.bot.tree.sync()
+            send_log(guild_name, 'COMMANDS SYNCED', sync_num)
         except Exception as e:
             print(e)
+
 
 
