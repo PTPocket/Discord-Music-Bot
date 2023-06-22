@@ -219,9 +219,11 @@ class Music_Cog(commands.Cog):
                 if voice_client.is_connected():
                     voice_client.disconnect()
             send_log(guild_name, 'VOICE DISCONNECTED', before.channel.name)
-            self.data.current_to_history(guild_id)
-            await self.GUI_HANDLER(guild_id)
-            self.data.set_voice(guild_id, None)
+            try:
+                self.data.current_to_history(guild_id)
+                await self.GUI_HANDLER(guild_id)
+                self.data.set_voice(guild_id, None)
+            except Exception as e: print(e)
 
 
 #####################################################################################
