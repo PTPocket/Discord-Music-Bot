@@ -81,13 +81,16 @@ class Guild_Music_Properties():
     #SONG MOVE FUNCTIONS
     def queue_song(self, guild_id, song):
         self.queue[guild_id].append(song)
+
     def prepend_to_queue(self, guild_id, song):
         self.queue[guild_id].insert(0,song)
+
     def queue_to_current(self, guild_id):
         if self.queue[guild_id] != []:
             self.current[guild_id] = self.queue[guild_id].pop(0)
             return True
         return False
+    
     def current_to_queue(self, guild_id):
         if self.current[guild_id] is not None:
             self.queue[guild_id].insert(0,self.current[guild_id])
@@ -146,7 +149,6 @@ class Guild_Music_Properties():
             return True
         else: return False
 
-    #check_state
     def voice_in_action(self, guild_id):
         voice = self.get_voice(guild_id)
         if voice is None:

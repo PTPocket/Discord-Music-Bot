@@ -63,24 +63,14 @@ class Music_Cog(commands.Cog):
         if self.data.empty_queue(guild_id):
             send_log(guild_name, 'QUEUE', 'Empty')
             self.data.soft_reset(guild_id)
-            if guild_id in self.gui_print:
-                self.gui_print.remove(guild_id)
-            elif recall is True:
-                self.gui_print.add(guild_id)
+            self.gui_print.add(guild_id)
             return
 
         
         self.data.queue_to_current(guild_id)
         song = self.data.get_current_song(guild_id)
-        if guild_id in self.gui_print:
-            self.gui_print.remove(guild_id)
-        elif recall is True:
+        if recall is True:
             self.gui_print.add(guild_id)
-        # #IF GUI HAS ALREADY BEEN UPDATED
-        # if guild_id in self.gui_print:
-        #     self.gui_print.remove(guild_id)
-        # elif recall is True:
-        #     self.gui_print.add(guild_id)
             
         if LOCAL_MUSIC_PATH in song['source']:
             player = FFmpegPCMAudio(
@@ -92,7 +82,7 @@ class Music_Cog(commands.Cog):
                 **FFMPEG_OPTIONS,
                 executable= FFMPEG_LOC)
         player = discord.PCMVolumeTransformer(player, volume=0.3)
-        send_log(guild_name, "Now Playing", f'\"{song["title"]}\"')
+        send_log(guild_name, "NOW PLAYING", f'\"{song["title"]}\"')
         voice_client = interaction.client.get_guild(guild_id).voice_client
         if voice_client.is_connected() is False:
             print('VOICE NOT CONNECTED!!@#!@#!')
@@ -138,7 +128,7 @@ class Music_Cog(commands.Cog):
             await interaction.followup.send(embed= msg, ephemeral=True)
             await self.GUI_HANDLER(guild_id)
         self.data.queue_song(guild_id, song)
-        send_log(guild_name, "Queued", song['title'])
+        send_log(guild_name, "QUEUED", song['title'])
         await self.music_player_start(interaction)
         await interaction.delete_original_response()
 
@@ -184,7 +174,7 @@ class Music_Cog(commands.Cog):
             return
         song = sview.song_choice
         self.data.queue_song(guild_id, song)
-        send_log(guild_name, "Queued", song['title'])
+        send_log(guild_name, "QUEUED", song['title'])
         await self.music_player_start(interaction)
         await interaction.delete_original_response()
 
@@ -194,17 +184,18 @@ class Music_Cog(commands.Cog):
     async def gui_loop(self):
         while self.gui_print:
             await self.GUI_HANDLER(self.gui_print.pop())
-            print('printed')
-
+            print('Auto Print : GUI')
 ############# LISTENERS ########################################################################
-    @commands.Cog.listener() #keep music player at bottom of channel
+    # Keep music player at bottom of channel
+    @commands.Cog.listener() 
     async def on_message(self, message):
         guild_name = message.guild.name
         guild_id = message.guild.id
         if message.author.id != self.bot.user.id and message.channel.id == self.data.get_message(guild_id).channel.id:
             await self.GUI_HANDLER(guild_id, reprint = True)
 
-    @commands.Cog.listener() #RESET BOT FOR GUILD IF DISCONNECTED FROM VOICE CHANNEL
+    # RESET BOT FOR GUILD IF DISCONNECTED FROM VOICE CHANNEL
+    @commands.Cog.listener() 
     async def on_voice_state_update(self, member:discord.member.Member, before, after):
         guild_name = member.guild.name
         guild_id= member.guild.id

@@ -255,7 +255,6 @@ class MusicFunctions(View):
                 print('PLAYING OR PAUSED')
                 self.data.flip_back(guild_id)
                 self.data.set_loop(guild_id, False)
-                self.music_cog.gui_print.add(guild_id)
                 voice_client.stop()
                 await interaction.response.defer()
                 await self.music_cog.music_player_start(interaction)
@@ -263,7 +262,6 @@ class MusicFunctions(View):
                 print('Nothing Playing')
                 self.data.set_loop(guild_id, False)
                 self.data.flip_back(guild_id)
-                self.music_cog.gui_print.add(guild_id)
                 self.data.history_to_queue(guild_id)
                 voice_client.stop()
                 await interaction.response.defer()
@@ -279,17 +277,11 @@ class MusicFunctions(View):
             send_log(guild_name, 'NEXT BUTTON', 'Clicked')
             guild_id = interaction.user.guild.id
             voice_client = interaction.client.get_guild(guild_id).voice_client
-            # if voice_client is None:
-            #     self.data.set_loop(guild_id, False)
-            #     add_random_song(self.data, guild_id)
-            #     await interaction.response.defer()
-            #     await self.music_cog.music_player_start(interaction) 
             if voice_client is None:
                 await interaction.response.defer()
                 return
             if (voice_client.is_playing() or voice_client.is_paused()):
                 self.data.set_loop(guild_id, False)
-                self.music_cog.gui_print.add(guild_id)
                 voice_client.stop()
                 await interaction.response.defer()
                 await self.music_cog.GUI_HANDLER(guild_id)
@@ -322,6 +314,7 @@ class MusicFunctions(View):
                 await interaction.response.defer()
                 return
             await interaction.response.defer()
+    
     class MysteryButton(Button):
         def __init__(self,music_cog, data,guild_id):
             super().__init__(emoji = '🎲', style= discord.ButtonStyle.green)
@@ -335,7 +328,6 @@ class MusicFunctions(View):
             voice_client = interaction.client.get_guild(guild_id).voice_client
             add_random_song(self.data, guild_id)
             if voice_client is not None and (voice_client.is_playing() or voice_client.is_paused()):
-                self.music_cog.gui_print.add(guild_id)
                 voice_client.stop()
             self.data.set_loop(guild_id, False)
             await interaction.response.defer()
@@ -354,12 +346,8 @@ class MusicFunctions(View):
             self.data.soft_reset(guild_id)
             if voice_client is not None:
                 if voice_client.is_playing() or voice_client.is_paused():
-                    self.music_cog.gui_print.add(guild_id)
                     voice_client.stop()
                 await voice_client.disconnect()
             await interaction.response.defer()
-            try:
-                await self.music_cog.GUI_HANDLER(guild_id)
-            except Exception as e:
-                print(e)
+            await self.music_cog.GUI_HANDLER(guild_id)
 
