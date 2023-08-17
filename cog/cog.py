@@ -84,10 +84,6 @@ class Music_Cog(commands.Cog):
         player = discord.PCMVolumeTransformer(player, volume=0.3)
         send_log(guild_name, "NOW PLAYING", f'\"{song["title"]}\"')
         voice_client = interaction.client.get_guild(guild_id).voice_client
-        if voice_client.is_connected() is False:
-            print('VOICE NOT CONNECTED!!@#!@#!')
-            self.data.current_to_history(guild_id)
-            return False
         self.data.set_voice(guild_id, voice_client)
         voice_client.play(player, after= lambda x=None: self.music_player(interaction, recall=True))
         return True
@@ -215,6 +211,8 @@ class Music_Cog(commands.Cog):
                 await self.GUI_HANDLER(guild_id)
                 self.data.set_voice(guild_id, None)
             except Exception as e: print(e)
+
+
 
 
 #####################################################################################
