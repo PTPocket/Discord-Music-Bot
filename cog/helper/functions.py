@@ -122,6 +122,7 @@ def add_random_song(data, guild_id):
         song = {'title': title, 'source': f'{LOCAL_MUSIC_PATH}\{song}'}
         data.prepend_to_queue(guild_id, song)
 
+
 class SearchView(View):
     def __init__(self, song_list):
         super().__init__(timeout=30)
@@ -157,10 +158,9 @@ class MusicFunctions(View):
         self.add_item(self.PlayPause     (music_cog, data, guild_id))
         self.add_item(self.NextButton    (music_cog, data, guild_id))
         self.add_item(self.LoopButton    (music_cog, data, guild_id))
-        self.add_item(self.ResetButton   (music_cog, data, guild_id))
         self.add_item(self.RandomButton  (music_cog, data, guild_id))
         self.add_item(self.MysteryButton (music_cog, data, guild_id))
-
+        self.add_item(self.ResetButton   (music_cog, data, guild_id))
     async def interaction_check(self, interaction: discord.Interaction):
         user = interaction.user
         guild_name = interaction.user.guild.name
@@ -217,14 +217,13 @@ class MusicFunctions(View):
                 style= discord.ButtonStyle.blurple
             else:
                 style= discord.ButtonStyle.grey
-            super().__init__(label = 'Toggle',emoji="🎲", style= style)
+            super().__init__(emoji='♾', style= style)
             self.data = data
             self.music_cog = music_cog
         async def callback(self, interaction: discord.Interaction):
             guild_name = interaction.user.guild.name
             guild_id = interaction.user.guild.id
-            random_song = self.data.flip_random(guild_id)
-            if random_song:
+            if self.data.flip_random(guild_id) is True:
                 send_log(guild_name, 'RANDOM SONG', 'On')
                 self.data.set_loop(guild_id, False)
                 await self.music_cog.music_player_start(interaction) 
@@ -317,7 +316,7 @@ class MusicFunctions(View):
     
     class MysteryButton(Button):
         def __init__(self,music_cog, data,guild_id):
-            super().__init__(emoji = '🎲', style= discord.ButtonStyle.green)
+            super().__init__(label = 'Random', style= discord.ButtonStyle.green)
             self.data = data
             self.music_cog = music_cog
 
@@ -335,7 +334,7 @@ class MusicFunctions(View):
 
     class ResetButton(Button):
         def __init__(self,music_cog, data, guild_id):
-            super().__init__(label = 'Reset',emoji = "⚡", style=discord.ButtonStyle.red)
+            super().__init__(label = 'Reset', style=discord.ButtonStyle.red)
             self.music_cog = music_cog
             self.data = data
         async def callback(self, interaction: discord.Interaction):

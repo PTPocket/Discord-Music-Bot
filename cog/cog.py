@@ -64,6 +64,7 @@ class Music_Cog(commands.Cog):
             send_log(guild_name, 'QUEUE', 'Empty')
             self.data.soft_reset(guild_id)
             self.gui_print.add(guild_id)
+            self.data.set_idle(guild_id, True)
             return
 
         
@@ -85,6 +86,7 @@ class Music_Cog(commands.Cog):
         send_log(guild_name, "NOW PLAYING", f'\"{song["title"]}\"')
         voice_client = interaction.client.get_guild(guild_id).voice_client
         self.data.set_voice(guild_id, voice_client)
+        self.data.set_idle(guild_id, False)
         voice_client.play(player, after= lambda x=None: self.music_player(interaction, recall=True))
         return True
     
@@ -98,12 +100,13 @@ class Music_Cog(commands.Cog):
         connect_only = False
         if voice_client.is_playing() == voice_client.is_paused() == False and self.data.get_current_song(guild_id) is None:
             send_log(guild_name, 'MUSIC PLAYER', 'Start')
+            
             try:
-                if self.music_player(interaction) is False:
-                    connect_only = True
+                self.music_player(interaction)
             except Exception as e:
                 print(e)
                 connect_only = True
+                self.data.set_idle(guild_id, True)
         await self.GUI_HANDLER(guild_id, connect= connect_only)
         
 
@@ -134,10 +137,10 @@ class Music_Cog(commands.Cog):
         guild_name = interaction.user.guild.name
         guild_id = interaction.user.guild.id
         self.data.initialize(interaction)
-        self.data.flip_random(guild_id)
+        
 
         await interaction.response.defer()
-        if self.data.get_random(guild_id) is True:
+        if self.data.flip_random(guild_id) is True:
             send_log(guild_name, 'RANDOM SONG', 'On')
         else: 
             send_log(guild_name, 'RANDOM SONG', 'Off')
@@ -179,8 +182,21 @@ class Music_Cog(commands.Cog):
     @tasks.loop(seconds = 5)
     async def gui_loop(self):
         while self.gui_print:
-            await self.GUI_HANDLER(self.gui_print.pop())
+            guild_id = self.gui_print.pop()
+            await self.GUI_HANDLER(guild_id)
             print('Auto Print : GUI')
+        reset = self.data.check_timers()
+        if reset:
+            for guild_id in reset:
+                guild_name = self.bot.get_guild(guild_id).name
+                voice_client = self.bot.get_guild(guild_id).voice_client
+                await voice_client.disconnect()
+                self.data.set_idle(guild_id, False)
+                send_log(guild_name, "TIMED OUT", 'Voice Client')
+
+        
+
+
 ############# LISTENERS ########################################################################
     # Keep music player at bottom of channel
     @commands.Cog.listener() 
@@ -196,24 +212,18 @@ class Music_Cog(commands.Cog):
         guild_name = member.guild.name
         guild_id= member.guild.id
         if member.id == self.bot.user.id and after.channel is None:
-            #voice_client = self.bot.get_guild(guild_id).voice_client
-            voice_client = self.data.get_voice(guild_id)
+            voice_client = self.bot.get_guild(guild_id).voice_client
             self.data.soft_reset(guild_id)
             if voice_client is not None:
                 if voice_client.is_playing() or voice_client.is_paused():
                     self.gui_print.add(guild_id)
                     voice_client.stop()
-                if voice_client.is_connected():
-                    voice_client.disconnect()
+                await voice_client.disconnect()
             send_log(guild_name, 'VOICE DISCONNECTED', before.channel.name)
             try:
                 self.data.current_to_history(guild_id)
                 await self.GUI_HANDLER(guild_id)
-                self.data.set_voice(guild_id, None)
             except Exception as e: print(e)
-
-
-
 
 #####################################################################################
     @commands.command(name= "sync", description= "Sync app commands with discord server")

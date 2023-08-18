@@ -22,6 +22,11 @@ class Guild_Music_Properties():
         self.channel = {}
         self.message = {}
 
+        #AutoDisconnect
+        self.idle    = {}
+        self.timer   = {}
+
+
     def initialize(self, interaction:discord.Interaction):
         log_name = interaction.user.guild.name
         description = 'Initialized Variables for Guild'
@@ -30,6 +35,8 @@ class Guild_Music_Properties():
             self.voice[guild_id]   = False
             self.queue[guild_id]   = []
             self.history[guild_id] = []
+            self.idle[guild_id]    = False
+            self.timer[guild_id]   = 0
             self.current[guild_id] = None
             self.loop[guild_id]    = False
             self.back[guild_id]    = False
@@ -62,6 +69,11 @@ class Guild_Music_Properties():
         return self.back[guild_id]
     def get_mystery(self, guild_id):
         return self.mystery[guild_id]
+    def get_time(self, guild_id):
+        return self.timer[guild_id]
+    def get_idle(self, guild_id):
+        return self.idle[guild_id]
+    
     #SET VALUE FUNCTIONS
     def set_voice(self, guild_id, voice):
         self.voice[guild_id] = voice
@@ -77,6 +89,8 @@ class Guild_Music_Properties():
         self.message[guild_id] = message
     def set_back(self,guild_id, value):
         self.back[guild_id] = value
+    def set_idle(self, guild_id, value):
+        self.idle[guild_id] = value
 
     #SONG MOVE FUNCTIONS
     def queue_song(self, guild_id, song):
@@ -114,12 +128,24 @@ class Guild_Music_Properties():
             self.prepend_to_queue(guild_id, recent)
             return True
         return False
-        
+    
+    def empty_history(self, guild_id):
+        if self.history[guild_id] == []:
+            return True
+        else: return False
+
+    def empty_queue(self, guild_id):
+        if self.queue[guild_id] == []:
+            return True
+        else: return False
+
+    #FEATURES FUNCTIONS
     def flip_mystery(self, guild_id):
         if self.mystery[guild_id] is True:
             self.mystery[guild_id] = True
         else:
             self.mystery[guild_id] = False
+    
     def flip_loop(self,guild_id):  
         if self.loop[guild_id] is True:
             self.loop[guild_id] = False
@@ -139,15 +165,20 @@ class Guild_Music_Properties():
         else:
             self.set_back(guild_id, True)
 
-    def empty_history(self, guild_id):
-        if self.history[guild_id] == []:
-            return True
-        else: return False
 
-    def empty_queue(self, guild_id):
-        if self.queue[guild_id] == []:
-            return True
-        else: return False
+    def check_timers(self):
+        time_up = []
+        for guild_id in self.idle.keys():
+            if self.idle[guild_id] is False:
+                self.timer[guild_id] = 0
+                continue
+            if self.timer[guild_id] > 1800:
+                time_up.append(guild_id)
+            else:
+                self.timer[guild_id] += 5
+        return time_up
+
+
 
     def voice_in_action(self, guild_id):
         voice = self.get_voice(guild_id)
@@ -158,10 +189,10 @@ class Guild_Music_Properties():
         else:
             return False
 
-
     def reset_features(self, guild_id):
         self.loop[guild_id]   = False
         self.random[guild_id] = False
+    
     def soft_reset(self, guild_id):
         self.voice[guild_id]   = False
         self.queue[guild_id]  = []
