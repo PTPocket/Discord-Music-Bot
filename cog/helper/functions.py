@@ -154,13 +154,13 @@ class SearchView(View):
 class MusicFunctions(View):
     def __init__(self,music_cog,data,guild_id):
         super().__init__(timeout=None)
-        self.add_item(self.PreviousButton(music_cog, data, guild_id))
-        self.add_item(self.PlayPause     (music_cog, data, guild_id))
-        self.add_item(self.NextButton    (music_cog, data, guild_id))
-        self.add_item(self.LoopButton    (music_cog, data, guild_id))
-        self.add_item(self.RandomButton  (music_cog, data, guild_id))
-        self.add_item(self.RandomSongButton (music_cog, data, guild_id))
-        #self.add_item(self.ResetButton   (music_cog, data, guild_id))
+        self.add_item(self.PreviousButton  (music_cog, data, guild_id))
+        self.add_item(self.PlayPause       (music_cog, data, guild_id))
+        self.add_item(self.NextButton      (music_cog, data, guild_id))
+        self.add_item(self.LoopButton      (music_cog, data, guild_id))
+        self.add_item(self.RandomButton    (music_cog, data, guild_id))
+        self.add_item(self.RandomSongButton(music_cog, data, guild_id))
+        self.add_item(self.DisconnectButton(music_cog, data, guild_id))
     async def interaction_check(self, interaction: discord.Interaction):
         user = interaction.user
         guild_name = interaction.user.guild.name
@@ -332,14 +332,14 @@ class MusicFunctions(View):
             await interaction.response.defer()
             await self.music_cog.music_player_start(interaction) 
 
-    class ResetButton(Button):
+    class DisconnectButton(Button):
         def __init__(self,music_cog, data, guild_id):
-            super().__init__(label = 'Reset', style=discord.ButtonStyle.red)
+            super().__init__(label = 'Disconnect', style=discord.ButtonStyle.grey)
             self.music_cog = music_cog
             self.data = data
         async def callback(self, interaction: discord.Interaction):
             guild_name = interaction.user.guild.name
-            send_log(guild_name, 'RESET BUTTON', 'Clicked')
+            send_log(guild_name, 'DISCONNECT BUTTON', 'Clicked')
             guild_id = interaction.user.guild.id
             voice_client = interaction.client.get_guild(guild_id).voice_client
             self.data.soft_reset(guild_id)
