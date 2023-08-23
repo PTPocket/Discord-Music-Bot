@@ -316,7 +316,7 @@ class MusicFunctions(View):
     
     class RandomSongButton(Button):
         def __init__(self,music_cog, data,guild_id):
-            super().__init__(label = 'Random', style= discord.ButtonStyle.blurple)
+            super().__init__(label = 'Random Song', style= discord.ButtonStyle.blurple)
             self.data = data
             self.music_cog = music_cog
 
