@@ -159,8 +159,8 @@ class MusicFunctions(View):
         self.add_item(self.NextButton    (music_cog, data, guild_id))
         self.add_item(self.LoopButton    (music_cog, data, guild_id))
         self.add_item(self.RandomButton  (music_cog, data, guild_id))
-        self.add_item(self.MysteryButton (music_cog, data, guild_id))
-        self.add_item(self.ResetButton   (music_cog, data, guild_id))
+        self.add_item(self.RandomSongButton (music_cog, data, guild_id))
+        #self.add_item(self.ResetButton   (music_cog, data, guild_id))
     async def interaction_check(self, interaction: discord.Interaction):
         user = interaction.user
         guild_name = interaction.user.guild.name
@@ -314,9 +314,9 @@ class MusicFunctions(View):
                 return
             await interaction.response.defer()
     
-    class MysteryButton(Button):
+    class RandomSongButton(Button):
         def __init__(self,music_cog, data,guild_id):
-            super().__init__(label = 'Random', style= discord.ButtonStyle.green)
+            super().__init__(label = 'Random', style= discord.ButtonStyle.blurple)
             self.data = data
             self.music_cog = music_cog
 

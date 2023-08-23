@@ -1,7 +1,7 @@
 import discord
 from datetime import datetime
 
-
+Timeout_minutes = 30
 def send_log(log_name, description, result = ''):
     time= str(datetime.now())
     print(f"{time} | Guild : {log_name} | {description} -> {result}")
@@ -172,8 +172,10 @@ class Guild_Music_Properties():
             if self.idle[guild_id] is False:
                 self.timer[guild_id] = 0
                 continue
-            if self.timer[guild_id] > 1800:
+            if self.timer[guild_id] > Timeout_minutes * 60:
                 time_up.append(guild_id)
+                self.timer[guild_id] = 0
+                self.idle[guild_id] = False
             else:
                 self.timer[guild_id] += 5
         return time_up

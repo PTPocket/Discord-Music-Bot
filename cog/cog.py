@@ -22,32 +22,34 @@ class Music_Cog(commands.Cog):
         self.gui_loop.start()
 
     async def GUI_HANDLER(self, guild_id, reprint = False, connect = False):
-        player_embed = embed.gui_embed(self.bot, self.data, guild_id, connect = connect)
-        view = MusicFunctions(self, self.data, guild_id)
-        last_message = self.data.get_message(guild_id)
+        try:
+            player_embed = embed.gui_embed(self.bot, self.data, guild_id, connect = connect)
+            view = MusicFunctions(self, self.data, guild_id)
+            last_message = self.data.get_message(guild_id)
 
-        #First message
-        if last_message is None:
-            message = await self.data.get_channel(guild_id).send(embed = player_embed, view = view)
-            self.data.set_message(guild_id, message)
-            return
-        #New message when last message not at bottom
-        if reprint is True:
-            message = await self.data.get_channel(guild_id).send(embed = player_embed, view = view)
-            if last_message is not None:
+            #First message
+            if last_message is None:
+                message = await self.data.get_channel(guild_id).send(embed = player_embed, view = view)
+                self.data.set_message(guild_id, message)
+                return
+            #New message when last message not at bottom
+            if reprint is True:
+                message = await self.data.get_channel(guild_id).send(embed = player_embed, view = view)
+                if last_message is not None:
+                    await last_message.delete()
+                self.data.set_message(guild_id, message)
+                return
+            #Edit message when its at bottom and same channel
+            if self.data.get_channel(guild_id).id == last_message.channel.id:
+                msg = self.data.get_message(guild_id)
+                await msg.edit(embed = player_embed, view = view)
+                return
+            else:#new message when its new channel
+                message = await self.data.get_channel(guild_id).send(embed = player_embed, view = view)
                 await last_message.delete()
-            self.data.set_message(guild_id, message)
-            return
-        #Edit message when its at bottom and same channel
-        if self.data.get_channel(guild_id).id == last_message.channel.id:
-            msg = self.data.get_message(guild_id)
-            await msg.edit(embed = player_embed, view = view)
-            return
-        else:#new message when its new channel
-            message = await self.data.get_channel(guild_id).send(embed = player_embed, view = view)
-            await last_message.delete()
-            self.data.set_message(guild_id, message)
-            return
+                self.data.set_message(guild_id, message)
+                return
+        except Exception as e: print(e)
 
 
     #MUSIC PLAYER LOOP (not recursive)
@@ -92,6 +94,7 @@ class Music_Cog(commands.Cog):
     
     #CHECKS IF MUSIC_PLAYER LOOP SHOULD START
     async def music_player_start(self, interaction:discord.Interaction):
+
         guild_name = interaction.user.guild.name
         guild_id = interaction.user.guild.id
         await voice_connect(interaction)
@@ -100,14 +103,14 @@ class Music_Cog(commands.Cog):
         connect_only = False
         if voice_client.is_playing() == voice_client.is_paused() == False and self.data.get_current_song(guild_id) is None:
             send_log(guild_name, 'MUSIC PLAYER', 'Start')
-            
             try:
                 self.music_player(interaction)
             except Exception as e:
                 print(e)
                 connect_only = True
                 self.data.set_idle(guild_id, True)
-        await self.GUI_HANDLER(guild_id, connect= connect_only)
+        
+        await self.GUI_HANDLER(guild_id, connect = connect_only)
         
 
 #######PLAY FUNCTIONS######################################################
