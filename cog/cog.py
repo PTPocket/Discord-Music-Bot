@@ -190,7 +190,7 @@ class Music_Cog(commands.Cog):
             print('Auto Print : GUI')
         
 
-        
+
 
 
 ############# LISTENERS ########################################################################
@@ -207,6 +207,7 @@ class Music_Cog(commands.Cog):
     async def on_voice_state_update(self, member:discord.member.Member, before, after):
         guild_name = member.guild.name
         guild_id= member.guild.id
+
         if member.id == self.bot.user.id and after.channel is None:
             voice_client = self.bot.get_guild(guild_id).voice_client
             self.data.soft_reset(guild_id)
@@ -214,14 +215,16 @@ class Music_Cog(commands.Cog):
                 if voice_client.is_playing() or voice_client.is_paused():
                     self.gui_print.add(guild_id)
                     voice_client.stop()
-                await voice_client.disconnect()
+                if voice_client.is_connected() is True:
+                    await voice_client.disconnect()
             send_log(guild_name, 'VOICE DISCONNECTED', before.channel.name)
             try:
                 self.data.current_to_history(guild_id)
                 await self.GUI_HANDLER(guild_id)
             except Exception as e: print(e)
 
-        elif after.channel is None:
+        #Disconnects if bot is only one is channel
+        if after.channel is None:
             users = self.bot.get_channel(before.channel.id).members
             if users == []: return
             usernames_only = [user.name for user in users]
