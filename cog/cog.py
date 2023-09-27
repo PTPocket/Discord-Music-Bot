@@ -188,14 +188,7 @@ class Music_Cog(commands.Cog):
             guild_id = self.gui_print.pop()
             await self.GUI_HANDLER(guild_id)
             print('Auto Print : GUI')
-        reset = self.data.check_timers()
-        if reset:
-            for guild_id in reset:
-                guild_name = self.bot.get_guild(guild_id).name
-                voice_client = self.bot.get_guild(guild_id).voice_client
-                await voice_client.disconnect()
-                self.data.set_idle(guild_id, False)
-                send_log(guild_name, "TIMED OUT", 'Voice Client')
+        
 
         
 
@@ -228,6 +221,23 @@ class Music_Cog(commands.Cog):
                 await self.GUI_HANDLER(guild_id)
             except Exception as e: print(e)
 
+        elif after.channel is None:
+            users = self.bot.get_channel(before.channel.id).members
+            if users == []: return
+            usernames_only = [user.name for user in users]
+            if self.bot.user.name in usernames_only and len(usernames_only) == 1:
+                voice_client = self.bot.get_guild(guild_id).voice_client
+                self.data.soft_reset(guild_id)
+                if voice_client is not None:
+                    if voice_client.is_playing() or voice_client.is_paused():
+                        self.gui_print.add(guild_id)
+                        voice_client.stop()
+                    await voice_client.disconnect()
+            send_log(guild_name, 'VOICE DISCONNECTED', before.channel.name)
+            try:
+                self.data.current_to_history(guild_id)
+                await self.GUI_HANDLER(guild_id)
+            except Exception as e: print(e)
 #####################################################################################
     @commands.command(name= "sync", description= "Sync app commands with discord server")
     async def sync(self,ctx):
