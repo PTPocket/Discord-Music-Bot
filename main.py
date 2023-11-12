@@ -1,6 +1,6 @@
 import discord, asyncio
 from discord.ext import commands
-from config import TEST_TOKEN, TOKEN
+from config import TOKEN
 from datetime import datetime
 #Cog import
 from cog.cog import Music_Cog, send_log
