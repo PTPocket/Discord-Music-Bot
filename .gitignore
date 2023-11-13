@@ -18,3 +18,8 @@ cog/helper/__pycache__/embed.cpython-38.pyc
 .gitignore
 cog/helper/__pycache__/guild_data.cpython-38.pyc
 cog/helper/__pycache__/functions.cpython-38.pyc
+__pycache__/config.cpython-310.pyc
+cog/__pycache__/cog.cpython-310.pyc
+cog/helper/__pycache__/embed.cpython-310.pyc
+cog/helper/__pycache__/functions.cpython-310.pyc
+cog/helper/__pycache__/guild_data.cpython-310.pyc
