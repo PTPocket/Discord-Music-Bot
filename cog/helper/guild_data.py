@@ -23,8 +23,7 @@ class Guild_Music_Properties():
         self.message = {}
 
         #AutoDisconnect
-        self.idle    = {}
-        self.timer   = {}
+        self.time   = {}
 
 
     def initialize(self, interaction:discord.Interaction):
@@ -35,8 +34,7 @@ class Guild_Music_Properties():
             self.voice[guild_id]   = False
             self.queue[guild_id]   = []
             self.history[guild_id] = []
-            self.idle[guild_id]    = False
-            self.timer[guild_id]   = 0
+            self.time[guild_id]   = None
             self.current[guild_id] = None
             self.loop[guild_id]    = False
             self.back[guild_id]    = False
@@ -47,6 +45,9 @@ class Guild_Music_Properties():
             send_log(log_name, description )
     
     #RETRIEVE VALUES FUNCTIONS
+    def get_voices(self):
+        return self.voice
+
     def get_voice(self, guild_id):
         return self.voice[guild_id]
     def get_queue(self, guild_id):
@@ -70,9 +71,8 @@ class Guild_Music_Properties():
     def get_mystery(self, guild_id):
         return self.mystery[guild_id]
     def get_time(self, guild_id):
-        return self.timer[guild_id]
-    def get_idle(self, guild_id):
-        return self.idle[guild_id]
+        return self.time[guild_id]
+
     
     #SET VALUE FUNCTIONS
     def set_voice(self, guild_id, voice):
@@ -89,8 +89,8 @@ class Guild_Music_Properties():
         self.message[guild_id] = message
     def set_back(self,guild_id, value):
         self.back[guild_id] = value
-    def set_idle(self, guild_id, value):
-        self.idle[guild_id] = value
+    def set_idle_timestamp(self,guild_id):
+        self.time[guild_id] = datetime.today()
 
     #SONG MOVE FUNCTIONS
     def queue_song(self, guild_id, song):
@@ -164,23 +164,6 @@ class Guild_Music_Properties():
             self.set_back(guild_id, False)
         else:
             self.set_back(guild_id, True)
-
-
-    def check_timers(self):
-        time_up = []
-        for guild_id in self.idle.keys():
-            if self.idle[guild_id] is False:
-                self.timer[guild_id] = 0
-                continue
-            if self.timer[guild_id] > Timeout_minutes * 60:
-                time_up.append(guild_id)
-                self.timer[guild_id] = 0
-                self.idle[guild_id] = False
-            else:
-                self.timer[guild_id] += 5
-        return time_up
-
-
 
     def voice_in_action(self, guild_id):
         voice = self.get_voice(guild_id)

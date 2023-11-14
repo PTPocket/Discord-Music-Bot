@@ -5,6 +5,7 @@ from tinytag import TinyTag
 from cog.helper import embed
 from cog.helper.guild_data import Guild_Music_Properties
 from cog.helper.functions import *
+from datetime import datetime
 
 
 YDL_OPTIONS = {'format': 'bestaudio', 'noplaylist':'True'}
@@ -20,6 +21,28 @@ class Music_Cog(commands.Cog):
         self.data = Guild_Music_Properties()
         self.gui_print = set()
         self.gui_loop.start()
+        self.disconnect_check.start()
+        self.timeout_min = 18
+
+    @tasks.loop(seconds=3*60)
+    async def disconnect_check(self):
+        all_voice_connections = self.bot.voice_clients
+        for voice in all_voice_connections:    
+            try:        
+                guild_id = voice.guild.id
+                last_idle = self.data.get_time(guild_id)
+                if last_idle is None:
+                    self.data.set_idle_timestamp(guild_id)
+                    continue
+                if voice.is_playing():
+                    self.data.set_idle_timestamp(guild_id)
+                    continue
+                time_passed_sec = (datetime.today()-last_idle).seconds
+                if  time_passed_sec > 60*self.timeout_min:
+                    await voice.disconnect()
+            except Exception as e:print(e)
+
+
 
     async def GUI_HANDLER(self, guild_id, reprint = False, connect = False):
         try:
@@ -66,7 +89,6 @@ class Music_Cog(commands.Cog):
             send_log(guild_name, 'QUEUE', 'Empty')
             self.data.soft_reset(guild_id)
             self.gui_print.add(guild_id)
-            self.data.set_idle(guild_id, True)
             return
 
         
@@ -88,7 +110,6 @@ class Music_Cog(commands.Cog):
         send_log(guild_name, "NOW PLAYING", f'\"{song["title"]}\"')
         voice_client = interaction.client.get_guild(guild_id).voice_client
         self.data.set_voice(guild_id, voice_client)
-        self.data.set_idle(guild_id, False)
         voice_client.play(player, after= lambda x=None: self.music_player(interaction, recall=True))
         return True
     
@@ -108,7 +129,6 @@ class Music_Cog(commands.Cog):
             except Exception as e:
                 print(e)
                 connect_only = True
-                self.data.set_idle(guild_id, True)
         
         await self.GUI_HANDLER(guild_id, connect = connect_only)
         
