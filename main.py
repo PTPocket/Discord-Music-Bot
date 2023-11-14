@@ -9,7 +9,7 @@ from cog.cog import Music_Cog, send_log
 intents = discord.Intents.default()
 intents.message_content = True
 
-client = commands.Bot(command_prefix="master pocket bot ", intents = intents)
+client = commands.Bot(command_prefix="pocket music ", intents = intents)
 
 
 @client.event
