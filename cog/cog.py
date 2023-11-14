@@ -88,7 +88,7 @@ class Music_Cog(commands.Cog):
                 song['source'],
                 **FFMPEG_OPTIONS,
                 executable= FFMPEG_LOC)
-        player = discord.PCMVolumeTransformer(player, volume=0.1)
+        player = discord.PCMVolumeTransformer(player, volume=0.2)
         send_log(guild_name, "NOW PLAYING", f'\"{song["title"]}\"')
         voice_client = interaction.client.get_guild(guild_id).voice_client
         self.data.set_voice(guild_id, voice_client)
