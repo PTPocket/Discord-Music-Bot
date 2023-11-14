@@ -35,7 +35,7 @@ async def valid_play_command(interaction:discord.Interaction):
     if not authorized:
         send_log(guild_name, 'ACCESS DENIED', user)
         msg = embed.unauthorized(interaction.client)
-        await interaction.response.send_message(embed= msg)
+        await interaction.response.send_message(embed= msg, ephemeral=True)
     else:
         send_log(guild_name, 'ACCESS GRANTED', user)
     
@@ -61,7 +61,7 @@ async def valid_user_REGULAR_FUNC(interaction:discord.Interaction):
     if authorized is False:
         send_log(guild_name, 'ACCESS DENIED', user)
         msg = embed.unauthorized(interaction.client)
-        await interaction.response.send_message(embed= msg)
+        await interaction.response.send_message(embed= msg, ephemeral=True)
     else: send_log(guild_name, 'ACCESS GRANTED', user) 
     return authorized
 

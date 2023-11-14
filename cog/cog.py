@@ -24,7 +24,7 @@ class Music_Cog(commands.Cog):
         self.disconnect_check.start()
         self.timeout_min = 18
 
-    @tasks.loop(seconds=3*60)
+    @tasks.loop(seconds=60*3)
     async def disconnect_check(self):
         all_voice_connections = self.bot.voice_clients
         for voice in all_voice_connections:    
@@ -223,7 +223,7 @@ class Music_Cog(commands.Cog):
             await self.GUI_HANDLER(guild_id, reprint = True)
 
     # RESET BOT FOR GUILD IF DISCONNECTED FROM VOICE CHANNEL
-    @commands.Cog.listener() 
+    @commands.Cog.listener()
     async def on_voice_state_update(self, member:discord.member.Member, before, after):
         guild_name = member.guild.name
         guild_id= member.guild.id
@@ -237,7 +237,7 @@ class Music_Cog(commands.Cog):
                     voice_client.stop()
                 if voice_client.is_connected() is True:
                     await voice_client.disconnect()
-            send_log(guild_name, 'VOICE DISCONNECTED', before.channel.name)
+                    send_log(guild_name, 'VOICE DISCONNECTED', before.channel.name)
             try:
                 self.data.current_to_history(guild_id)
                 await self.GUI_HANDLER(guild_id)
@@ -261,6 +261,7 @@ class Music_Cog(commands.Cog):
                 self.data.current_to_history(guild_id)
                 await self.GUI_HANDLER(guild_id)
             except Exception as e: print(e)
+    
 #####################################################################################
     @commands.command(name= "sync", description= "Sync app commands with discord server")
     async def sync(self,ctx):
