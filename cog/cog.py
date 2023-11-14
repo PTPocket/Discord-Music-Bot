@@ -24,24 +24,6 @@ class Music_Cog(commands.Cog):
         self.disconnect_check.start()
         self.timeout_min = 18
 
-    @tasks.loop(seconds=60*3)
-    async def disconnect_check(self):
-        all_voice_connections = self.bot.voice_clients
-        for voice in all_voice_connections:    
-            try:        
-                guild_id = voice.guild.id
-                last_idle = self.data.get_time(guild_id)
-                if last_idle is None:
-                    self.data.set_idle_timestamp(guild_id)
-                    continue
-                if voice.is_playing():
-                    self.data.set_idle_timestamp(guild_id)
-                    continue
-                time_passed_sec = (datetime.today()-last_idle).seconds
-                if  time_passed_sec > 60*self.timeout_min:
-                    await voice.disconnect()
-            except Exception as e:print(e)
-
 
 
     async def GUI_HANDLER(self, guild_id, reprint = False, connect = False):
@@ -209,7 +191,20 @@ class Music_Cog(commands.Cog):
             await self.GUI_HANDLER(guild_id)
             print('Auto Print : GUI')
         
-
+####### Auto Disconnect Bot After X Seconds idle
+    @tasks.loop(minutes=1)
+    async def disconnect_check(self):
+        all_voice_connections = self.bot.voice_clients
+        for voice in all_voice_connections:    
+            guild_id = voice.guild.id
+            last_idle = self.data.get_time(guild_id)
+            if last_idle is None or voice.is_playing():
+                self.data.set_idle_timestamp(guild_id)
+                continue
+            time_passed_sec = (datetime.today()-last_idle).seconds
+            if  time_passed_sec > 60*self.timeout_min:
+                await voice.disconnect()
+                send_log(voice.guild.name, 'VOICE AUTO DISCONNECTED')
 
 
 
