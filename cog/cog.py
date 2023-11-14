@@ -232,11 +232,12 @@ class Music_Cog(commands.Cog):
                     voice_client.stop()
                 if voice_client.is_connected() is True:
                     await voice_client.disconnect()
-                    send_log(guild_name, 'VOICE DISCONNECTED', before.channel.name)
+                    send_log(guild_name, 'VOICE DISCONNECTED (force)', before.channel.name)
             try:
                 self.data.current_to_history(guild_id)
                 await self.GUI_HANDLER(guild_id)
             except Exception as e: print(e)
+            return
 
         #Disconnects if bot is only one is channel
         if after.channel is None:
@@ -251,11 +252,12 @@ class Music_Cog(commands.Cog):
                         self.gui_print.add(guild_id)
                         voice_client.stop()
                     await voice_client.disconnect()
-            send_log(guild_name, 'VOICE DISCONNECTED', before.channel.name)
+            send_log(guild_name, 'VOICE DISCONNECTED (empty)', before.channel.name)
             try:
                 self.data.current_to_history(guild_id)
                 await self.GUI_HANDLER(guild_id)
             except Exception as e: print(e)
+            return
     
 #####################################################################################
     @commands.command(name= "sync", description= "Sync app commands with discord server")
