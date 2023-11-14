@@ -152,7 +152,7 @@ class Music_Cog(commands.Cog):
 
         
     @app_commands.check(valid_play_command)
-    @app_commands.command(name= "flac", description="Search and play downloaded songs on bot server")
+    @app_commands.command(name= "local library", description="Search and play downloaded songs on bot server")
     async def flac(self, interaction:discord.Interaction, query:str):
         guild_name = interaction.user.guild.name
         guild_id = interaction.user.guild.id
