@@ -8,8 +8,6 @@ from cog.helper.guild_data import Guild_Music_Properties
 
 BLANK = '\u200b'
 YDL_OPTIONS = {'format': 'bestaudio', 'noplaylist':'True'}
-FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
-FFMPEG_LOC = "C:\\Users\\p\\Downloads\\ffmpeg\\bin\\ffmpeg.exe"
 LOCAL_MUSIC_PATH = "C:\\Users\\p\\Music"
 
 def send_log(log_name, description, result = ''):
