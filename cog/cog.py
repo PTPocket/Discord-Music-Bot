@@ -223,21 +223,19 @@ class Music_Cog(commands.Cog):
         guild_name = member.guild.name
         guild_id= member.guild.id
 
-        if member.id == self.bot.user.id and after.channel is None:
-            voice_client = self.bot.get_guild(guild_id).voice_client
-            self.data.soft_reset(guild_id)
-            if voice_client is not None:
-                if voice_client.is_playing() or voice_client.is_paused():
-                    self.gui_print.add(guild_id)
-                    voice_client.stop()
-                if voice_client.is_connected() is True:
-                    await voice_client.disconnect()
-                    send_log(guild_name, 'VOICE DISCONNECTED (force)', before.channel.name)
-            try:
-                self.data.current_to_history(guild_id)
-                await self.GUI_HANDLER(guild_id)
-            except Exception as e: print(e)
-            return
+        # if member.id == self.bot.user.id and after.channel is None:
+        #     voice_client = self.bot.get_guild(guild_id).voice_client
+        #     self.data.soft_reset(guild_id)
+        #     if voice_client is not None:
+        #         if voice_client.is_playing() or voice_client.is_paused():
+        #             self.gui_print.add(guild_id)
+        #             voice_client.stop()
+        #         send_log(guild_name, 'VOICE DISCONNECTED (force)', before.channel.name)
+        #     try:
+        #         self.data.current_to_history(guild_id)
+        #         await self.GUI_HANDLER(guild_id)
+        #     except Exception as e: print(e)
+        #     return
 
 
         #Disconnects if bot is only one is channel
