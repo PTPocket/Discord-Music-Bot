@@ -230,7 +230,7 @@ class Music_Cog(commands.Cog):
                 if voice_client.is_playing() or voice_client.is_paused():
                     self.gui_print.add(guild_id)
                     voice_client.stop()
-                send_log(guild_name, 'VOICE DISCONNECTED (force)', before.channel.name)
+            send_log(guild_name, 'VOICE DISCONNECTED (force)', before.channel.name)
             try:
                 self.data.current_to_history(guild_id)
                 await self.GUI_HANDLER(guild_id)
