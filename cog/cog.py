@@ -239,6 +239,7 @@ class Music_Cog(commands.Cog):
             except Exception as e: print(e)
             return
 
+
         #Disconnects if bot is only one is channel
         if after.channel is None:
             users = self.bot.get_channel(before.channel.id).members
@@ -257,7 +258,7 @@ class Music_Cog(commands.Cog):
                 self.data.current_to_history(guild_id)
                 await self.GUI_HANDLER(guild_id)
             except Exception as e: print(e)
-            return
+
     
 #####################################################################################
     @commands.command(name= "sync", description= "Sync app commands with discord server")
