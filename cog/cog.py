@@ -241,7 +241,7 @@ class Music_Cog(commands.Cog):
                 await self.GUI_HANDLER(guild_id)
             except Exception as e: print(e)
             return
-        return
+
         if member.id == self.bot.user.id and after.channel is None:
             voice_client = self.bot.get_guild(guild_id).voice_client
             self.data.soft_reset(guild_id)
