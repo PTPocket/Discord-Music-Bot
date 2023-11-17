@@ -220,14 +220,16 @@ class Music_Cog(commands.Cog):
     # RESET BOT FOR GUILD IF DISCONNECTED FROM VOICE CHANNEL
     @commands.Cog.listener()
     async def on_voice_state_update(self, member:discord.member.Member, before, after):
-        guild_name = member.guild.name
-        guild_id= member.guild.id
-
+        if after.channel is not None:return
         users = self.bot.get_channel(before.channel.id).members
         if users == []: return
-        usernames_only = [user.name for user in users]
+        guild_name = member.guild.name
+        guild_id= member.guild.id
+        connected_user_ids = [user.id for user in users]
+
         #Disconnects if bot is only one is channel
-        if after.channel is None and self.bot.user.name in usernames_only and len(usernames_only) == 1:
+        if (len(connected_user_ids) == 1 and self.bot.user.id in connected_user_ids) or \
+           (len(connected_user_ids) == 2 and self.bot.user.id in connected_user_ids and 990490227401453618 in connected_user_ids):
             voice_client = self.bot.get_guild(guild_id).voice_client
             self.data.soft_reset(guild_id)
             if voice_client is not None:
@@ -235,12 +237,14 @@ class Music_Cog(commands.Cog):
                     self.gui_print.add(guild_id)
                     voice_client.stop()
                 await voice_client.disconnect()
-            send_log(guild_name, 'VOICE DISCONNECTED (empty)', before.channel.name)
+            send_log(guild_name, 'VOICE DISCONNECTED (no active users)', before.channel.name)
             try:
                 self.data.current_to_history(guild_id)
                 await self.GUI_HANDLER(guild_id)
             except Exception as e: print(e)
             return
+
+        return
 
         if member.id == self.bot.user.id and after.channel is None:
             voice_client = self.bot.get_guild(guild_id).voice_client
