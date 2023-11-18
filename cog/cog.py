@@ -199,6 +199,7 @@ class Music_Cog(commands.Cog):
             guild_id = voice.guild.id
             last_idle = self.data.get_time(guild_id)
             if last_idle is None or voice.is_playing():
+                send_log(voice.guild.name, 'SET TIMESTAMP')
                 self.data.set_idle_timestamp(guild_id)
                 continue
             time_passed_sec = (datetime.today()-last_idle).seconds
