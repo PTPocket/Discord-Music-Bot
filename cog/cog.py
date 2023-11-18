@@ -28,6 +28,7 @@ class Music_Cog(commands.Cog):
 
     async def GUI_HANDLER(self, guild_id, reprint = False, connect = False):
         try:
+            print('Printed GUI')
             player_embed = embed.gui_embed(self.bot, self.data, guild_id, connect = connect)
             view = MusicFunctions(self, self.data, guild_id)
             last_message = self.data.get_message(guild_id)
@@ -59,7 +60,6 @@ class Music_Cog(commands.Cog):
 
     #MUSIC PLAYER LOOP (not recursive)
     def music_player(self, interaction:discord.Interaction, recall = False):
-        
         guild_name = interaction.user.guild.name
         guild_id = interaction.user.guild.id
         
@@ -89,8 +89,10 @@ class Music_Cog(commands.Cog):
                 **FFMPEG_OPTIONS,
                 executable= FFMPEG_LOC)
         player = discord.PCMVolumeTransformer(player, volume=0.15)
-        send_log(guild_name, "NOW PLAYING", f'\"{song["title"]}\"')
         voice_client = interaction.client.get_guild(guild_id).voice_client
+        send_log(guild_name, "NOW PLAYING", f'\"{song["title"]}\"')
+        send_log(voice_client.guild.name, 'SET TIMESTAMP')
+        self.data.set_idle_timestamp(guild_id)
         self.data.set_voice(guild_id, voice_client)
         voice_client.play(player, after= lambda x=None: self.music_player(interaction, recall=True))
         return True
@@ -189,17 +191,15 @@ class Music_Cog(commands.Cog):
         while self.gui_print:
             guild_id = self.gui_print.pop()
             await self.GUI_HANDLER(guild_id)
-            print('Auto Print : GUI')
         
 ####### Auto Disconnect Bot After X Seconds idle
-    @tasks.loop(minutes=1)
+    @tasks.loop(minutes=3)
     async def disconnect_check(self):
         all_voice_connections = self.bot.voice_clients
         for voice in all_voice_connections:    
             guild_id = voice.guild.id
             last_idle = self.data.get_time(guild_id)
             if last_idle is None or voice.is_playing():
-                send_log(voice.guild.name, 'SET TIMESTAMP')
                 self.data.set_idle_timestamp(guild_id)
                 continue
             time_passed_sec = (datetime.today()-last_idle).seconds
@@ -207,7 +207,7 @@ class Music_Cog(commands.Cog):
                 send_log(voice.guild.name, 'VOICE AUTO DISCONNECTED')
                 await voice.disconnect()
                 await self.GUI_HANDLER(guild_id)
-                print('Auto Print : GUI')
+
 
 
 
