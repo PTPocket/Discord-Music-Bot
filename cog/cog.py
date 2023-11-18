@@ -203,8 +203,10 @@ class Music_Cog(commands.Cog):
                 continue
             time_passed_sec = (datetime.today()-last_idle).seconds
             if  time_passed_sec > 60*self.timeout_min:
-                await voice.disconnect()
                 send_log(voice.guild.name, 'VOICE AUTO DISCONNECTED')
+                await voice.disconnect()
+                await self.GUI_HANDLER(guild_id)
+                print('Auto Print : GUI')
 
 
 
