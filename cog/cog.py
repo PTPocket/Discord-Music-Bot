@@ -22,7 +22,6 @@ class Music_Cog(commands.Cog):
         self.gui_print = set()
         self.gui_loop.start()
         self.disconnect_check.start()
-        self.timeout_min = 18
 
 
 
@@ -91,7 +90,6 @@ class Music_Cog(commands.Cog):
         player = discord.PCMVolumeTransformer(player, volume=0.15)
         voice_client = interaction.client.get_guild(guild_id).voice_client
         send_log(guild_name, "NOW PLAYING", f'\"{song["title"]}\"')
-        send_log(voice_client.guild.name, 'SET TIMESTAMP')
         self.data.set_idle_timestamp(guild_id)
         voice_client.play(player, after= lambda x=None: self.music_player(interaction, recall=True))
         return True
@@ -204,8 +202,9 @@ class Music_Cog(commands.Cog):
                 self.data.set_idle_timestamp(guild_id)
                 continue
             time_passed_sec = (datetime.today()-last_idle).seconds
-            if  time_passed_sec > 60*self.timeout_min:
-                self.data.reset()
+            print(time_passed_sec)
+            if  time_passed_sec > 60*18:
+                self.data.reset(guild_id)
                 await voice.disconnect()
                 await self.GUI_HANDLER(guild_id)
                 send_log(voice.guild.name, 'VOICE DISCONNECTED (auto)', )
