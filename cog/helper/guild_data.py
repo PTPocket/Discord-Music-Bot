@@ -8,7 +8,6 @@ def send_log(log_name, description, result = ''):
 
 class Guild_Music_Properties():
     def __init__(self):
-        self.voice   = {}
         #SONG PLACEMENT
         self.queue   = {}
         self.history = {}
@@ -30,8 +29,7 @@ class Guild_Music_Properties():
         log_name = interaction.user.guild.name
         description = 'Initialized Variables for Guild'
         guild_id = interaction.user.guild.id
-        if guild_id not in self.voice:
-            self.voice[guild_id]   = False
+        if guild_id not in self.queue:
             self.queue[guild_id]   = []
             self.history[guild_id] = []
             self.time[guild_id]   = None
@@ -45,11 +43,6 @@ class Guild_Music_Properties():
             send_log(log_name, description )
     
     #RETRIEVE VALUES FUNCTIONS
-    def get_voices(self):
-        return self.voice
-
-    def get_voice(self, guild_id):
-        return self.voice[guild_id]
     def get_queue(self, guild_id):
         return self.queue[guild_id]
     def get_history(self, guild_id):
@@ -65,7 +58,7 @@ class Guild_Music_Properties():
     def get_message(self,guild_id):
         return self.message[guild_id]
     def get_guild_ids(self):
-        return self.voice.keys()
+        return self.queue.keys()
     def get_back(self, guild_id):
         return self.back[guild_id]
     def get_mystery(self, guild_id):
@@ -75,8 +68,6 @@ class Guild_Music_Properties():
 
     
     #SET VALUE FUNCTIONS
-    def set_voice(self, guild_id, voice):
-        self.voice[guild_id] = voice
     def set_current_song(self,guild_id, song):
         self.current[guild_id] = song
     def set_loop(self,guild_id, value):
@@ -165,38 +156,15 @@ class Guild_Music_Properties():
         else:
             self.set_back(guild_id, True)
 
-    def voice_in_action(self, guild_id):
-        voice = self.get_voice(guild_id)
-        if voice is None:
-            return False
-        if voice.is_playing() is True or voice.is_paused() is True:
-            return True
-        else:
-            return False
-
     def reset_features(self, guild_id):
         self.loop[guild_id]   = False
         self.random[guild_id] = False
     
-    def soft_reset(self, guild_id):
-        self.voice[guild_id]   = False
+    def reset(self, guild_id):
+        self.current_to_history(guild_id)
         self.queue[guild_id]  = []
-        self.history[guild_id] = []
         self.loop[guild_id]   = False
         self.random[guild_id] = False
         self.loop[guild_id]    = False
         self.back[guild_id]    = False
         self.mystery[guild_id] = False
-
-    def hard_reset(self, guild_id):
-        
-        self.queue[guild_id]   = []
-        self.history[guild_id] = []
-        self.loop[guild_id]    = False
-        self.back[guild_id]    = False
-        self.random[guild_id]  = False
-        self.mystery[guild_id] = False
-        
-        self.current[guild_id] = None
-        self.channel[guild_id] = None
-        self.message[guild_id] = None

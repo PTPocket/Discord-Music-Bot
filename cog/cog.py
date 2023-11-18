@@ -93,7 +93,6 @@ class Music_Cog(commands.Cog):
         send_log(guild_name, "NOW PLAYING", f'\"{song["title"]}\"')
         send_log(voice_client.guild.name, 'SET TIMESTAMP')
         self.data.set_idle_timestamp(guild_id)
-        self.data.set_voice(guild_id, voice_client)
         voice_client.play(player, after= lambda x=None: self.music_player(interaction, recall=True))
         return True
     
@@ -185,6 +184,8 @@ class Music_Cog(commands.Cog):
         await interaction.delete_original_response()
 
 
+
+
 ######## LOOP TO AUTO CHANGE GUI ##############################################################
     @tasks.loop(seconds = 5)
     async def gui_loop(self):
@@ -204,9 +205,10 @@ class Music_Cog(commands.Cog):
                 continue
             time_passed_sec = (datetime.today()-last_idle).seconds
             if  time_passed_sec > 60*self.timeout_min:
-                send_log(voice.guild.name, 'VOICE AUTO DISCONNECTED')
+                self.data.reset()
                 await voice.disconnect()
                 await self.GUI_HANDLER(guild_id)
+                send_log(voice.guild.name, 'VOICE DISCONNECTED (auto)', )
 
 
 
@@ -234,32 +236,17 @@ class Music_Cog(commands.Cog):
         if (len(connected_user_ids) == 1 and self.bot.user.id in connected_user_ids) or \
            (len(connected_user_ids) == 2 and self.bot.user.id in connected_user_ids and 990490227401453618 in connected_user_ids):
             voice_client = self.bot.get_guild(guild_id).voice_client
-            self.data.soft_reset(guild_id)
+            self.data.reset(guild_id)
             if voice_client is not None:
                 if voice_client.is_playing() or voice_client.is_paused():
                     self.gui_print.add(guild_id)
                     voice_client.stop()
                 await voice_client.disconnect()
             send_log(guild_name, 'VOICE DISCONNECTED (no active users)', before.channel.name)
-            try:
-                self.data.current_to_history(guild_id)
-                await self.GUI_HANDLER(guild_id)
-            except Exception as e: print(e)
+            await self.GUI_HANDLER(guild_id)
+
             return
         
-        # if member.id == self.bot.user.id and after.channel is None:
-        #     voice_client = self.bot.get_guild(guild_id).voice_client
-        #     self.data.soft_reset(guild_id)
-        #     if voice_client is not None:
-        #         if voice_client.is_playing() or voice_client.is_paused():
-        #             self.gui_print.add(guild_id)
-        #             voice_client.stop()
-        #     send_log(guild_name, 'VOICE DISCONNECTED (force)', before.channel.name)
-        #     try:
-        #         self.data.current_to_history(guild_id)
-        #         await self.GUI_HANDLER(guild_id)
-        #     except Exception as e: print(e)
-        #     return
 
 
 

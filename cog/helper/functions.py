@@ -340,11 +340,12 @@ class MusicFunctions(View):
             send_log(guild_name, 'DISCONNECT BUTTON', 'Clicked')
             guild_id = interaction.user.guild.id
             voice_client = interaction.client.get_guild(guild_id).voice_client
-            self.data.soft_reset(guild_id)
+            self.data.reset(guild_id)
             if voice_client is not None:
                 if voice_client.is_playing() or voice_client.is_paused():
                     voice_client.stop()
                 await voice_client.disconnect()
+                send_log(guild_name, 'VOICE DISCONNECTED (force)')
             await interaction.response.defer()
             await self.music_cog.GUI_HANDLER(guild_id)
 
