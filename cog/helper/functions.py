@@ -38,8 +38,6 @@ async def valid_play_command(interaction:discord.Interaction):
         await interaction.response.send_message(embed= msg, ephemeral=True)
     else:
         send_log(guild_name, 'ACCESS GRANTED', user)
-    
-    
     return authorized
 
 async def valid_user_REGULAR_FUNC(interaction:discord.Interaction):
@@ -159,6 +157,7 @@ class MusicFunctions(View):
         self.add_item(self.RandomButton    (music_cog, data, guild_id))
         self.add_item(self.RandomSongButton(music_cog, data, guild_id))
         self.add_item(self.DisconnectButton(music_cog, data, guild_id))
+        
     async def interaction_check(self, interaction: discord.Interaction):
         user = interaction.user
         guild_name = interaction.user.guild.name
