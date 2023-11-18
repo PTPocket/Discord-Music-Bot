@@ -68,9 +68,9 @@ class Music_Cog(commands.Cog):
 
         check_features(self.data, guild_id)
         if self.data.empty_queue(guild_id):
-            send_log(guild_name, 'QUEUE', 'Empty')
             self.data.set_idle_timestamp(guild_id)
             self.gui_print.add(guild_id)
+            send_log(guild_name, 'PLAYER', 'end')
             return
 
         
