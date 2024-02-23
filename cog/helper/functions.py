@@ -8,7 +8,7 @@ from cog.helper.guild_data import Guild_Music_Properties
 
 BLANK = '\u200b'
 YDL_OPTIONS = {'format': 'bestaudio', 'noplaylist':'True'}
-LOCAL_MUSIC_PATH = "Z:\music"
+LOCAL_MUSIC_PATH = "C:\Users\p\Documents\SERVER\music"
 
 def send_log(log_name, description, result = ''):
     time= str(datetime.now())
