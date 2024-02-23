@@ -11,7 +11,7 @@ from datetime import datetime
 YDL_OPTIONS = {'format': 'bestaudio', 'noplaylist':'True'}
 FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
 FFMPEG_LOC = "C:\\Users\\p\\Downloads\\ffmpeg\\bin\\ffmpeg.exe"
-LOCAL_MUSIC_PATH = "Z:\music"
+LOCAL_MUSIC_PATH = "C:\\Users\\p\\Documents\\SERVER\\music"
 
 
 
