@@ -2,7 +2,7 @@ import discord, os, random, time
 from tinytag import TinyTag
 from discord.ui import View, Select, Button
 from datetime import datetime
-from yt_dlp import YoutubeDL
+import yt_dlp
 from cog.helper import embed
 from cog.helper.guild_data import Guild_Music_Properties
 
@@ -82,13 +82,38 @@ async def voice_connect(interaction:discord.Interaction):
     return voice_client
 
 def youtube_search(query):
-    with YoutubeDL(YDL_OPTIONS) as ydl:
+    with yt_dlp.YoutubeDL(YDL_OPTIONS) as ydl:
         try: 
             info = ydl.extract_info("ytsearch:%s" % query, download=False)['entries'][0]
         except Exception as e: 
             print(e)
             return None
     return {'source': info['url'], 'title': info['title']}
+
+def youtube_playlist(data, playlist_url, guild_id):
+    ydl_opts = {
+        #'quiet': True,
+        'extract_flat': True,
+        'force_generic_extractor': True,
+        'force_playlist': True,
+        'skip_download': True,
+        'geo_bypass': True,
+    }
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        try:
+            playlist_info = ydl.extract_info(playlist_url, download=False)
+            videos = playlist_info['entries']
+            if videos:
+                for video in videos:
+                    data.queue_song({'source': None, 'title': video['url']})
+                return False
+            else:
+                print("No videos found in the playlist.")
+                return False
+        except Exception as e: 
+            print(e)
+            return False
+
 
 def check_features(data:Guild_Music_Properties, guild_id):
     if data.get_back(guild_id) is True:

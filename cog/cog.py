@@ -72,12 +72,12 @@ class Music_Cog(commands.Cog):
             send_log(guild_name, 'PLAYER', 'end')
             return
 
-        
         self.data.queue_to_current(guild_id)
         song = self.data.get_current_song(guild_id)
         if recall is True:
             self.gui_print.add(guild_id)
-            
+        if song['source'] is None:
+            song = youtube_search(song['title'])
         if LOCAL_MUSIC_PATH in song['source']:
             player = FFmpegPCMAudio(
                 song['source'],
@@ -117,13 +117,26 @@ class Music_Cog(commands.Cog):
 #######PLAY FUNCTIONS######################################################
     @app_commands.check(valid_play_command)
     @app_commands.command(name= "play", description="Play song or add to song queue")
-    async def play(self, interaction:discord.Interaction, song:str):
+    async def play(self, interaction:discord.Interaction, query:str):
         guild_name = interaction.user.guild.name
         guild_id = interaction.user.guild.id
         self.data.initialize(interaction)
-
         await interaction.response.defer(ephemeral=True)
-        query= song
+
+
+        # if 'www.youtube.com/playlist' in query:
+        #     if youtube_playlist(self.data, query, guild_id) is False:
+        #         send_log(guild_name, "ERROR", query)
+        #         return
+        #     send_log(guild_name, "QUEUED PLAYLIST", query)
+        # else:
+        #     song = {'source': None, 'title': query}
+        #     self.data.queue_song(guild_id, song)
+        #     send_log(guild_name, "QUEUED", query)
+        # print('hi')
+        # await self.music_player_start(interaction)
+        # await interaction.delete_original_response()
+        
         song = youtube_search(query)
         if song is None:
             send_log(guild_name, 'ERROR', 'Youtube Search')
