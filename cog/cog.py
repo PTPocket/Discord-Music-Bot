@@ -175,34 +175,34 @@ class Music_Cog(commands.Cog):
         await interaction.delete_original_response()
 
         
-    @app_commands.check(valid_play_command)
-    @app_commands.command(name= "local_library", description="Search and play downloaded songs on bot server")
-    async def local_library(self, interaction:discord.Interaction, query:str):
-        guild_name = interaction.user.guild.name
-        guild_id = interaction.user.guild.id
-        self.data.initialize(interaction)
-        local_song_list = os.listdir(LOCAL_MUSIC_PATH)
-        query = query.lower()
-        query_matches = [song for song in local_song_list if query in song.lower()]
-        if not query_matches: #If there are no matches for query from list of songs
-            emb_msg = embed.no_match(self.bot, query)
-            await interaction.response.send_message(embed= emb_msg, ephemeral=True)
-            await self.GUI_HANDLER(guild_id, reprint = True)
-            return
-        if len(query_matches) > 25:
-            query_matches = query_matches[0:25]
-        sview = SearchView(query_matches)
-        emb_msg = embed.search_list_prompt(self.bot)
-        await interaction.response.send_message(embed =emb_msg, view=sview, ephemeral=True)
-        timeout = await sview.wait()
+    # @app_commands.check(valid_play_command)
+    # @app_commands.command(name= "local_library", description="Search and play downloaded songs on bot server")
+    # async def local_library(self, interaction:discord.Interaction, query:str):
+    #     guild_name = interaction.user.guild.name
+    #     guild_id = interaction.user.guild.id
+    #     self.data.initialize(interaction)
+    #     local_song_list = os.listdir(LOCAL_MUSIC_PATH)
+    #     query = query.lower()
+    #     query_matches = [song for song in local_song_list if query in song.lower()]
+    #     if not query_matches: #If there are no matches for query from list of songs
+    #         emb_msg = embed.no_match(self.bot, query)
+    #         await interaction.response.send_message(embed= emb_msg, ephemeral=True)
+    #         await self.GUI_HANDLER(guild_id, reprint = True)
+    #         return
+    #     if len(query_matches) > 25:
+    #         query_matches = query_matches[0:25]
+    #     sview = SearchView(query_matches)
+    #     emb_msg = embed.search_list_prompt(self.bot)
+    #     await interaction.response.send_message(embed =emb_msg, view=sview, ephemeral=True)
+    #     timeout = await sview.wait()
         
-        if timeout is True:
-            return
-        song = sview.song_choice
-        self.data.queue_song(guild_id, song)
-        send_log(guild_name, "QUEUED", song['title'])
-        await self.music_player_start(interaction)
-        await interaction.delete_original_response()
+    #     if timeout is True:
+    #         return
+    #     song = sview.song_choice
+    #     self.data.queue_song(guild_id, song)
+    #     send_log(guild_name, "QUEUED", song['title'])
+    #     await self.music_player_start(interaction)
+    #     await interaction.delete_original_response()
 
 
 
