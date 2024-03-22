@@ -1,6 +1,6 @@
 import discord, asyncio
 from discord.ext import commands
-from config import TOKEN
+from config import TOKEN, SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET
 from datetime import datetime
 #Cog import
 from cog.cog import Music_Cog, send_log
@@ -19,7 +19,7 @@ async def on_ready():
 async def main():
     async with client:
         try:
-            await client.add_cog(Music_Cog(client))
+            await client.add_cog(Music_Cog(client, SPOTIFY_CLIENT_SECRET, SPOTIFY_CLIENT_ID))
             await client.start(TOKEN)
             print('READY')
         except Exception as e:

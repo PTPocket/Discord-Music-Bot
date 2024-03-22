@@ -43,6 +43,16 @@ class Guild_Music_Properties():
             send_log(log_name, description )
     
     #RETRIEVE VALUES FUNCTIONS
+    def get_all_songs(self, guild_id):
+        past_songs = self.history[guild_id][::-1]
+        next_songs =  self.queue[guild_id]
+        if self.current[guild_id] is None:
+            all_songs = past_songs+next_songs
+            return all_songs
+        else:
+            next_songs.insert(0,self.current[guild_id])
+            all_songs = past_songs+next_songs
+            return all_songs
     def get_queue(self, guild_id):
         return self.queue[guild_id]
     def get_history(self, guild_id):
@@ -68,6 +78,10 @@ class Guild_Music_Properties():
 
     
     #SET VALUE FUNCTIONS
+    def set_queue(self,guild_id, queue):
+        self.queue[guild_id] = queue
+    def set_history(self,guild_id,history):
+        self.history[guild_id] = history
     def set_current_song(self,guild_id, song):
         self.current[guild_id] = song
     def set_loop(self,guild_id, value):
@@ -107,8 +121,6 @@ class Guild_Music_Properties():
         current_song = self.get_current_song(guild_id)
         if current_song is not None:
             self.history[guild_id].append(current_song)
-            if len(self.history[guild_id]) > 30:
-                self.history[guild_id] = self.history[guild_id][0:30]
             self.set_current_song(guild_id, None)
             return True
         return False

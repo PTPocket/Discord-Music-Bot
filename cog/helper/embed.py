@@ -96,7 +96,7 @@ def yt_search_error(bot, song):
     embed = discord.Embed(
         title=f":x: **Youtube Search Error:x:\nTry Different Input** ",
         description=f"***```Your Input: {song}```***",
-        color=discord.Color.yellow()) 
+        color=discord.Color.red()) 
     embed.set_thumbnail(url=MUSIC_ICON)
     embed.set_author(name=COG_NAME, icon_url=bot_avatar)     
     return embed
@@ -104,9 +104,19 @@ def yt_search_error(bot, song):
 def yt_playlist_error(bot, song):
     bot_avatar = bot.user.display_avatar
     embed = discord.Embed(
-        title=f":x: **Youtube Playlist Error:x:\nTry Different Input** ",
+        title=f":x: **Youtube Playlist Error:x:\nLink Must Contain 'youtube.com/playlist'** ",
         description=f"***```Your Input: {song}```***",
-        color=discord.Color.yellow()) 
+        color=discord.Color.red()) 
+    embed.set_thumbnail(url=MUSIC_ICON)
+    embed.set_author(name=COG_NAME, icon_url=bot_avatar)     
+    return embed
+
+def spotify_playlist_error(bot, song):
+    bot_avatar = bot.user.display_avatar
+    embed = discord.Embed(
+        title=f":x: **Spotify Playlist Error:x:\nLink Must Contain 'spotify.com/playlist'** ",
+        description=f"***```Your Input: {song}```***",
+        color=discord.Color.red()) 
     embed.set_thumbnail(url=MUSIC_ICON)
     embed.set_author(name=COG_NAME, icon_url=bot_avatar)     
     return embed

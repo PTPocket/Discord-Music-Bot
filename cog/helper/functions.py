@@ -3,6 +3,8 @@ from tinytag import TinyTag
 from discord.ui import View, Select, Button
 from datetime import datetime
 import yt_dlp
+import spotipy
+from spotipy.oauth2 import SpotifyClientCredentials
 from cog.helper import embed
 from cog.helper.guild_data import Guild_Music_Properties
 
@@ -112,6 +114,27 @@ def youtube_playlist(playlist_url):
             print(e)
             return None
 
+def spotify_playlist(playlist_url, client_id, client_secret):
+    try:
+        # Initialize Spotipy with your credentials
+        client_id = '9c3663afbe8f41589283a0055983da47'
+        client_secret = '4d580e8f409b40e9b72e50b548d1dd28'
+        client_credentials_manager = SpotifyClientCredentials(client_id=client_id, client_secret=client_secret)
+        sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
+        # Get playlist tracks
+        results = sp.playlist_tracks(playlist_url)
+        # Extract track names
+        song_titles = []
+        for item in results['items']:
+            track = item['track']
+            artists = ''
+            for i in range(len(track['artists'])):
+                artists += track['artists'][i]['name'] + ','
+            song_titles.append(f"{track['name']} by {artists[:-1]}")
+        return song_titles
+    except Exception as e:
+        print(e)
+        return None
 
 def check_features(data:Guild_Music_Properties, guild_id):
     if data.get_back(guild_id) is True:
@@ -142,37 +165,34 @@ def add_random_song(data, guild_id):
         data.prepend_to_queue(guild_id, song)
 
 
-class SearchView(View):
-    def __init__(self, song_list):
-        super().__init__(timeout=30)
-        self.add_item(self.SongSelectMenu(song_list))
-        self.song_choice = None
-    class SongSelectMenu(Select):
-        def __init__(self, song_list):
-            options = []
-            for i, song in enumerate(song_list):
-                path = LOCAL_MUSIC_PATH + '\\'+ song
-                file = TinyTag.get(path)
-                options.append(discord.SelectOption(
-                    label = f"{file.title} - {file.artist}",
-                    value = i
-                ))
-            super().__init__(placeholder='Search Results', options = options)
-            self.song_list = song_list
-        async def callback(self, interaction:discord.Interaction):
-            song = self.song_list[int(self.values[0])]
-            path = LOCAL_MUSIC_PATH + '\\'+ song
-            song_metadata = TinyTag.get(path)
-            title = f"{song_metadata.title} - {song_metadata.artist}"
-            song = {'title': title, 'source': f'{path}'}
-            self.view.song_choice = song
-            self.view.stop()
-            await interaction.response.send_message()
+# class SearchView(View):
+#     def __init__(self, song_list):
+#         super().__init__(timeout=30)
+#         self.add_item(self.SongSelectMenu(song_list))
+#         self.song_choice = None
+#     class SongSelectMenu(Select):
+#         def __init__(self, song_list):
+#             options = []
+#             for i, song in enumerate(song_list):
+#                 path = LOCAL_MUSIC_PATH + '\\'+ song
+#                 file = TinyTag.get(path)
+#                 options.append(discord.SelectOption(
+#                     label = f"{file.title} - {file.artist}",
+#                     value = i,
+#                 ))
+#             super().__init__(placeholder='Search Results', options = options)
+#             self.song_list = song_list
+#         async def callback(self, interaction:discord.Interaction, select_item:discord.ui.Select):
+#             print('awer')
+#             print(select_item.values)
+#             print('test')
+#             await interaction.response.send_message()
 
 
 class MusicFunctions(View):
     def __init__(self,music_cog,data,guild_id):
         super().__init__(timeout=None)
+        #self.add_item(self.SongSelectMenu(music_cog,data,guild_id))
         self.add_item(self.PreviousButton  (music_cog, data, guild_id))
         self.add_item(self.PlayPause       (music_cog, data, guild_id))
         self.add_item(self.NextButton      (music_cog, data, guild_id))
@@ -202,6 +222,55 @@ class MusicFunctions(View):
             await interaction.response.defer()
             return False
 
+    class SongSelectMenu(Select):
+        def __init__(self, music_cog, data, guild_id):
+            self.data      = data
+            self.music_cog = music_cog
+            self.guild_id  = guild_id
+            options = []
+
+            song_list = self.data.get_all_songs(guild_id)
+            incre = float(len(song_list))/25
+            if incre < 1:
+                incre = 1
+            ind = float(0)
+            while ind < len(song_list):
+                song = song_list[int(ind)]['title']
+                if len(song) > 99:
+                    song = song[0:99]
+                options.append(discord.SelectOption(
+                    label = f"{song}"))
+                ind+=incre
+            super().__init__(placeholder='Select Song', options = options)
+            self.song_list = song_list
+
+        async def callback(self, interaction:discord.Interaction):
+            guild_name = interaction.user.guild.name
+            send_log(guild_name, 'MENU OPTION', 'Clicked')
+            guild_id = interaction.user.guild.id
+            voice_client = interaction.client.get_guild(guild_id).voice_client
+            song_title = self.values[0]
+            if voice_client is None:
+                await interaction.response.defer()
+                return
+            if (voice_client.is_playing() or voice_client.is_paused()):
+                print('d')
+                queue = self.data.get_queue()
+                self.data.empty_queue()
+                voice_client.stop()
+                await interaction.response.defer()
+                past_songs = self.data.get_history()[::-1]
+                all_songs = past_songs+queue
+                for i in range(len(all_songs)):
+                    if song_title == all_songs['title']:
+                        index = i
+                self.data.set_queue(guild_id, all_songs[index:len(all_songs)])
+                self.data.set_history(guild_id, all_songs[0:index])
+                await self.music_cog.music_player_start(interaction) 
+                return
+            await interaction.response.defer()
+            
+        
     class PlayPause(Button):
         def __init__(self,music_cog, data,guild_id):
             super().__init__(emoji = '⏯', style= discord.ButtonStyle.blurple)

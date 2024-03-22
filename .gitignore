@@ -29,3 +29,4 @@ cog/helper/__pycache__/embed.cpython-312.pyc
 cog/helper/__pycache__/functions.cpython-312.pyc
 cog/helper/__pycache__/guild_data.cpython-312.pyc
 chgpt3.py
+.cache

@@ -16,8 +16,10 @@ LOCAL_MUSIC_PATH = "C:\\Users\\p\\Documents\\SERVER\\music\\Formatted"
 
 
 class Music_Cog(commands.Cog):
-    def __init__(self, bot:commands.Bot):
+    def __init__(self, bot:commands.Bot, client_id, client_secret):
         self.bot = bot
+        self.client_id = client_id
+        self.client_secret = client_secret
         self.data = Guild_Music_Properties()
         self.gui_print = set()
         self.gui_loop.start()
@@ -75,7 +77,7 @@ class Music_Cog(commands.Cog):
         
         self.data.queue_to_current(guild_id)
         song = self.data.get_current_song(guild_id)
-        if song['source'] == 'query' or 'youtube.com/watch' in song['source']:
+        if song['source']=='youtube' or song['source']=='spotify':
             song = youtube_search(song['title'])
 
         if recall is True:
@@ -119,26 +121,37 @@ class Music_Cog(commands.Cog):
 
 #######PLAY FUNCTIONS######################################################
     @app_commands.check(valid_play_command)
-    @app_commands.command(name= "play", description="Play song or add to song queue")
-    async def play(self, interaction:discord.Interaction, song:str):
+    @app_commands.command(name= "play", description="Play Song or Queue a Playlist with a Link (spotify & youtube)")
+    async def play(self, interaction:discord.Interaction, song_or_link:str):
         guild_name = interaction.user.guild.name
         guild_id = interaction.user.guild.id
         self.data.initialize(interaction)
 
         await interaction.response.defer(ephemeral=True)
-        if 'youtube.com/playlist?list' in song:
-            videos = youtube_playlist(song)
-            if videos is None:
+        if 'youtube' in song_or_link:
+            song_list = youtube_playlist(song_or_link)
+            if song_list is None:
                 send_log(guild_name, 'ERROR', 'Youtube Playlist')
-                msg = embed.yt_playlist_error(self.bot, song)
+                msg = embed.yt_playlist_error(self.bot, song_or_link)
                 await interaction.followup.send(embed= msg, ephemeral=True)
                 await self.GUI_HANDLER(guild_id)
                 return
-            for video in videos:
-                self.data.queue_song(guild_id,{'source': video['url'], 'title': video['title']})
-                print(video['url'])
+            for song in song_list:
+                self.data.queue_song(guild_id,{'source': 'youtube', 'title': song['title']})
+            send_log(guild_name, "QUEUED", f"youtube playlist ({len(song_list)} songs)")
+        elif 'spotify' in song_or_link:
+            song_list = spotify_playlist(song_or_link, self.client_id, self.client_secret)
+            if song_list is None:
+                send_log(guild_name, 'ERROR', 'Spotify Playlist')
+                msg = embed.spotify_playlist_error(self.bot, song_or_link)
+                await interaction.followup.send(embed= msg, ephemeral=True)
+                await self.GUI_HANDLER(guild_id)
+                return
+            for title in song_list:
+                self.data.queue_song(guild_id,{'source': 'spotify', 'title': title})
+            send_log(guild_name, "QUEUED", f'spotify playlist ({len(song_list)} songs)' )
         else:
-            song = {'source': 'query', 'title': song}
+            song = {'source': 'youtube', 'title': song_or_link}
             self.data.queue_song(guild_id, song)
             send_log(guild_name, "QUEUED", song['title'])
         await self.music_player_start(interaction)
