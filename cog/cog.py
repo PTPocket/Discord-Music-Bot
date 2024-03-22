@@ -75,7 +75,7 @@ class Music_Cog(commands.Cog):
         
         self.data.queue_to_current(guild_id)
         song = self.data.get_current_song(guild_id)
-        if song['source'] == 'None':
+        if song['source'] == 'query' or 'youtube.com/watch' in song['source']:
             song = youtube_search(song['title'])
 
         if recall is True:
@@ -127,27 +127,23 @@ class Music_Cog(commands.Cog):
 
         await interaction.response.defer(ephemeral=True)
         if 'youtube.com/playlist?list' in song:
-            if youtube_playlist(self.data, song, guild_id) is False:
+            videos = youtube_playlist(song)
+            if videos is None:
                 send_log(guild_name, 'ERROR', 'Youtube Playlist')
                 msg = embed.yt_playlist_error(self.bot, song)
                 await interaction.followup.send(embed= msg, ephemeral=True)
                 await self.GUI_HANDLER(guild_id)
+                return
+            for video in videos:
+                self.data.queue_song(guild_id,{'source': video['url'], 'title': video['title']})
+                print(video['url'])
         else:
-            song = {'source': 'None', 'title': song}
+            song = {'source': 'query', 'title': song}
             self.data.queue_song(guild_id, song)
+            send_log(guild_name, "QUEUED", song['title'])
         await self.music_player_start(interaction)
         await interaction.delete_original_response()
-        return
-        song = youtube_search(query)
-        if song is None:
-            send_log(guild_name, 'ERROR', 'Youtube Search')
-            msg = embed.yt_search_error(self.bot, query)
-            await interaction.followup.send(embed= msg, ephemeral=True)
-            await self.GUI_HANDLER(guild_id)
-        self.data.queue_song(guild_id, song)
-        send_log(guild_name, "QUEUED", song['title'])
-        await self.music_player_start(interaction)
-        await interaction.delete_original_response()
+
 
     @app_commands.check(valid_play_command)
     @app_commands.command(name= "play_random", description="Play random songs from pocket bot library forever")

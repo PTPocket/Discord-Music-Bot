@@ -7,7 +7,6 @@ from cog.helper import embed
 from cog.helper.guild_data import Guild_Music_Properties
 
 BLANK = '\u200b'
-YDL_OPTIONS = {'format': 'bestaudio', 'noplaylist':'True'}
 LOCAL_MUSIC_PATH = "C:\\Users\\p\\Documents\\SERVER\\music\\Formatted"
 
 def send_log(log_name, description, result = ''):
@@ -82,7 +81,8 @@ async def voice_connect(interaction:discord.Interaction):
     return voice_client
 
 def youtube_search(query):
-    with yt_dlp.YoutubeDL(YDL_OPTIONS) as ydl:
+    ydl_opts = {'format': 'bestaudio', 'noplaylist':True}
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         try: 
             info = ydl.extract_info("ytsearch:%s" % query, download=False)['entries'][0]
         except Exception as e: 
@@ -90,7 +90,7 @@ def youtube_search(query):
             return None
     return {'source': info['url'], 'title': info['title']}
 
-def youtube_playlist(data, playlist_url, guild_id):
+def youtube_playlist(playlist_url):
     ydl_opts = {
         'quiet': True,
         'extract_flat': True,
@@ -104,15 +104,13 @@ def youtube_playlist(data, playlist_url, guild_id):
             playlist_info = ydl.extract_info(playlist_url, download=False)
             videos = playlist_info['entries']
             if videos:
-                for video in videos:
-                    data.queue_song(guild_id,{'source': 'None', 'title': video['url']})
-                return False
+                return videos
             else:
                 print("No videos found in the playlist.")
-                return False
+                return None
         except Exception as e: 
             print(e)
-            return False
+            return None
 
 
 def check_features(data:Guild_Music_Properties, guild_id):
