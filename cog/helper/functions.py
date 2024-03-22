@@ -92,7 +92,7 @@ def youtube_search(query):
 
 def youtube_playlist(data, playlist_url, guild_id):
     ydl_opts = {
-        #'quiet': True,
+        'quiet': True,
         'extract_flat': True,
         'force_generic_extractor': True,
         'force_playlist': True,
@@ -105,7 +105,7 @@ def youtube_playlist(data, playlist_url, guild_id):
             videos = playlist_info['entries']
             if videos:
                 for video in videos:
-                    data.queue_song({'source': None, 'title': video['url']})
+                    data.queue_song(guild_id,{'source': 'None', 'title': video['url']})
                 return False
             else:
                 print("No videos found in the playlist.")

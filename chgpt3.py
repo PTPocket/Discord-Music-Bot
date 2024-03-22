@@ -29,3 +29,18 @@ if __name__ == "__main__":
     for link in video_links:
         print(link)
     print(len(video_links))
+
+
+
+        # if 'www.youtube.com/playlist' in query:
+        #     if youtube_playlist(self.data, query, guild_id) is False:
+        #         send_log(guild_name, "ERROR", query)
+        #         return
+        #     send_log(guild_name, "QUEUED PLAYLIST", query)
+        # else:
+        #     song = {'source': None, 'title': query}
+        #     self.data.queue_song(guild_id, song)
+        #     send_log(guild_name, "QUEUED", query)
+        # print('hi')
+        # await self.music_player_start(interaction)
+        # await interaction.delete_original_response()
