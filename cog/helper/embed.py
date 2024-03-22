@@ -120,3 +120,13 @@ def spotify_playlist_error(bot, song):
     embed.set_thumbnail(url=MUSIC_ICON)
     embed.set_author(name=COG_NAME, icon_url=bot_avatar)     
     return embed
+
+def playlist_error(bot, song):
+    bot_avatar = bot.user.display_avatar
+    embed = discord.Embed(
+        title=f":x: **Playlist Error:x:\nSpotify or Youtube Link Only'** ",
+        description=f"***```Your Input: {song}```***",
+        color=discord.Color.red()) 
+    embed.set_thumbnail(url=MUSIC_ICON)
+    embed.set_author(name=COG_NAME, icon_url=bot_avatar)     
+    return embed
