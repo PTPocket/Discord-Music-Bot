@@ -91,28 +91,6 @@ def youtube_search(query):
             return None
     return {'source': info['url'], 'title': info['title']}
 
-def youtube_playlist(playlist_url):
-    ydl_opts = {
-        'quiet': True,
-        'extract_flat': True,
-        'force_generic_extractor': True,
-        'force_playlist': True,
-        'skip_download': True,
-        'geo_bypass': True,
-    }
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        try:
-            playlist_info = ydl.extract_info(playlist_url, download=False)
-            videos = playlist_info['entries']
-            if videos:
-                return videos
-            else:
-                print("No videos found in the playlist.")
-                return None
-        except Exception as e: 
-            print(e)
-            return None
-
 def spotify_playlist(playlist_url, client_id, client_secret):
     try:
         # Initialize Spotipy with your credentials

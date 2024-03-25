@@ -26,7 +26,6 @@ class Music_Cog(commands.Cog):
         self.disconnect_check.start()
 
 
-
     async def GUI_HANDLER(self, guild_id, reprint = False, connect = False):
         try:
             print('Printed GUI')
@@ -57,7 +56,6 @@ class Music_Cog(commands.Cog):
                 self.data.set_message(guild_id, message)
                 return
         except Exception as e: print(e)
-
 
     #MUSIC PLAYER LOOP (not recursive)
     def music_player(self, interaction:discord.Interaction, recall = False):
@@ -118,7 +116,6 @@ class Music_Cog(commands.Cog):
         
         await self.GUI_HANDLER(guild_id, connect = connect_only)
         
-
 #######PLAY FUNCTIONS######################################################
     @app_commands.check(valid_play_command)
     @app_commands.command(name= "play", description="Play Song (Youtube) or Queue a Playlist with a Link (Spotify, YTMusic, YouTube)")
@@ -126,30 +123,18 @@ class Music_Cog(commands.Cog):
         guild_name = interaction.user.guild.name
         guild_id = interaction.user.guild.id
         self.data.initialize(interaction)
-
         await interaction.response.defer(ephemeral=True)
-        if 'music.youtube.com/playlist' in query:
+        if 'youtube.com/playlist' in query:
             playlist = ytmusic_playlist(query)
             if playlist is None:
-                send_log(guild_name, 'ERROR', 'Youtube Playlist')
-                msg = embed.ytmusic_playlist_error(self.bot, query)
-                await interaction.followup.send(embed= msg, ephemeral=True)
-                await self.GUI_HANDLER(guild_id)
-                return#######################################################
-            for song in playlist:
-                self.data.queue_song(guild_id, {'source': 'youtube', 'title': song})
-            send_log(guild_name, "QUEUED", f"youtube music playlist ({len(playlist)} songs)")
-        elif 'youtube.com/playlist' in query:
-            song_list = youtube_playlist(query)
-            if song_list is None:
                 send_log(guild_name, 'ERROR', 'Youtube Playlist')
                 msg = embed.yt_playlist_error(self.bot, query)
                 await interaction.followup.send(embed= msg, ephemeral=True)
                 await self.GUI_HANDLER(guild_id)
                 return####################################################
-            for song in song_list:
-                self.data.queue_song(guild_id,{'source': 'youtube', 'title': song['title']})
-            send_log(guild_name, "QUEUED", f"youtube playlist ({len(song_list)} songs)")
+            for song in playlist:
+                self.data.queue_song(guild_id,{'source': 'youtube', 'title': song})
+            send_log(guild_name, "QUEUED", f"youtube playlist ({len(playlist)} songs)")
         elif 'spotify.com/playlist' in query:
             song_list = spotify_playlist(query, self.client_id, self.client_secret)
             if song_list is None:
@@ -161,13 +146,13 @@ class Music_Cog(commands.Cog):
             for title in song_list:
                 self.data.queue_song(guild_id,{'source': 'spotify', 'title': title})
             send_log(guild_name, "QUEUED", f'spotify playlist ({len(song_list)} songs)' )
-        else:
-            if 'https://' in query:
+        elif 'https://' in query:
                 send_log(guild_name, 'ERROR', 'playlist link')
                 msg = embed.playlist_error(self.bot, query)
                 await interaction.followup.send(embed= msg, ephemeral=True)
                 await self.GUI_HANDLER(guild_id)
                 return ##################################################
+        else:
             song = {'source': 'youtube', 'title': query}
             self.data.queue_song(guild_id, song)
             send_log(guild_name, "QUEUED", song['title'])
@@ -181,7 +166,7 @@ class Music_Cog(commands.Cog):
         guild_id = interaction.user.guild.id
         self.data.initialize(interaction)
         await interaction.response.defer(ephemeral=True)
-        if 'music.youtube.com/playlist' in link:
+        if 'youtube.com/playlist' in link:
             playlist = ytmusic_playlist(link)
             if playlist is None:
                 send_log(guild_name, 'ERROR', 'Youtube Playlist')
@@ -191,17 +176,6 @@ class Music_Cog(commands.Cog):
                 return
             for song in playlist:
                 self.data.queue_song(guild_id, {'source': 'youtube', 'title': song})
-            send_log(guild_name, "QUEUED", f"youtube music playlist ({len(playlist)} songs)")
-        elif 'youtube.com/playlist' in link:
-            playlist = youtube_playlist(link)
-            if playlist is None:
-                send_log(guild_name, 'ERROR', 'Youtube Playlist')
-                msg = embed.yt_playlist_error(self.bot, link)
-                await interaction.followup.send(embed= msg, ephemeral=True)
-                await self.GUI_HANDLER(guild_id)
-                return
-            for song in playlist:
-                self.data.queue_song(guild_id,{'source': 'youtube', 'title': song['title']})
             send_log(guild_name, "QUEUED", f"youtube playlist ({len(playlist)} songs)")
         elif 'spotify.com/playlist' in link:
             playlist = spotify_playlist(link, self.client_id, self.client_secret)
@@ -271,8 +245,6 @@ class Music_Cog(commands.Cog):
     #     await interaction.delete_original_response()
 
 
-
-
 ######## LOOP TO AUTO CHANGE GUI ##############################################################
     @tasks.loop(seconds = 5)
     async def gui_loop(self):
@@ -297,8 +269,6 @@ class Music_Cog(commands.Cog):
                 await voice.disconnect()
                 await self.GUI_HANDLER(guild_id)
                 send_log(voice.guild.name, 'VOICE DISCONNECTED (auto)', )
-
-
 
 
 ############# LISTENERS ########################################################################
@@ -337,8 +307,6 @@ class Music_Cog(commands.Cog):
         
 
 
-
-    
 #####################################################################################
     @commands.command(name= "sync", description= "Sync app commands with discord server")
     async def sync(self,ctx):
