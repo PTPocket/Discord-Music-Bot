@@ -94,7 +94,7 @@ def no_match(bot, query):
 def yt_search_error(bot, song):
     bot_avatar = bot.user.display_avatar
     embed = discord.Embed(
-        title=f":x: **Youtube Search Error:x:\nTry Different Input** ",
+        title=f"__**Youtube Search Error**__\nCheck Input",
         description=f"***```Your Input: {song}```***",
         color=discord.Color.red()) 
     embed.set_thumbnail(url=MUSIC_ICON)
@@ -104,7 +104,7 @@ def yt_search_error(bot, song):
 def yt_playlist_error(bot, song):
     bot_avatar = bot.user.display_avatar
     embed = discord.Embed(
-        title=f":x: **Youtube Playlist Error:x:\nLink Must Contain 'youtube.com/playlist'** ",
+        title=f"__**Youtube Playlist Error**__\nCheck if List is Public",
         description=f"***```Your Input: {song}```***",
         color=discord.Color.red()) 
     embed.set_thumbnail(url=MUSIC_ICON)
@@ -114,7 +114,17 @@ def yt_playlist_error(bot, song):
 def spotify_playlist_error(bot, song):
     bot_avatar = bot.user.display_avatar
     embed = discord.Embed(
-        title=f":x: **Spotify Playlist Error:x:\nLink Must Contain 'spotify.com/playlist'** ",
+        title=f"__**Spotify Playlist Error**__\nCheck if List is Public",
+        description=f"***```Your Input: {song}```***",
+        color=discord.Color.red()) 
+    embed.set_thumbnail(url=MUSIC_ICON)
+    embed.set_author(name=COG_NAME, icon_url=bot_avatar)     
+    return embed
+
+def ytmusic_playlist_error(bot, song):
+    bot_avatar = bot.user.display_avatar
+    embed = discord.Embed(
+        title=f"__**YT Music Playlist Error**__\nCheck if List is Public",
         description=f"***```Your Input: {song}```***",
         color=discord.Color.red()) 
     embed.set_thumbnail(url=MUSIC_ICON)
@@ -124,7 +134,7 @@ def spotify_playlist_error(bot, song):
 def playlist_error(bot, song):
     bot_avatar = bot.user.display_avatar
     embed = discord.Embed(
-        title=f":x: **Playlist Error:x:\nSpotify or Youtube Link Only'** ",
+        title=f"__**Link Error__\Check Link (Allowed: spotify, youtube, ytmusic)",
         description=f"***```Your Input: {song}```***",
         color=discord.Color.red()) 
     embed.set_thumbnail(url=MUSIC_ICON)

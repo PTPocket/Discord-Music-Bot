@@ -1,9 +1,8 @@
-import discord, os, random, time
+import discord, os, random, time, yt_dlp, spotipy
+from ytmusicapi import YTMusic
 from tinytag import TinyTag
 from discord.ui import View, Select, Button
 from datetime import datetime
-import yt_dlp
-import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 from cog.helper import embed
 from cog.helper.guild_data import Guild_Music_Properties
@@ -132,6 +131,28 @@ def spotify_playlist(playlist_url, client_id, client_secret):
                 artists += track['artists'][i]['name'] + ','
             song_titles.append(f"{track['name']} by {artists[:-1]}")
         return song_titles
+    except Exception as e:
+        print(e)
+        return None
+
+def ytmusic_playlist(playlist_url):
+    try:
+        ytmusic = YTMusic()
+        # Extract playlistId from the URL
+        playlist_id = playlist_url.split('list=')[1]
+        # Get playlist details
+        playlist = ytmusic.get_playlist(playlist_id)
+        # Extract playlist items
+        playlist = playlist['tracks']
+        formatted_playlist = []
+        complete_title = None
+        for song in playlist:
+            complete_title = song['title'] + ' by '
+            for artist in song['artists']:
+                complete_title += artist['name']
+            formatted_playlist.append(complete_title)
+            complete_title=None
+        return formatted_playlist
     except Exception as e:
         print(e)
         return None
@@ -439,4 +460,3 @@ class MusicFunctions(View):
                 send_log(guild_name, 'VOICE DISCONNECTED (force)')
             await interaction.response.defer()
             await self.music_cog.GUI_HANDLER(guild_id)
-
