@@ -134,6 +134,16 @@ class Music_Cog(commands.Cog):
             for song in playlist:
                 self.data.queue_song(guild_id,{'source': 'youtube', 'title': song})
             send_log(guild_name, "QUEUED", f"youtube playlist ({len(playlist)} songs)")
+        elif 'youtube.com/watch' in query:
+            song = youtube_search(query)
+            if song is None:
+                send_log(guild_name, 'ERROR', 'Youtube Link')
+                msg = embed.yt_search_error(self.bot, query)
+                await interaction.followup.send(embed= msg, ephemeral=True)
+                await self.GUI_HANDLER(guild_id)
+                return##################################################
+            self.data.queue_song(guild_id, song)
+            send_log(guild_name, "QUEUED", f'youtube link ({song['title']})' )
         elif 'spotify.com/playlist' in query:
             song_list = spotify_playlist(query, self.client_id, self.client_secret)
             if song_list is None:
