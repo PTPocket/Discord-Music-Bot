@@ -19,7 +19,7 @@ async def on_ready():
 async def main():
     async with client:
         try:
-            await client.add_cog(Music_Cog(client, SPOTIFY_CLIENT_SECRET, SPOTIFY_CLIENT_ID))
+            await client.add_cog(Music_Cog(client, SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET))
             await client.start(TOKEN)
             print('READY')
         except Exception as e:
