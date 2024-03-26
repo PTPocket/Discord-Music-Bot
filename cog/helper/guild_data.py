@@ -17,6 +17,7 @@ class Guild_Music_Properties():
         self.random  = {}
         self.back    = {}
         self.mystery = {}
+        self.shuffle = {}
         #FOR GUI
         self.channel = {}
         self.message = {}
@@ -30,14 +31,15 @@ class Guild_Music_Properties():
         description = 'Initialized Variables for Guild'
         guild_id = interaction.user.guild.id
         if guild_id not in self.queue:
-            self.queue[guild_id]   = []
+            self.queue  [guild_id] = []
             self.history[guild_id] = []
-            self.time[guild_id]   = None
+            self.time   [guild_id] = None
             self.current[guild_id] = None
-            self.loop[guild_id]    = False
-            self.back[guild_id]    = False
-            self.random[guild_id]  = False
+            self.loop   [guild_id] = False
+            self.back   [guild_id] = False
+            self.random [guild_id] = False
             self.mystery[guild_id] = False
+            self.shuffle[guild_id] = False
             self.channel[guild_id] = None
             self.message[guild_id] = None
             send_log(log_name, description )
@@ -63,6 +65,8 @@ class Guild_Music_Properties():
         return self.loop[guild_id]
     def get_random(self,guild_id):
         return self.random[guild_id]
+    def get_shuffle(self,guild_id):
+        return self.shuffle[guild_id]
     def get_channel(self,guild_id):
         return self.channel[guild_id]
     def get_message(self,guild_id):
@@ -75,7 +79,7 @@ class Guild_Music_Properties():
         return self.mystery[guild_id]
     def get_time(self, guild_id):
         return self.time[guild_id]
-
+    
     
     #SET VALUE FUNCTIONS
     def set_queue(self,guild_id, queue):
@@ -88,6 +92,8 @@ class Guild_Music_Properties():
         self.loop[guild_id] = value
     def set_random(self, guild_id, value):
         self.random[guild_id] = value
+    def set_shuffle(self, guild_id, value):
+        self.shuffle[guild_id] = value
     def set_channel(self, guild_id, channel):
         self.channel[guild_id] = channel
     def set_message(self,guild_id, message):
@@ -167,6 +173,12 @@ class Guild_Music_Properties():
             self.set_back(guild_id, False)
         else:
             self.set_back(guild_id, True)
+
+    def flip_shuffle(self,guild_id):
+        if self.get_shuffle(guild_id) is True:
+            self.set_shuffle(guild_id, False)
+        else:
+            self.set_shuffle(guild_id, True)
 
     def reset_features(self, guild_id):
         self.loop[guild_id]   = False

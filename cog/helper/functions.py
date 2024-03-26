@@ -94,12 +94,12 @@ def youtube_search(query):
 def spotify_playlist(playlist_url, client_id, client_secret):
     try:
         # Initialize Spotipy with your credentials
-        client_id = '9c3663afbe8f41589283a0055983da47'
-        client_secret = '4d580e8f409b40e9b72e50b548d1dd28'
+        client_id = str(client_id)
+        client_secret = str(client_secret)
         client_credentials_manager = SpotifyClientCredentials(client_id=client_id, client_secret=client_secret)
-        sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
+        spotify = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
         # Get playlist tracks
-        results = sp.playlist_tracks(playlist_url)
+        results = spotify.playlist_tracks(playlist_url)
         # Extract track names
         song_titles = []
         for item in results['items']:
@@ -155,13 +155,16 @@ def check_features(data:Guild_Music_Properties, guild_id):
         return
 
 def add_random_song(data, guild_id):
-        flac_song_list = os.listdir(LOCAL_MUSIC_PATH)
-        song = random.choice(flac_song_list)
-        path = LOCAL_MUSIC_PATH + '\\'+ song
-        song_metadata = TinyTag.get(path)
-        title = f"{song_metadata.title} - {song_metadata.artist}"
-        song = {'title': title, 'source': f'{LOCAL_MUSIC_PATH}\{song}'}
-        data.prepend_to_queue(guild_id, song)
+    flac_song_list = os.listdir(LOCAL_MUSIC_PATH)
+    song = random.choice(flac_song_list)
+    path = LOCAL_MUSIC_PATH + '\\'+ song
+    song_metadata = TinyTag.get(path)
+    title = f"{song_metadata.title} - {song_metadata.artist}"
+    song = {'title': title, 'source': f'{LOCAL_MUSIC_PATH}\{song}'}
+    data.prepend_to_queue(guild_id, song)
+
+def get_random_song(data,guild_id):
+    pass
 
 
 # class SearchView(View):
@@ -195,6 +198,7 @@ class MusicFunctions(View):
         self.add_item(self.PreviousButton  (music_cog, data, guild_id))
         self.add_item(self.PlayPause       (music_cog, data, guild_id))
         self.add_item(self.NextButton      (music_cog, data, guild_id))
+        #self.add_item(self.ShuffleButton      (music_cog, data, guild_id))
         #self.add_item(self.LoopButton      (music_cog, data, guild_id))
         self.add_item(self.RandomButton    (music_cog, data, guild_id))
         self.add_item(self.RandomSongButton(music_cog, data, guild_id))
@@ -269,7 +273,6 @@ class MusicFunctions(View):
                 return
             await interaction.response.defer()
             
-        
     class PlayPause(Button):
         def __init__(self,music_cog, data,guild_id):
             super().__init__(emoji = '⏯', style= discord.ButtonStyle.blurple)
@@ -375,6 +378,28 @@ class MusicFunctions(View):
                 return
             await interaction.response.defer()
 
+    class ShuffleButton(Button):
+        def __init__(self,music_cog, data,guild_id):
+            if data.get_shuffle(guild_id) is True:
+                style= discord.ButtonStyle.blurple
+            else:
+                style= discord.ButtonStyle.grey
+            super().__init__(emoji = "🔀", style= discord.ButtonStyle.blurple)
+            self.data = data
+            self.music_cog = music_cog
+
+        async def callback(self, interaction: discord.Interaction):
+            guild_name = interaction.user.guild.name
+            send_log(guild_name, 'SHUFFLE BUTTON', 'Clicked')
+            guild_id = interaction.user.guild.id
+            voice_client = interaction.client.get_guild(guild_id).voice_client
+            self.data.set_random(guild_id, False)
+            self.data.set_loop(guild_id, False)
+            self.data.flip_shuffle(guild_id)
+            await interaction.response.defer()
+            if self.data.get_shuffle(guild_id) is True:
+                await self.music_cog.music_player_start(interaction) 
+            await self.music_cog.GUI_HANDLER(guild_id)
     class LoopButton(Button):
         def __init__(self,music_cog, data, guild_id):
             if data.get_loop(guild_id) is True:
