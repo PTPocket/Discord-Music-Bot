@@ -143,7 +143,7 @@ class Music_Cog(commands.Cog):
                 await self.GUI_HANDLER(guild_id)
                 return##################################################
             self.data.queue_song(guild_id, song)
-            send_log(guild_name, "QUEUED", f'youtube link ({song['title']})' )
+            send_log(guild_name, "QUEUED", f"youtube link ({song['title']})" )
         elif 'spotify.com/playlist' in query:
             song_list = spotify_playlist(query, self.client_id, self.client_secret)
             if song_list is None:
