@@ -49,17 +49,17 @@ class Guild_Music_Properties():
         if self.history[guild_id] == []:
             return None
         else:
-            return self.history[guild_id][-1]
-    def get_all_songs(self, guild_id):
-        past_songs = self.history[guild_id][::-1]
-        next_songs =  self.queue[guild_id]
-        if self.current[guild_id] is None:
-            all_songs = past_songs+next_songs
-            return all_songs
-        else:
-            next_songs.insert(0,self.current[guild_id])
-            all_songs = past_songs+next_songs
-            return all_songs
+            return self.history[guild_id][0]
+    # def get_all_songs(self, guild_id):
+    #     past_songs = self.history[guild_id]
+    #     next_songs =  self.queue[guild_id]
+    #     if self.current[guild_id] is None:
+    #         all_songs = past_songs+next_songs
+    #         return all_songs
+    #     else:
+    #         next_songs.insert(0,self.current[guild_id])
+    #         all_songs = past_songs+next_songs
+    #         return all_songs
     def get_queue(self, guild_id):
         return self.queue[guild_id]
     def get_history(self, guild_id):
@@ -133,14 +133,14 @@ class Guild_Music_Properties():
     def current_to_history(self, guild_id):
         current_song = self.get_current_song(guild_id)
         if current_song is not None:
-            self.history[guild_id].append(current_song)
+            self.history[guild_id].insert(0,current_song)
             self.set_current_song(guild_id, None)
             return True
         return False
     
     def history_to_queue(self,guild_id):
         if self.empty_history(guild_id) is False:
-            recent = self.history[guild_id].pop()
+            recent = self.history[guild_id].pop(0)
             self.prepend_to_queue(guild_id, recent)
             return True
         return False
@@ -196,8 +196,18 @@ class Guild_Music_Properties():
     def reset(self, guild_id):
         self.current_to_history(guild_id)
         self.queue[guild_id]  = []
-        self.loop[guild_id]   = False
-        self.random[guild_id] = False
-        self.loop[guild_id]    = False
-        self.back[guild_id]    = False
+        self.loop   [guild_id] = False
+        self.back   [guild_id] = False
+        self.random [guild_id] = False
         self.mystery[guild_id] = False
+        self.shuffle[guild_id] = False
+    
+    def full_reset(self, guild_id):
+        self.queue  [guild_id] = []
+        self.history[guild_id] = []
+        self.current[guild_id] = None
+        self.loop   [guild_id] = False
+        self.back   [guild_id] = False
+        self.random [guild_id] = False
+        self.mystery[guild_id] = False
+        self.shuffle[guild_id] = False

@@ -7,13 +7,17 @@ COG_NAME = "Pocket Muse"
 BLANK = '\u200b'
 
 #####USING########
-def title(song):
-    if song is None:
-        return '...'
-    song = song['title']
-    if len(song) > 25:
-        song = song[0:25]+'...'
-    return song
+def title(title, length = 37):
+    temp_title = str(title).split(' by ')
+    if len(temp_title) > 1:
+        remove_artist_ind = (len(title)-len(temp_title[len(temp_title)-1]))-4
+        title = title[0:remove_artist_ind]
+        if len(title) > length:
+            title = title[0:length]+'...'
+    else:
+        if len(title) > length:
+            title = title[0:length]+'...'
+    return title
 
 def remove_artist(title):
     temp_title = str(title).split(' by ')
@@ -28,16 +32,27 @@ def gui_embed(bot, data:Guild_Music_Properties, guild_id, connect = False):
         #description=f"***```{song}```***",
         color=discord.Color.blurple()) 
     embed.set_thumbnail(url=MUSIC_ICON)
-    last_song = data.get_last_played(guild_id)
+
     next_song = None
     queue_msg = ''
-    for ind, song in enumerate(data.get_queue(guild_id)):
+    queue = data.get_queue(guild_id)
+    for ind, song in enumerate(queue):
         if ind == 0:
-            next_song = song
-        else: queue_msg = f"{ind}. {title(song)}\n" + queue_msg
-        if ind > 3:
+            next_song = title(song['title'],20)
+        else: 
+            song_title = title(f"{ind}. {song['title']}")
+            queue_msg = song_title +"\n" + queue_msg
+        
+
+        if ind > 3 and ind < len(queue)-1:
+            if ind < len(queue)-2:
+                queue_msg = f'-  ...\n' + queue_msg
+            song_title = title(f"{len(queue)-1}. {queue[len(queue)-1]['title']}")
+            queue_msg = song_title +'\n'+queue_msg
             break
-    
+
+
+
     if queue_msg == '': queue_msg = '...'
     if connect is True:
         queue_msg = 'Connected!'
@@ -47,22 +62,30 @@ def gui_embed(bot, data:Guild_Music_Properties, guild_id, connect = False):
         inline=False)
     if next_song is None:
         next_song = '...'
-    else:
-        next_song=next_song['title']
-
+    line = ''
+    embed.add_field(
+        name='', 
+        value=line,
+        inline=False)
+    #NEXT AND PREVIOUS SONG #####
+    last_song = data.get_last_played(guild_id)
+    if last_song is None:last_song = '...'
+    else:last_song= title(last_song['title'],20)
+    if len(next_song) > len(last_song):
+        length_diff = len(next_song)-len(last_song)
+        last_song = last_song + (' '*length_diff)
+    elif len(last_song) > len(next_song):
+        length_diff = len(last_song)-len(next_song)
+        next_song = next_song + (' '*length_diff)
     embed.add_field(
         name='**Next Song**', 
         value = f"*```{next_song}```*",
         inline=True)
-    if last_song is None:
-        last_song = '...'
-    else:
-        last_song=last_song['title']
-
     embed.add_field(
         name='**Previous Song**', 
         value = f"*```{last_song}```*",
         inline=True)
+    
     if connect is True:
         playing = 'Click or Enter Command' 
     else: 
@@ -71,12 +94,16 @@ def gui_embed(bot, data:Guild_Music_Properties, guild_id, connect = False):
             current = '...'
         else:
             current = current['title']
+    embed.add_field(
+        name='', 
+        value = line,
+        inline=False)
+
 
     embed.add_field(
         name='Now Playing', 
         value = f'*```{current}```*',
         inline=False)
-
 
     features = 'Random: '
     if data.get_random(guild_id) is True:
@@ -155,8 +182,16 @@ def queued_playlist_prompt(bot, song_names_list, num_of_songs, url, type):
             inline=False)
         current_total += len(song_list)
     embed.add_field(
+        name='', 
+        value='',
+        inline=False)
+    embed.add_field(
         name=f'**{type} Playlist**', 
         value = f'*```{url}```*',
+        inline=False)
+    embed.add_field(
+        name='', 
+        value='',
         inline=False)
     embed.add_field(
         name=f'**Queued**  __**{num_of_songs}**__  **Songs!**', 
@@ -166,6 +201,17 @@ def queued_playlist_prompt(bot, song_names_list, num_of_songs, url, type):
     embed.set_thumbnail(url=MUSIC_ICON)   
     return embed
 
+def flush_prompt(bot):
+    bot_avatar = bot.user.display_avatar
+    embed = discord.Embed(
+        color=discord.Color.green())  
+    embed.add_field(
+        name='**Flushed Data**', 
+        value = '',
+        inline=False)
+    embed.set_author(name=COG_NAME, icon_url=bot_avatar)  
+    embed.set_thumbnail(url=MUSIC_ICON)   
+    return embed
 
 def search_list_prompt(bot):
     bot_avatar = bot.user.display_avatar
@@ -235,3 +281,4 @@ def playlist_error(bot, song):
     embed.set_thumbnail(url=MUSIC_ICON)
     embed.set_author(name=COG_NAME, icon_url=bot_avatar)     
     return embed
+
