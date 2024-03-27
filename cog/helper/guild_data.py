@@ -87,6 +87,8 @@ class Guild_Music_Properties():
     
     
     #SET VALUE FUNCTIONS
+    def set_queue_pos(self,guild_id, song, ind):
+        self.queue[guild_id][ind] = song
     def set_queue(self,guild_id, queue):
         self.queue[guild_id] = queue
     def set_history(self,guild_id,history):

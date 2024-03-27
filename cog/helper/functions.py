@@ -80,15 +80,47 @@ async def voice_connect(interaction:discord.Interaction):
 
     return voice_client
 
+# def youtube_search(query):
+#     ydl_opts = {'format': 'bestaudio', 'noplaylist':True}
+#     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+#         try: 
+#             info = ydl.extract_info("ytsearch:%s" % query, download=False)['entries'][0]
+#         except Exception as e: 
+#             print(e)
+#             return None
+#     return {'source': info['url'], 'title': info['title']}
+
 def youtube_search(query):
-    ydl_opts = {'format': 'bestaudio', 'noplaylist':True}
+    # Configure yt-dlp options
+    ydl_opts = {
+        'format': 'bestaudio/best',
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+            'preferredquality': '192',
+        }],
+    }
+
+    # Create yt-dlp instance
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        try: 
-            info = ydl.extract_info("ytsearch:%s" % query, download=False)['entries'][0]
-        except Exception as e: 
-            print(e)
+        try:
+            # Search for videos matching the query
+            search_results = ydl.extract_info(f"ytsearch1:{query}", download=False)['entries'][0]
+            return {'source': search_results['url'], 'title': search_results['title']}
+        except yt_dlp.DownloadError as e:
+            print("YT_DLP Error:", e)
             return None
-    return {'source': info['url'], 'title': info['title']}
+
+def presearch_5(data, guild_id):
+    current = data.get_current_song(guild_id)
+    queue = data.get_queue(guild_id)
+    if len(queue)>3:
+        max = 3
+    else: 
+        max = len(queue)
+    data.set_current_song(guild_id, youtube_search(current['title']))
+    for i in range(max):
+        data.set_queue_pos(guild_id, youtube_search(queue[i]),i)
 
 def spotify_playlist(playlist_url, client_id, client_secret):
     try:

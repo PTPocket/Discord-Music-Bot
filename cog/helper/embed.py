@@ -148,10 +148,10 @@ def queued_playlist_prompt(bot, song_names_list, num_of_songs, url, type):
     for song_list in song_names_list:
         if current_total+len(song_list) > maximum_length:
             break
-        song_list = f'*```{song_list.replace('*','').replace('`',"'")}```*'
+        song_list = song_list.replace('*','').replace('`','')
         embed.add_field(
             name='', 
-            value = song_list,
+            value = f'*```{song_list}```*',
             inline=False)
         current_total += len(song_list)
     embed.add_field(
