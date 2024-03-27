@@ -45,6 +45,11 @@ class Guild_Music_Properties():
             send_log(log_name, description )
     
     #RETRIEVE VALUES FUNCTIONS
+    def get_last_played(self, guild_id):
+        if self.history[guild_id] == []:
+            return None
+        else:
+            return self.history[guild_id][-1]
     def get_all_songs(self, guild_id):
         past_songs = self.history[guild_id][::-1]
         next_songs =  self.queue[guild_id]
@@ -147,6 +152,8 @@ class Guild_Music_Properties():
         if self.queue[guild_id] == []:
             return True
         else: return False
+    def delete_queue(self,guild_id):
+        self.queue[guild_id] = []
 
     #FEATURES FUNCTIONS
     def flip_mystery(self, guild_id):

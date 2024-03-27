@@ -9,7 +9,6 @@ from cog.helper.guild_data import Guild_Music_Properties
 
 BLANK = '\u200b'
 LOCAL_MUSIC_PATH = "C:\\Users\\p\\Documents\\SERVER\\music\\Formatted"
-
 def send_log(log_name, description, result = ''):
     time= str(datetime.now())
     print(f"{time} | Guild : {log_name} | {description} -> {result}")
@@ -131,8 +130,28 @@ def ytmusic_playlist(playlist_url):
             formatted_playlist.append(complete_title)
             complete_title=None
         return formatted_playlist
+
     except Exception as e:
         print(e)
+        print('ytmusic_playlist error')
+        return None
+
+def yt_playlist(link):
+    try:
+        # Create a yt_dlp object
+        ydl_opts = {
+            'quiet': True,
+            'extract_flat': True,
+            'force_generic_extractor': True,
+        }
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            result = ydl.extract_info(
+                link,
+                download=False
+            )
+        video_titles = [video['title'] for video in result['entries'] if video['title']!='[Private video]' and video['title'] != '[Deleted video]']
+        return video_titles
+    except Exception as e:
         return None
 
 def check_features(data:Guild_Music_Properties, guild_id):
@@ -150,7 +169,7 @@ def check_features(data:Guild_Music_Properties, guild_id):
         path = LOCAL_MUSIC_PATH + '\\'+ song
         song_metadata = TinyTag.get(path)
         title = f"{song_metadata.title} - {song_metadata.artist}"
-        song = {'title': title, 'source': f'{LOCAL_MUSIC_PATH}\{song}'}
+        song = {'title': title, 'source': f'{LOCAL_MUSIC_PATH}\\{song}'}
         data.queue_song(guild_id, song)
         return
 
@@ -160,7 +179,7 @@ def add_random_song(data, guild_id):
     path = LOCAL_MUSIC_PATH + '\\'+ song
     song_metadata = TinyTag.get(path)
     title = f"{song_metadata.title} - {song_metadata.artist}"
-    song = {'title': title, 'source': f'{LOCAL_MUSIC_PATH}\{song}'}
+    song = {'title': title, 'source': f'{LOCAL_MUSIC_PATH}\\{song}'}
     data.prepend_to_queue(guild_id, song)
 
 def get_random_song(data,guild_id):
@@ -201,7 +220,8 @@ class MusicFunctions(View):
         #self.add_item(self.ShuffleButton      (music_cog, data, guild_id))
         #self.add_item(self.LoopButton      (music_cog, data, guild_id))
         self.add_item(self.RandomButton    (music_cog, data, guild_id))
-        self.add_item(self.RandomSongButton(music_cog, data, guild_id))
+        self.add_item(self.EmptyQueueButton    (music_cog, data, guild_id))
+        #self.add_item(self.RandomSongButton(music_cog, data, guild_id))
         self.add_item(self.DisconnectButton(music_cog, data, guild_id))
         
     async def interaction_check(self, interaction: discord.Interaction):
@@ -278,12 +298,11 @@ class MusicFunctions(View):
             super().__init__(emoji = '⏯', style= discord.ButtonStyle.blurple)
             self.data = data
             self.music_cog = music_cog
-
+            self.guild_id = guild_id
         async def callback(self, interaction: discord.Interaction):
             guild_name = interaction.user.guild.name
-            guild_id = interaction.user.guild.id
-            voice_client = interaction.client.get_guild(guild_id).voice_client
-            song = self.data.get_current_song(guild_id)
+            voice_client = interaction.client.get_guild(self.guild_id).voice_client
+            song = self.data.get_current_song(self.guild_id)
             if voice_client is None:
                 self.style = discord.ButtonStyle.grey
                 await interaction.response.edit_message(view=self.view)
@@ -311,16 +330,16 @@ class MusicFunctions(View):
             super().__init__(emoji='♾', style= style)
             self.data = data
             self.music_cog = music_cog
+            self.guild_id = guild_id
         async def callback(self, interaction: discord.Interaction):
             guild_name = interaction.user.guild.name
-            guild_id = interaction.user.guild.id
-            if self.data.flip_random(guild_id) is True:
+            if self.data.flip_random(self.guild_id) is True:
                 send_log(guild_name, 'RANDOM SONG', 'On')
-                self.data.set_loop(guild_id, False)
+                self.data.set_loop(self.guild_id, False)
                 await self.music_cog.music_player_start(interaction) 
             else: 
                 send_log(guild_name, 'RANDOM SONG', 'Off')
-                await self.music_cog.GUI_HANDLER(guild_id)
+                await self.music_cog.GUI_HANDLER(self.guild_id)
             await interaction.response.defer()
     
     class PreviousButton(Button):
@@ -328,31 +347,30 @@ class MusicFunctions(View):
             super().__init__(emoji = "⏮", style= discord.ButtonStyle.blurple)
             self.data = data
             self.music_cog = music_cog
-        
+            self.guild_id = guild_id
         async def callback(self, interaction: discord.Interaction):
             guild_name = interaction.user.guild.name
             send_log(guild_name, 'PREVIOUS BUTTON', 'Clicked')
-            guild_id = interaction.user.guild.id
-            voice_client = interaction.client.get_guild(guild_id).voice_client
+            voice_client = interaction.client.get_guild(self.guild_id).voice_client
             #IF VOICE RUNNING
             if voice_client is None:
                 print('No voice_client')
-                self.data.set_loop(guild_id, False)
-                self.data.history_to_queue(guild_id)
+                self.data.set_loop(self.guild_id, False)
+                self.data.history_to_queue(self.guild_id)
                 await interaction.response.defer()
                 await self.music_cog.music_player_start(interaction) 
             elif voice_client.is_playing() or voice_client.is_paused():
                 print('PLAYING OR PAUSED')
-                self.data.flip_back(guild_id)
-                self.data.set_loop(guild_id, False)
+                self.data.flip_back(self.guild_id)
+                self.data.set_loop(self.guild_id, False)
                 voice_client.stop()
                 await interaction.response.defer()
                 await self.music_cog.music_player_start(interaction)
             else:
                 print('Nothing Playing')
-                self.data.set_loop(guild_id, False)
-                self.data.flip_back(guild_id)
-                self.data.history_to_queue(guild_id)
+                self.data.set_loop(self.guild_id, False)
+                self.data.flip_back(self.guild_id)
+                self.data.history_to_queue(self.guild_id)
                 voice_client.stop()
                 await interaction.response.defer()
                 await self.music_cog.music_player_start(interaction) 
@@ -362,44 +380,44 @@ class MusicFunctions(View):
             super().__init__(emoji = "⏭", style= discord.ButtonStyle.blurple)
             self.data = data
             self.music_cog = music_cog
+            self.guild_id = guild_id
         async def callback(self, interaction: discord.Interaction):
             guild_name = interaction.user.guild.name
             send_log(guild_name, 'NEXT BUTTON', 'Clicked')
-            guild_id = interaction.user.guild.id
-            voice_client = interaction.client.get_guild(guild_id).voice_client
+            voice_client = interaction.client.get_guild(self.guild_id).voice_client
             if voice_client is None:
                 await interaction.response.defer()
                 return
             if (voice_client.is_playing() or voice_client.is_paused()):
-                self.data.set_loop(guild_id, False)
+                self.data.set_loop(self.guild_id, False)
                 voice_client.stop()
                 await interaction.response.defer()
-                await self.music_cog.GUI_HANDLER(guild_id)
+                await self.music_cog.GUI_HANDLER(self.guild_id)
                 return
             await interaction.response.defer()
 
-    class ShuffleButton(Button):
-        def __init__(self,music_cog, data,guild_id):
-            if data.get_shuffle(guild_id) is True:
-                style= discord.ButtonStyle.blurple
-            else:
-                style= discord.ButtonStyle.grey
-            super().__init__(emoji = "🔀", style= discord.ButtonStyle.blurple)
-            self.data = data
-            self.music_cog = music_cog
-
-        async def callback(self, interaction: discord.Interaction):
-            guild_name = interaction.user.guild.name
-            send_log(guild_name, 'SHUFFLE BUTTON', 'Clicked')
-            guild_id = interaction.user.guild.id
-            voice_client = interaction.client.get_guild(guild_id).voice_client
-            self.data.set_random(guild_id, False)
-            self.data.set_loop(guild_id, False)
-            self.data.flip_shuffle(guild_id)
-            await interaction.response.defer()
-            if self.data.get_shuffle(guild_id) is True:
-                await self.music_cog.music_player_start(interaction) 
-            await self.music_cog.GUI_HANDLER(guild_id)
+    # class ShuffleButton(Button):
+    #     def __init__(self,music_cog, data,guild_id):
+    #         if data.get_shuffle(guild_id) is True:
+    #             style= discord.ButtonStyle.blurple
+    #         else:
+    #             style= discord.ButtonStyle.grey
+    #         super().__init__(emoji = "🔀", style= discord.ButtonStyle.blurple)
+    #         self.data = data
+    #         self.music_cog = music_cog
+    #         self.guild_id = guild_id
+    #     async def callback(self, interaction: discord.Interaction):
+    #         guild_name = interaction.user.guild.name
+    #         send_log(guild_name, 'SHUFFLE BUTTON', 'Clicked')
+    #         voice_client = interaction.client.get_guild(self.guild_id).voice_client
+    #         self.data.set_random(guild_id, False)
+    #         self.data.set_loop(guild_id, False)
+    #         self.data.flip_shuffle(guild_id)
+    #         await interaction.response.defer()
+    #         if self.data.get_shuffle(guild_id) is True:
+    #             await self.music_cog.music_player_start(interaction) 
+    #         await self.music_cog.GUI_HANDLER(guild_id)
+    
     class LoopButton(Button):
         def __init__(self,music_cog, data, guild_id):
             if data.get_loop(guild_id) is True:
@@ -432,34 +450,51 @@ class MusicFunctions(View):
             super().__init__(label = 'Random Song', style= discord.ButtonStyle.blurple)
             self.data = data
             self.music_cog = music_cog
-
+            self.guild_id = guild_id
         async def callback(self, interaction: discord.Interaction):
             guild_name = interaction.user.guild.name
             send_log(guild_name, 'MYSTERY BUTTON', 'Clicked')
-            guild_id = interaction.user.guild.id
-            voice_client = interaction.client.get_guild(guild_id).voice_client
-            add_random_song(self.data, guild_id)
+            voice_client = interaction.client.get_guild(self.guild_id).voice_client
+            add_random_song(self.data, self.guild_id)
             if voice_client is not None and (voice_client.is_playing() or voice_client.is_paused()):
                 voice_client.stop()
-            self.data.set_loop(guild_id, False)
+            self.data.set_loop(self.guild_id, False)
             await interaction.response.defer()
             await self.music_cog.music_player_start(interaction) 
 
+    class EmptyQueueButton(Button):
+        def __init__(self,music_cog, data, guild_id):
+            super().__init__(emoji='🗑', label = 'Empty Queue', style=discord.ButtonStyle.grey)
+            self.music_cog = music_cog
+            self.data = data
+            self.guild_id = guild_id
+        async def callback(self, interaction: discord.Interaction):
+            await interaction.response.defer()
+            guild_name = interaction.user.guild.name
+            send_log(guild_name, 'EMPTY QUEUE BUTTON', 'Clicked')
+            guild_name = interaction.user.guild.name
+            self.data.delete_queue(self.guild_id)
+            # voice_client = interaction.client.get_guild(self.guild_id).voice_client
+            # if voice_client is not None and (voice_client.is_playing() or voice_client.is_paused()):
+            #     voice_client.stop()
+            send_log(guild_name, 'QUEUE', 'empty')
+            await self.music_cog.GUI_HANDLER(self.guild_id)
+            
     class DisconnectButton(Button):
         def __init__(self,music_cog, data, guild_id):
             super().__init__(label = 'Disconnect', style=discord.ButtonStyle.grey)
             self.music_cog = music_cog
             self.data = data
+            self.guild_id = guild_id
         async def callback(self, interaction: discord.Interaction):
             guild_name = interaction.user.guild.name
             send_log(guild_name, 'DISCONNECT BUTTON', 'Clicked')
-            guild_id = interaction.user.guild.id
-            voice_client = interaction.client.get_guild(guild_id).voice_client
-            self.data.reset(guild_id)
+            voice_client = interaction.client.get_guild(self.guild_id).voice_client
+            self.data.reset(self.guild_id)
             if voice_client is not None:
                 if voice_client.is_playing() or voice_client.is_paused():
                     voice_client.stop()
                 await voice_client.disconnect()
                 send_log(guild_name, 'VOICE DISCONNECTED (force)')
             await interaction.response.defer()
-            await self.music_cog.GUI_HANDLER(guild_id)
+            await self.music_cog.GUI_HANDLER(self.guild_id)
