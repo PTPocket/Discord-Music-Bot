@@ -89,7 +89,7 @@ class Music_Cog(commands.Cog):
                 song['source'],
                 **FFMPEG_OPTIONS,
                 executable= FFMPEG_LOC)
-        player = discord.PCMVolumeTransformer(player, volume=0.15)
+        player = discord.PCMVolumeTransformer(player, volume=0.18)
         voice_client = interaction.client.get_guild(guild_id).voice_client
         send_log(guild_name, "NOW PLAYING", f'\"{song["title"]}\"')
         self.data.set_idle_timestamp(guild_id)
@@ -433,7 +433,7 @@ class MusicFunctions(View):
         self.add_item(self.RandomButton    (music_cog, data, guild_id))
         #self.add_item(self.EmptyQueueButton    (music_cog, data, guild_id))
         #self.add_item(self.RandomSongButton(music_cog, data, guild_id))
-        self.add_item(self.AddPlaylistButton(music_cog, data, guild_id))
+        #self.add_item(self.AddPlaylistButton(music_cog, data, guild_id))
         self.add_item(self.ResetButton(music_cog, data, guild_id))
         self.add_item(self.DisconnectButton(music_cog, data, guild_id))
         
