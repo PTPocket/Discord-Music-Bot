@@ -429,7 +429,7 @@ class MusicFunctions(View):
         self.add_item(self.PlayPause       (music_cog, data, guild_id))
         self.add_item(self.NextButton      (music_cog, data, guild_id))
         #self.add_item(self.ShuffleButton      (music_cog, data, guild_id))
-        #self.add_item(self.LoopButton      (music_cog, data, guild_id))
+        self.add_item(self.LoopButton      (music_cog, data, guild_id))
         self.add_item(self.RandomButton    (music_cog, data, guild_id))
         #self.add_item(self.EmptyQueueButton    (music_cog, data, guild_id))
         #self.add_item(self.RandomSongButton(music_cog, data, guild_id))
