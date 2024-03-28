@@ -123,7 +123,7 @@ class Music_Cog(commands.Cog):
         guild_name = interaction.user.guild.name
         guild_id = interaction.user.guild.id
         self.data.initialize(interaction)
-        await interaction.response.defer()
+        await interaction.response.defer(ephemeral=True)
         
         if 'music.youtube.com' in query:
             query = query.replace(' ','')
@@ -169,8 +169,8 @@ class Music_Cog(commands.Cog):
                     return##################################################
                 self.data.queue_song(guild_id, song)
                 send_log(guild_name, "QUEUED", f"youtube link ({song['title']})" )
-                msg = embed.queue_prompt(self.bot, song['title'])
-                await interaction.followup.send(embed= msg)
+                #msg = embed.queue_prompt(self.bot, song['title'])
+                #await interaction.followup.send(embed= msg)
                 await self.music_player_start(interaction,reprint=True)
             elif 'playlist' in query:
                 playlist = yt_playlist(query)
@@ -215,8 +215,8 @@ class Music_Cog(commands.Cog):
                     return
                 self.data.queue_song(guild_id, song)
                 send_log(guild_name, "QUEUED", f"Spotify Track ({song['title']})" )
-                msg = embed.queue_prompt(self.bot, song['title'])
-                await interaction.followup.send(embed= msg)
+                #msg = embed.queue_prompt(self.bot, song['title'])
+                #await interaction.followup.send(embed= msg)
                 await self.music_player_start(interaction,reprint=True)
             elif 'playlist' in query:
                 playlist = spotify_get(query, self.client_id, self.client_secret)
@@ -262,8 +262,8 @@ class Music_Cog(commands.Cog):
         print('hi')
         send_log(guild_name, "QUEUED", query)
         print('hi')
-        msg = embed.queue_prompt(self.bot, query)
-        await interaction.followup.send(embed= msg)
+        #msg = embed.queue_prompt(self.bot, query)
+        #await interaction.followup.send(embed= msg)
         await self.music_player_start(interaction,reprint=True)
 
         
@@ -298,16 +298,13 @@ class Music_Cog(commands.Cog):
         if voice_client is None:
             msg = embed.skip_error(self.bot)
             await interaction.followup.send(embed= msg, ephemeral=True)
-            await self.GUI_HANDLER(guild_id, reprint=True)
             return
         if (voice_client.is_playing() or voice_client.is_paused()):
             self.data.set_loop(guild_id, False)
-            current_song = self.data.get_current_song(guild_id)
+            #current_song = self.data.get_current_song(guild_id)
             voice_client.stop()
-            #await interaction.response.send_message()
-            msg = embed.skip_prompt(self.bot, current_song['title'])
-            await interaction.followup.send(embed= msg, ephemeral=True)
-            await self.GUI_HANDLER(guild_id, reprint=True)
+            interaction.delete_original_response()
+            await self.GUI_HANDLER(guild_id)
             return
         msg = embed.skip_error(self.bot)
         await interaction.followup.send(embed= msg, ephemeral=True)
@@ -722,6 +719,7 @@ class MusicFunctions(View):
             self.data = data
             self.guild_id = guild_id
         async def callback(self, interaction: discord.Interaction):
+            await interaction.response.defer(ephemeral=True)
             guild_name = interaction.user.guild.name
             send_log(guild_name, 'RESET BUTTON', 'Clicked')
             voice_client = interaction.client.get_guild(self.guild_id).voice_client
@@ -730,8 +728,8 @@ class MusicFunctions(View):
                 if voice_client.is_playing() or voice_client.is_paused():
                     voice_client.stop()
             self.data.full_reset(self.guild_id)
-            await interaction.response.send_message(embed=embed.flush_prompt(self.music_cog.bot),ephemeral=True)
-            await self.music_cog.GUI_HANDLER(self.guild_id, reprint=True)
+            #await interaction.response.send_message(embed=embed.flush_prompt(self.music_cog.bot),ephemeral=True)
+            await self.music_cog.GUI_HANDLER(self.guild_id)
     # class MyPlaylistButton(Button):
     #     def __init__(self,music_cog, data, guild_id):
     #         super().__init__(emoji='🚽',label = 'Flush', style=discord.ButtonStyle.grey)

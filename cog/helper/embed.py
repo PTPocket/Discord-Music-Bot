@@ -226,45 +226,6 @@ def no_match(bot, query):
     embed.set_author(name=COG_NAME, icon_url=bot_avatar)     
     return embed
 
-def yt_search_error(bot, song):
-    bot_avatar = bot.user.display_avatar
-    embed = discord.Embed(
-        title=f"__**Youtube Search Error**__\nCheck Link",
-        description=f"***```Your Input: {song}```***",
-        color=discord.Color.red()) 
-    embed.set_thumbnail(url=MUSIC_ICON)
-    embed.set_author(name=COG_NAME, icon_url=bot_avatar)     
-    return embed
-
-def yt_playlist_error(bot, song):
-    bot_avatar = bot.user.display_avatar
-    embed = discord.Embed(
-        title=f"__**Youtube Playlist Error**__\nCheck if PlayList is Public",
-        description=f"***```Your Input: {song}```***",
-        color=discord.Color.red()) 
-    embed.set_thumbnail(url=MUSIC_ICON)
-    embed.set_author(name=COG_NAME, icon_url=bot_avatar)     
-    return embed
-
-def spotify_playlist_error(bot, song):
-    bot_avatar = bot.user.display_avatar
-    embed = discord.Embed(
-        title=f"__**Spotify Playlist Error**__\nCheck if PlayList is Public",
-        description=f"***```Your Input: {song}```***",
-        color=discord.Color.red()) 
-    embed.set_thumbnail(url=MUSIC_ICON)
-    embed.set_author(name=COG_NAME, icon_url=bot_avatar)     
-    return embed
-
-def spotify_link_error(bot, link):
-    bot_avatar = bot.user.display_avatar
-    embed = discord.Embed(
-        title=f":no_entry_sign: **Spotify Link Error** :no_entry_sign:",
-        description=f"***```Your Input: {link}```***",
-        color=discord.Color.red())  
-    embed.set_author(name=COG_NAME, icon_url=bot_avatar)  
-    embed.set_thumbnail(url=MUSIC_ICON)   
-    return embed
 
 def invalid_link(bot, song, platform=''):
     bot_avatar = bot.user.display_avatar
@@ -276,13 +237,4 @@ def invalid_link(bot, song, platform=''):
     embed.set_author(name=COG_NAME, icon_url=bot_avatar)     
     return embed
 
-def playlist_error(bot, song):
-    bot_avatar = bot.user.display_avatar
-    embed = discord.Embed(
-        title=f"__**Link Error**__\nCheck Link\nAllowed: spotify, youtube, ytmusic",
-        description=f"***```Your Input: {song}```***",
-        color=discord.Color.red()) 
-    embed.set_thumbnail(url=MUSIC_ICON)
-    embed.set_author(name=COG_NAME, icon_url=bot_avatar)     
-    return embed
 
