@@ -90,25 +90,83 @@ async def voice_connect(interaction:discord.Interaction):
 #             return None
 #     return {'source': info['url'], 'title': info['title']}
 
-def youtube_search(query):
-    # Configure yt-dlp options
-    ydl_opts = {
-        'format': 'bestaudio/best',
-        'postprocessors': [{
-            'key': 'FFmpegExtractAudio',
-            'preferredcodec': 'mp3',
-            'preferredquality': '192',
-        }],
-    }
+def YoutubeGet(query):
+    if 'watch' in query and 'list=' in query:
+        query = query.split('&list=')[0]
+    try:
+        # Configure yt-dlp options
+        ydl_opts = {
+            'format': 'bestaudio/best',
+            'postprocessors': [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'mp3',
+                'preferredquality': '192',
+            }],
+        }
+        # Create yt-dlp instance
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            try:
+                # Search for videos matching the query
+                search_results = ydl.extract_info(f"ytsearch1:{query}", download=False)['entries'][0]
+                return {'source': search_results['url'], 'title': search_results['title']}
+            except yt_dlp.DownloadError as e:
+                print("YT_DLP Error:", e)
+                return None
+    except Exception as e:
+        print(e)
+        return None
 
-    # Create yt-dlp instance
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+def YTMusicGet(url):
+    if 'playlist' in url:
         try:
-            # Search for videos matching the query
-            search_results = ydl.extract_info(f"ytsearch1:{query}", download=False)['entries'][0]
-            return {'source': search_results['url'], 'title': search_results['title']}
-        except yt_dlp.DownloadError as e:
-            print("YT_DLP Error:", e)
+            ytmusic = YTMusic()
+            # Extract playlistId from the URL
+            playlist_id = url.split('list=')[1]
+            # Get playlist details
+            playlist = ytmusic.get_playlist(playlist_id)
+            # Extract playlist items
+            playlist = playlist['tracks']
+            formatted_playlist = []
+            complete_title = None
+            for song in playlist:
+                complete_title = song['title'] + ' by '
+                for artist in song['artists']:
+                    complete_title += artist['name']
+                formatted_playlist.append(complete_title)
+                complete_title=None
+            return formatted_playlist
+
+        except Exception as e:
+            print(e)
+            print('ytmusic_playlist error')
+            return None
+    elif 'watch' in url:
+        try:
+            split_url = url.split('/music.')
+            url = split_url[0]+'/'+split_url[1]
+            if '&list=' in url:
+                split_url = url.split('&list=')
+                url = split_url[0]
+            # Configure yt-dlp options
+            ydl_opts = {
+                'format': 'bestaudio/best',
+                'postprocessors': [{
+                    'key': 'FFmpegExtractAudio',
+                    'preferredcodec': 'mp3',
+                    'preferredquality': '192',
+                }],
+            }
+            # Create yt-dlp instance
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                try:
+                    # Search for videos matching the query
+                    search_results = ydl.extract_info(f"ytsearch1:{url}", download=False)['entries'][0]
+                    return {'source': search_results['url'], 'title': search_results['title']}
+                except yt_dlp.DownloadError as e:
+                    print("YT_DLP Error:", e)
+                    return None
+        except Exception as e:
+            print(e)
             return None
 
 def presearch_5(data, guild_id):
@@ -164,31 +222,6 @@ def spotify_get(url, client_id, client_secret):
         print('Invalid Spotify Link')
         return None
 
-    
-
-def ytmusic_playlist(playlist_url):
-    try:
-        ytmusic = YTMusic()
-        # Extract playlistId from the URL
-        playlist_id = playlist_url.split('list=')[1]
-        # Get playlist details
-        playlist = ytmusic.get_playlist(playlist_id)
-        # Extract playlist items
-        playlist = playlist['tracks']
-        formatted_playlist = []
-        complete_title = None
-        for song in playlist:
-            complete_title = song['title'] + ' by '
-            for artist in song['artists']:
-                complete_title += artist['name']
-            formatted_playlist.append(complete_title)
-            complete_title=None
-        return formatted_playlist
-
-    except Exception as e:
-        print(e)
-        print('ytmusic_playlist error')
-        return None
 
 def yt_playlist(link):
     try:

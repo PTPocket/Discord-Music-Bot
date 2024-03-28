@@ -75,7 +75,7 @@ class Music_Cog(commands.Cog):
         self.data.queue_to_current(guild_id)
         song = self.data.get_current_song(guild_id)
         if song['source']=='youtube' or song['source']=='spotify':
-            song = youtube_search(song['title'])
+            song = YoutubeGet(song['title'])
 
         if recall is True:
             self.gui_print.add(guild_id)
@@ -128,7 +128,7 @@ class Music_Cog(commands.Cog):
         if 'music.youtube.com' in query:
             query = query.replace(' ','')
             if 'playlist' in query:
-                playlist = ytmusic_playlist(query)
+                playlist = YTMusicGet(query)
                 if playlist is None:
                     send_log(guild_name, 'ERROR', 'Youtube Playlist')
                     msg = embed.invalid_link(self.bot, query, 'YTMusic')
@@ -151,6 +151,17 @@ class Music_Cog(commands.Cog):
                 msg = embed.queued_playlist_prompt(self.bot, song_names_list, len(playlist), query, 'Youtube')
                 await interaction.followup.send(embed= msg)
                 await self.music_player_start(interaction,reprint=True)
+            if 'watch' in query:
+                song = YTMusicGet(query)
+                if song is None:
+                    send_log(guild_name, 'ERROR', 'YTMusic Link')
+                    msg = embed.invalid_link(self.bot, query, 'YTMusic')
+                    await interaction.followup.send(embed= msg, ephemeral=True)
+                    await self.GUI_HANDLER(guild_id)
+                    return
+                self.data.queue_song(guild_id, song)
+                send_log(guild_name, "QUEUED", f"YTMusic link ({song['title']})" )
+                await self.music_player_start(interaction,reprint=True)
             else:
                 send_log(guild_name, 'ERROR', 'YTMusic Playlist')
                 msg = embed.invalid_link(self.bot, query, 'YTMusic')
@@ -160,18 +171,21 @@ class Music_Cog(commands.Cog):
         if 'youtube.com/' in query:
             query = query.replace(' ','')
             if 'watch' in query:
-                song = youtube_search(query)
-                if song is None:
-                    send_log(guild_name, 'ERROR', 'Youtube Link')
-                    msg = embed.invalid_link(self.bot, query, 'Youtube')
-                    await interaction.followup.send(embed= msg, ephemeral=True)
-                    await self.GUI_HANDLER(guild_id)
-                    return##################################################
-                self.data.queue_song(guild_id, song)
-                send_log(guild_name, "QUEUED", f"youtube link ({song['title']})" )
-                #msg = embed.queue_prompt(self.bot, song['title'])
-                #await interaction.followup.send(embed= msg)
-                await self.music_player_start(interaction,reprint=True)
+                try:
+                    song = YoutubeGet(query)
+                    if song is None:
+                        send_log(guild_name, 'ERROR', 'Youtube Link')
+                        msg = embed.invalid_link(self.bot, query, 'Youtube')
+                        await interaction.followup.send(embed= msg, ephemeral=True)
+                        await self.GUI_HANDLER(guild_id)
+                        return##################################################
+                    self.data.queue_song(guild_id, song)
+                    send_log(guild_name, "QUEUED", f"youtube link ({song['title']})" )
+                    #msg = embed.queue_prompt(self.bot, song['title'])
+                    #await interaction.followup.send(embed= msg)
+                    await self.music_player_start(interaction,reprint=True)
+                except Exception as e:
+                    print(e)
             elif 'playlist' in query:
                 playlist = yt_playlist(query)
                 if playlist is None:
@@ -540,7 +554,7 @@ class MusicFunctions(View):
                 style= discord.ButtonStyle.blurple
             else:
                 style= discord.ButtonStyle.grey
-            super().__init__(emoji='♾', style= style)
+            super().__init__(emoji='♾', label='Forever', style= style)
             self.data = data
             self.music_cog = music_cog
             self.guild_id = guild_id
