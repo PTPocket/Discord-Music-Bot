@@ -122,27 +122,49 @@ def presearch_5(data, guild_id):
     for i in range(max):
         data.set_queue_pos(guild_id, youtube_search(queue[i]),i)
 
-def spotify_playlist(playlist_url, client_id, client_secret):
-    try:
-        # Initialize Spotipy with your credentials
-        client_id = str(client_id)
-        client_secret = str(client_secret)
-        client_credentials_manager = SpotifyClientCredentials(client_id=client_id, client_secret=client_secret)
-        spotify = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
-        # Get playlist tracks
-        results = spotify.playlist_tracks(playlist_url)
-        # Extract track names
-        song_titles = []
-        for item in results['items']:
-            track = item['track']
-            artists = ''
-            for i in range(len(track['artists'])):
-                artists += track['artists'][i]['name'] + ','
-            song_titles.append(f"{track['name']} by {artists[:-1]}")
-        return song_titles
-    except Exception as e:
-        print(e)
+def spotify_get(url, client_id, client_secret):
+    client_credentials_manager = SpotifyClientCredentials(client_id=client_id, client_secret=client_secret)
+    spotify = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
+    if 'open.spotify.com/playlist' in url:
+        try:
+            # Initialize Spotipy with your credentials
+            # Get playlist tracks
+            results = spotify.playlist_tracks(url)
+            # Extract track names
+            song_titles = []
+            for item in results['items']:
+                track = item['track']
+                artists = ''
+                for i in range(len(track['artists'])):
+                    artists += track['artists'][i]['name'] + ','
+                song_titles.append(f"{track['name']} by {artists[:-1]}")
+            return song_titles
+        except Exception as e:
+            print(e)
+            return None
+    elif 'open.spotify.com/track' in url:
+        try:
+            # Extract track ID from the Spotify link
+            track_id = url.split('/')[-1]
+
+            # Retrieve track information
+            track_info = spotify.track(url)
+
+            # Extract title and artist from track information
+            song_name = track_info['name']
+            all_artists = ''
+            for artist in track_info['artists']:
+                all_artists += artist['name'] +','
+            title = song_name + ' by ' +all_artists[:-1]
+            return {'source':'spotify', 'title': title}
+        except Exception as e:
+            print(e)
+            return None
+    else:
+        print('Invalid Spotify Link')
         return None
+
+    
 
 def ytmusic_playlist(playlist_url):
     try:
@@ -241,5 +263,7 @@ def get_random_song(data,guild_id):
 #             print('test')
 #             await interaction.response.send_message()
 
-
+if __name__ == '__main__':
+    query = 'https://www.youtube.com/watch?v=L1ZDWl98r_Q'
+    print(ytmusic_playlist(query))
 

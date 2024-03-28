@@ -19,11 +19,6 @@ def title(title, length = 37):
             title = title[0:length]+'...'
     return title
 
-def remove_artist(title):
-    temp_title = str(title).split(' by ')
-    max_len = (len(title)-len(temp_title[len(temp_title)-1]))-4
-    title = title[0:max_len]
-    return title
 
 def gui_embed(bot, data:Guild_Music_Properties, guild_id, connect = False):
     bot_avatar = bot.user.display_avatar
@@ -118,7 +113,6 @@ def gui_embed(bot, data:Guild_Music_Properties, guild_id, connect = False):
     embed.set_footer(text = features, icon_url=bot_avatar)
     
     return embed
-
 
 def unauthorized(bot):
     bot_avatar = bot.user.display_avatar
@@ -262,10 +256,20 @@ def spotify_playlist_error(bot, song):
     embed.set_author(name=COG_NAME, icon_url=bot_avatar)     
     return embed
 
-def ytmusic_playlist_error(bot, song):
+def spotify_link_error(bot, link):
     bot_avatar = bot.user.display_avatar
     embed = discord.Embed(
-        title=f"__**YT Music Playlist Error**__\nCheck if PlayList is Public",
+        title=f":no_entry_sign: **Spotify Link Error** :no_entry_sign:",
+        description=f"***```Your Input: {link}```***",
+        color=discord.Color.red())  
+    embed.set_author(name=COG_NAME, icon_url=bot_avatar)  
+    embed.set_thumbnail(url=MUSIC_ICON)   
+    return embed
+
+def invalid_link(bot, song, platform=''):
+    bot_avatar = bot.user.display_avatar
+    embed = discord.Embed(
+        title=f"**Invalid {platform} Link**\nAllowed:  __Spotify__,  __Youtube__,  __YTMusic__\nPlaylist must be public!",
         description=f"***```Your Input: {song}```***",
         color=discord.Color.red()) 
     embed.set_thumbnail(url=MUSIC_ICON)
