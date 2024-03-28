@@ -169,17 +169,6 @@ def YTMusicGet(url):
             print(e)
             return None
 
-def presearch_5(data, guild_id):
-    current = data.get_current_song(guild_id)
-    queue = data.get_queue(guild_id)
-    if len(queue)>3:
-        max = 3
-    else: 
-        max = len(queue)
-    data.set_current_song(guild_id, youtube_search(current['title']))
-    for i in range(max):
-        data.set_queue_pos(guild_id, youtube_search(queue[i]),i)
-
 def spotify_get(url, client_id, client_secret):
     client_credentials_manager = SpotifyClientCredentials(client_id=client_id, client_secret=client_secret)
     spotify = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
