@@ -285,7 +285,3 @@ def get_random_song(data,guild_id):
 #             print('test')
 #             await interaction.response.send_message()
 
-if __name__ == '__main__':
-    query = 'https://www.youtube.com/watch?v=L1ZDWl98r_Q'
-    print(ytmusic_playlist(query))
-

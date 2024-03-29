@@ -73,11 +73,11 @@ def gui_embed(bot, data:Guild_Music_Properties, guild_id, connect = False):
         length_diff = len(last_song)-len(next_song)
         next_song = next_song + (' '*length_diff)
     embed.add_field(
-        name='**Next Song**', 
+        name='**Next**', 
         value = f"*```{next_song}```*",
         inline=True)
     embed.add_field(
-        name='**Previous Song**', 
+        name='**Previous**', 
         value = f"*```{last_song}```*",
         inline=True)
     
