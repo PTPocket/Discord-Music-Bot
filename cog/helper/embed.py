@@ -207,6 +207,19 @@ def flush_prompt(bot):
     embed.set_thumbnail(url=MUSIC_ICON)   
     return embed
 
+def finished_prompt(bot):
+    bot_avatar = bot.user.display_avatar
+    embed = discord.Embed(
+        color=discord.Color.green())  
+    embed.add_field(
+        name='**Done**', 
+        value = '',
+        inline=False)
+    embed.set_author(name=COG_NAME, icon_url=bot_avatar)  
+    embed.set_thumbnail(url=MUSIC_ICON)   
+    return embed
+
+
 def search_list_prompt(bot):
     bot_avatar = bot.user.display_avatar
     embed = discord.Embed(
