@@ -123,7 +123,7 @@ class Music_Cog(commands.Cog):
         guild_name = interaction.user.guild.name
         guild_id = interaction.user.guild.id
         self.data.initialize(interaction)
-        await interaction.response.defer(ephemeral=True)
+        await interaction.response.defer()
         
         if 'music.youtube.com' in query:
             query = query.replace(' ','')
@@ -149,7 +149,7 @@ class Music_Cog(commands.Cog):
                 song_names_list.append(name_list)
                 send_log(guild_name, "QUEUED", f"YTMusic ({len(playlist)} songs)")
                 msg = embed.queued_playlist_prompt(self.bot, song_names_list, len(playlist), query, 'Youtube')
-                await interaction.followup.send(embed= msg)
+                await interaction.followup.send(embed= msg,ephemeral=False)
                 await self.music_player_start(interaction,reprint=True)
             if 'watch' in query:
                 song = YTMusicGet(query)
@@ -209,7 +209,7 @@ class Music_Cog(commands.Cog):
                 song_names_list.append(name_list)
                 send_log(guild_name, "QUEUED", f"youtube playlist ({len(playlist)} songs)")
                 msg = embed.queued_playlist_prompt(self.bot, song_names_list, len(playlist), query, 'Youtube')
-                await interaction.followup.send(embed= msg)
+                await interaction.followup.send(embed= msg, ephemeral=False)
                 await self.music_player_start(interaction,reprint=True)
                 pass
             else:
@@ -255,7 +255,7 @@ class Music_Cog(commands.Cog):
                 song_names_list.append(name_list)
                 send_log(guild_name, "QUEUED", f'Spotify Playlist ({len(playlist)} songs)' )
                 msg = embed.queued_playlist_prompt(self.bot, song_names_list, len(playlist), query, 'Spotify')
-                await interaction.followup.send(embed= msg)
+                await interaction.followup.send(embed= msg, ephemeral=False)
                 await self.music_player_start(interaction,reprint=True)
                 pass
             else:
