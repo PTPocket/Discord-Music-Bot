@@ -60,7 +60,6 @@ class Music_Cog(commands.Cog):
     def music_player(self, interaction:discord.Interaction, recall = False):
         guild_name = interaction.user.guild.name
         guild_id = interaction.user.guild.id
-        
         if recall is True:
             self.data.current_to_history(guild_id)
 
@@ -127,11 +126,11 @@ class Music_Cog(commands.Cog):
             
             if 'music.youtube.com' in query:
                 query = query.replace(' ','')
-                if 'playlist' in query:
+                if '/playlist' in query:
                     playlist = YTMusicGet(query)
                     if playlist is None:
-                        send_log(guild_name, 'ERROR', 'Youtube Playlist')
-                        msg = embed.invalid_link(self.bot, query, 'YTMusic')
+                        send_log(guild_name, 'ERROR', 'YTMusic Playlist')
+                        msg = embed.invalid_link(self.bot, query, 'YTMusic Playlist')
                         await interaction.followup.send(embed= msg, ephemeral=True)
                         return
                     song_names_list = []
@@ -153,31 +152,33 @@ class Music_Cog(commands.Cog):
                     msg = embed.queued_playlist_prompt(self.bot, song_names_list, len(playlist), query, 'Youtube')
                     await interaction.channel.send(embed=msg)
                     await self.music_player_start(interaction,reprint=True)
-                if 'watch' in query:
+                elif '/watch' in query:
                     song = YTMusicGet(query)
                     if song is None:
-                        send_log(guild_name, 'ERROR', 'YTMusic Link')
-                        msg = embed.invalid_link(self.bot, query, 'YTMusic')
+                        send_log(guild_name, 'ERROR', 'YTMusic Song')
+                        msg = embed.invalid_link(self.bot, query, 'YTMusic Song')
                         await interaction.followup.send(embed= msg, ephemeral=True)
                         await self.GUI_HANDLER(guild_id)
                         return
                     self.data.queue_song(guild_id, song)
+                    msg = embed.queue_prompt(self.bot, song['title'])
+                    await interaction.followup.send(embed= msg)
                     send_log(guild_name, "QUEUED", f"YTMusic link ({song['title']})" )
                     await self.music_player_start(interaction,reprint=True)
                 else:
-                    send_log(guild_name, 'ERROR', 'YTMusic Playlist')
+                    send_log(guild_name, 'ERROR', 'YTMusic')
                     msg = embed.invalid_link(self.bot, query, 'YTMusic')
                     await interaction.followup.send(embed= msg, ephemeral=True)
                 return
             
             if 'youtube.com/' in query:
                 query = query.replace(' ','')
-                if 'watch' in query:
+                if '/watch' in query:
                     try:
                         song = YoutubeGet(query)
                         if song is None:
-                            send_log(guild_name, 'ERROR', 'Youtube Link')
-                            msg = embed.invalid_link(self.bot, query, 'Youtube')
+                            send_log(guild_name, 'ERROR', 'Youtube Watch')
+                            msg = embed.invalid_link(self.bot, query, 'Youtube Song')
                             await interaction.followup.send(embed= msg, ephemeral=True)
                             await self.GUI_HANDLER(guild_id)
                             return##################################################
@@ -188,8 +189,8 @@ class Music_Cog(commands.Cog):
                         await self.music_player_start(interaction,reprint=True)
                     except Exception as e:
                         print(e)
-                elif 'playlist' in query:
-                    playlist = yt_playlist(query)
+                elif '/playlist' in query:
+                    playlist = YoutubeGet(query)
                     if playlist is None:
                         send_log(guild_name, 'ERROR', 'Youtube Playlist')
                         msg = embed.invalid_link(self.bot, query, 'YT Playlist')
@@ -215,7 +216,6 @@ class Music_Cog(commands.Cog):
                     msg = embed.queued_playlist_prompt(self.bot, song_names_list, len(playlist), query, 'Youtube')
                     await interaction.channel.send(embed=msg)
                     await self.music_player_start(interaction,reprint=True)
-                    pass
                 else:
                     send_log(guild_name, 'ERROR', 'Youtube')
                     msg = embed.invalid_link(self.bot, query, 'Youtube')
@@ -227,14 +227,14 @@ class Music_Cog(commands.Cog):
                 if 'track' in query:
                     song = spotify_get(query, self.client_id, self.client_secret)
                     if song is None:
-                        send_log(guild_name, 'ERROR', 'Spotify Link')
+                        send_log(guild_name, 'ERROR', 'Spotify Song')
                         msg = embed.invalid_link(self.bot, query, 'Spotify Track')
                         await interaction.followup.send(embed= msg, ephemeral=True)
                         return
                     self.data.queue_song(guild_id, song)
                     send_log(guild_name, "QUEUED", f"Spotify Track ({song['title']})" )
-                    #msg = embed.queue_prompt(self.bot, song['title'])
-                    #await interaction.followup.send(embed= msg)
+                    msg = embed.queue_prompt(self.bot, song['title'])
+                    await interaction.followup.send(embed= msg)
                     await self.music_player_start(interaction,reprint=True)
                 elif 'playlist' in query:
                     playlist = spotify_get(query, self.client_id, self.client_secret)
@@ -264,7 +264,7 @@ class Music_Cog(commands.Cog):
                     await self.music_player_start(interaction,reprint=True)
                     pass
                 else:
-                    send_log(guild_name, 'ERROR', 'Spotify Playlist')
+                    send_log(guild_name, 'ERROR', 'Spotify')
                     msg = embed.invalid_link(self.bot, query, 'Spotify')
                     await interaction.followup.send(embed= msg, ephemeral=True)
                 return

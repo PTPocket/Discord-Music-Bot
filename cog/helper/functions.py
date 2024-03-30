@@ -80,20 +80,12 @@ async def voice_connect(interaction:discord.Interaction):
 
     return voice_client
 
-# def youtube_search(query):
-#     ydl_opts = {'format': 'bestaudio', 'noplaylist':True}
-#     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-#         try: 
-#             info = ydl.extract_info("ytsearch:%s" % query, download=False)['entries'][0]
-#         except Exception as e: 
-#             print(e)
-#             return None
-#     return {'source': info['url'], 'title': info['title']}
 
 def YoutubeGet(query):
-    if 'watch' in query and 'list=' in query:
-        query = query.split('&list=')[0]
-    try:
+    if '/watch' in query:
+        if '&list=' in query:
+            split_url = query.split('&list=')
+            query = split_url[0]
         # Configure yt-dlp options
         ydl_opts = {
             'format': 'bestaudio/best',
@@ -108,16 +100,88 @@ def YoutubeGet(query):
             try:
                 # Search for videos matching the query
                 search_results = ydl.extract_info(f"ytsearch1:{query}", download=False)['entries'][0]
-                return {'source': search_results['url'], 'title': search_results['title']}
-            except yt_dlp.DownloadError as e:
+                success = True
+            except Exception as e:
                 print("YT_DLP Error:", e)
-                return None
-    except Exception as e:
-        print(e)
-        return None
+                success = False
+        if success is True:
+            return {'source': search_results['url'], 'title': search_results['title']}
+        else:
+            return None
+    elif '/playlist' in query:
+        # Create a yt_dlp object
+        ydl_opts = {
+            'quiet': True,
+            'extract_flat': True,
+            'force_generic_extractor': True,
+        }
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            try:
+                result = ydl.extract_info(query,download=False)
+                video_titles = [video['title'] for video in result['entries'] if video['title']!='[Private video]' and video['title'] != '[Deleted video]']
+                success = True
+            except Exception as e:
+                print('YoutubeGet: error -> ', e)
+                success = False
+        if success is True:
+            return video_titles
+        else:
+            return None
+    else:
+        ydl_opts = {
+            'format': 'bestaudio/best',
+            'postprocessors': [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'mp3',
+                'preferredquality': '192',
+            }],
+        }
+        # Create yt-dlp instance
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            try:
+                # Search for videos matching the query
+                search_results = ydl.extract_info(f"ytsearch1:{query}", download=False)['entries'][0]
+                success = True
+            except Exception as e:
+                print("YT_DLP Error:", e)
+                success = False
+        if success is True:
+            return {'source': search_results['url'], 'title': search_results['title']}
+        else:
+            return None
 
 def YTMusicGet(url):
-    if 'playlist' in url:
+    if 'watch' in url and 'list=' in url:
+        url = url.split('music.')
+        url = url[0]+url[1]
+        url = url.split('&list=')[0]
+        return YoutubeGet(url)
+    elif 'watch' in url:
+        split_url = url.split('music.')
+        url = split_url[0]+split_url[1]
+        # Configure yt-dlp options
+        ydl_opts = {
+            'format': 'bestaudio/best',
+            'postprocessors': [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'mp3',
+                'preferredquality': '192',
+            }],
+        }
+        # Create yt-dlp instance
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            try:
+                # Search for videos matching the query
+                search_results = ydl.extract_info(url, download=False)#['entries'][0]
+                success = True
+            except Exception as e:
+                print("YT_DLP Error:", e)
+                success = False
+        if success is True:
+            return {'source': search_results['url'], 'title': search_results['title']}
+        else:
+            return None
+    elif 'playlist' in url:
         try:
             ytmusic = YTMusic()
             # Extract playlistId from the URL
@@ -135,39 +199,10 @@ def YTMusicGet(url):
                 formatted_playlist.append(complete_title)
                 complete_title=None
             return formatted_playlist
+        except Exception as e:
+            print('YTMusic: error -> ', e)
+            return None
 
-        except Exception as e:
-            print(e)
-            print('ytmusic_playlist error')
-            return None
-    elif 'watch' in url:
-        try:
-            split_url = url.split('/music.')
-            url = split_url[0]+'/'+split_url[1]
-            if '&list=' in url:
-                split_url = url.split('&list=')
-                url = split_url[0]
-            # Configure yt-dlp options
-            ydl_opts = {
-                'format': 'bestaudio/best',
-                'postprocessors': [{
-                    'key': 'FFmpegExtractAudio',
-                    'preferredcodec': 'mp3',
-                    'preferredquality': '192',
-                }],
-            }
-            # Create yt-dlp instance
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                try:
-                    # Search for videos matching the query
-                    search_results = ydl.extract_info(f"ytsearch1:{url}", download=False)['entries'][0]
-                    return {'source': search_results['url'], 'title': search_results['title']}
-                except yt_dlp.DownloadError as e:
-                    print("YT_DLP Error:", e)
-                    return None
-        except Exception as e:
-            print(e)
-            return None
 
 def spotify_get(url, client_id, client_secret):
     client_credentials_manager = SpotifyClientCredentials(client_id=client_id, client_secret=client_secret)
