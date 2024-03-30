@@ -123,7 +123,7 @@ class Music_Cog(commands.Cog):
         guild_name = interaction.user.guild.name
         guild_id = interaction.user.guild.id
         self.data.initialize(interaction)
-        await interaction.response.defer()
+        await interaction.response.defer(ephemeral=True)
         
         if 'music.youtube.com' in query:
             query = query.replace(' ','')
@@ -149,7 +149,7 @@ class Music_Cog(commands.Cog):
                 song_names_list.append(name_list)
                 send_log(guild_name, "QUEUED", f"YTMusic ({len(playlist)} songs)")
                 msg = embed.queued_playlist_prompt(self.bot, song_names_list, len(playlist), query, 'Youtube')
-                await interaction.followup.send(embed= msg,ephemeral=False)
+                await interaction.channel.send(embed=msg)
                 await self.music_player_start(interaction,reprint=True)
             if 'watch' in query:
                 song = YTMusicGet(query)
@@ -181,8 +181,8 @@ class Music_Cog(commands.Cog):
                         return##################################################
                     self.data.queue_song(guild_id, song)
                     send_log(guild_name, "QUEUED", f"youtube link ({song['title']})" )
-                    #msg = embed.queue_prompt(self.bot, song['title'])
-                    #await interaction.followup.send(embed= msg)
+                    msg = embed.queue_prompt(self.bot, song['title'])
+                    await interaction.followup.send(embed= msg)
                     await self.music_player_start(interaction,reprint=True)
                 except Exception as e:
                     print(e)
@@ -209,7 +209,7 @@ class Music_Cog(commands.Cog):
                 song_names_list.append(name_list)
                 send_log(guild_name, "QUEUED", f"youtube playlist ({len(playlist)} songs)")
                 msg = embed.queued_playlist_prompt(self.bot, song_names_list, len(playlist), query, 'Youtube')
-                await interaction.followup.send(embed= msg, ephemeral=False)
+                await interaction.channel.send(embed=msg)
                 await self.music_player_start(interaction,reprint=True)
                 pass
             else:
@@ -238,7 +238,7 @@ class Music_Cog(commands.Cog):
                     send_log(guild_name, 'ERROR', 'Spotify Playlist')
                     msg = embed.invalid_link(self.bot, query, 'Spotify Playlist')
                     await interaction.followup.send(embed= msg, ephemeral=True)
-                    return
+                    return 
                 song_names_list = []
                 name_list = ''
                 last_ind = None
@@ -248,28 +248,26 @@ class Music_Cog(commands.Cog):
                     title = embed.title(f"{last_ind}. {title}")
                     if len(name_list) + len(title) < 1000:
                         name_list += title+'\n'
-                        print(name_list)
                     else:
                         song_names_list.append(name_list)
                         name_list = title+'\n'
                 song_names_list.append(name_list)
                 send_log(guild_name, "QUEUED", f'Spotify Playlist ({len(playlist)} songs)' )
                 msg = embed.queued_playlist_prompt(self.bot, song_names_list, len(playlist), query, 'Spotify')
-                await interaction.followup.send(embed= msg, ephemeral=False)
+                await interaction.channel.send(embed= msg)
                 await self.music_player_start(interaction,reprint=True)
                 pass
             else:
                 send_log(guild_name, 'ERROR', 'Spotify Playlist')
                 msg = embed.invalid_link(self.bot, query, 'Spotify')
                 await interaction.followup.send(embed= msg, ephemeral=True)
-                pass
             return
         
         if 'https://' in query:
-                send_log(guild_name, 'ERROR', 'playlist link')
-                msg = embed.invalid_link(self.bot, query)
-                await interaction.followup.send(embed= msg, ephemeral=True)
-                return
+            send_log(guild_name, 'ERROR', 'playlist link')
+            msg = embed.invalid_link(self.bot, query)
+            await interaction.followup.send(embed= msg, ephemeral=True)
+            return
         #Query is not a link
         song = {'source': 'youtube', 'title': query}
         self.data.queue_song(guild_id, song)
