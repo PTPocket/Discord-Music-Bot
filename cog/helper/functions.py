@@ -9,13 +9,12 @@ from cog.helper.guild_data import Guild_Music_Properties
 
 BLANK = '\u200b'
 LOCAL_MUSIC_PATH = "C:\\Users\\p\\Documents\\SERVER\\music\\Formatted"
-def send_log(log_name, description, result = ''):
+def log(guild_name, description, result = ''):
     time= str(datetime.now())
-    print(f"{time} | Guild : {log_name} | {description} -> {result}")
+    print(f"{time} | Guild : {guild_name} | {description} -> {result}")
 
 
 async def valid_play_command(interaction:discord.Interaction):
-    #for log print
     user = interaction.user
     guild_name = interaction.user.guild.name
     guild_id = interaction.user.guild.id
@@ -32,11 +31,11 @@ async def valid_play_command(interaction:discord.Interaction):
         authorized = False
 
     if not authorized:
-        send_log(guild_name, 'ACCESS DENIED', user)
-        msg = embed.unauthorized(interaction.client)
+        log(guild_name, 'ACCESS DENIED', user)
+        msg = embed.unauthorized_prompt(interaction.client)
         await interaction.response.send_message(embed= msg, ephemeral=True)
     else:
-        send_log(guild_name, 'ACCESS GRANTED', user)
+        log(guild_name, 'ACCESS GRANTED', user)
     return authorized
 
 async def valid_user_REGULAR_FUNC(interaction:discord.Interaction):
@@ -56,10 +55,10 @@ async def valid_user_REGULAR_FUNC(interaction:discord.Interaction):
         authorized =  False
 
     if authorized is False:
-        send_log(guild_name, 'ACCESS DENIED', user)
-        msg = embed.unauthorized(interaction.client)
+        log(guild_name, 'ACCESS DENIED', user)
+        msg = embed.unauthorized_prompt(interaction.client)
         await interaction.response.send_message(embed= msg, ephemeral=True)
-    else: send_log(guild_name, 'ACCESS GRANTED', user) 
+    else: log(guild_name, 'ACCESS GRANTED', user) 
     return authorized
 
 async def voice_connect(interaction:discord.Interaction):
@@ -70,13 +69,13 @@ async def voice_connect(interaction:discord.Interaction):
 
     if voice_client is None:
         voice_client = await user.voice.channel.connect(reconnect=True)
-        send_log(guild_name, 'Voice Connected', voice_client.channel.name)
+        log(guild_name, 'Voice Connected', voice_client.channel.name)
     else:
         if voice_client.is_connected() is False:
             await voice_client.move_to(user.voice.channel)
             voice_client = interaction.client.get_guild(guild_id).voice_client
             voice_client = interaction.client.get_guild(guild_id).voice_client
-            send_log(guild_name, 'Voice Reconnected', voice_client.channel.name)
+            log(guild_name, 'Voice Reconnected', voice_client.channel.name)
 
     return voice_client
 

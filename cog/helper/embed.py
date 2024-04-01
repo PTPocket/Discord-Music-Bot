@@ -1,6 +1,6 @@
 import discord
-from cog.helper.guild_data import Guild_Music_Properties
-
+from   cog.helper.guild_data import Guild_Music_Properties
+import cog.helper.setting  as Setting
 MUSIC_ICON = "https://cdn1.iconfinder.com/data/icons/music-audio-9/24/vinyl_player_retro_dj_disk_music_mix_2-512.png"
 COG_NAME = "Pocket Muse"   
 
@@ -19,8 +19,8 @@ def title(title, length = 37):
             title = title[0:length]+'...'
     return title
 
-
-def gui_embed(bot, data:Guild_Music_Properties, guild_id, connect = False):
+##### Not From Setting ######
+def MainGuiPrompt(bot, data:Guild_Music_Properties, guild_id, connect = False):
     bot_avatar = bot.user.display_avatar
     embed = discord.Embed(
         title=f":musical_note:   **MUSIC PLAYER**   :musical_note:",
@@ -114,48 +114,6 @@ def gui_embed(bot, data:Guild_Music_Properties, guild_id, connect = False):
     
     return embed
 
-def unauthorized(bot):
-    bot_avatar = bot.user.display_avatar
-    embed = discord.Embed(
-        title=f":no_entry_sign: **Unauthorized** :no_entry_sign:",
-        color=discord.Color.red())  
-    embed.set_author(name=COG_NAME, icon_url=bot_avatar)  
-    embed.set_thumbnail(url=MUSIC_ICON)   
-    return embed
-
-def skip_error(bot):
-    bot_avatar = bot.user.display_avatar
-    embed = discord.Embed(
-        title=f":no_entry_sign: **Nothing to Skip** :no_entry_sign:",
-        color=discord.Color.red())  
-    embed.set_author(name=COG_NAME, icon_url=bot_avatar)  
-    embed.set_thumbnail(url=MUSIC_ICON)   
-    return embed
-
-def skip_prompt(bot, song_name):
-    bot_avatar = bot.user.display_avatar
-    embed = discord.Embed(
-        color=discord.Color.green())  
-    embed.add_field(
-        name=':track_next: **Skipped Song** :track_next:', 
-        value = f'*```{song_name}```*',
-        inline=False)
-    embed.set_author(name=COG_NAME, icon_url=bot_avatar)  
-    embed.set_thumbnail(url=MUSIC_ICON)   
-    return embed
-
-def queue_prompt(bot, song_name):
-    bot_avatar = bot.user.display_avatar
-    embed = discord.Embed(
-        color=discord.Color.green())  
-    embed.add_field(
-        name='**Queued**', 
-        value = f'*```{song_name}```*',
-        inline=False)
-    embed.set_author(name=COG_NAME, icon_url=bot_avatar)  
-    embed.set_thumbnail(url=MUSIC_ICON)   
-    return embed
-
 def queued_playlist_prompt(bot, song_names_list, num_of_songs, url, type):
     bot_avatar = bot.user.display_avatar
     embed = discord.Embed(
@@ -195,12 +153,57 @@ def queued_playlist_prompt(bot, song_names_list, num_of_songs, url, type):
     embed.set_thumbnail(url=MUSIC_ICON)   
     return embed
 
-def flush_prompt(bot):
+def invalid_link(bot, song, platform=''):
     bot_avatar = bot.user.display_avatar
+    embed = discord.Embed(
+        title=f"**Invalid {platform} Link**\nAllowed:  __Spotify__,  __Youtube__,  __YTMusic__\nPlaylist must be public!",
+        description=f"***```Your Input: {song}```***",
+        color=discord.Color.red()) 
+    embed.set_thumbnail(url=MUSIC_ICON)
+    embed.set_author(name=COG_NAME, icon_url=bot_avatar)     
+    return embed
+
+###### From Setting ######
+def unauthorized_prompt(bot):
+    bot_avatar = bot.user.display_avatar
+    text = Setting.get_unauthorizedText()
+    embed = discord.Embed(
+        title=f":no_entry_sign: **{text}** :no_entry_sign:",
+        color=discord.Color.red())  
+    embed.set_author(name=COG_NAME, icon_url=bot_avatar)  
+    embed.set_thumbnail(url=MUSIC_ICON)   
+    return embed
+
+def skip_error_prompt(bot):
+    bot_avatar = bot.user.display_avatar
+    text = Setting.get_skiperrorText()
+    embed = discord.Embed(
+        title=f":no_entry_sign: **{text}** :no_entry_sign:",
+        color=discord.Color.red())  
+    embed.set_author(name=COG_NAME, icon_url=bot_avatar)  
+    embed.set_thumbnail(url=MUSIC_ICON)   
+    return embed
+
+def queue_prompt(bot, song_name):
+    bot_avatar = bot.user.display_avatar
+    text = Setting.get_queueText()
     embed = discord.Embed(
         color=discord.Color.green())  
     embed.add_field(
-        name='**Flushed Data**', 
+        name=f'**{text}**', 
+        value = f'*```{song_name}```*',
+        inline=False)
+    embed.set_author(name=COG_NAME, icon_url=bot_avatar)  
+    embed.set_thumbnail(url=MUSIC_ICON)   
+    return embed
+
+def flush_prompt(bot):
+    bot_avatar = bot.user.display_avatar
+    text = Setting.get_flushText()
+    embed = discord.Embed(
+        color=discord.Color.green())  
+    embed.add_field(
+        name=f'**{text}**', 
         value = '',
         inline=False)
     embed.set_author(name=COG_NAME, icon_url=bot_avatar)  
@@ -209,16 +212,30 @@ def flush_prompt(bot):
 
 def finished_prompt(bot):
     bot_avatar = bot.user.display_avatar
+    text = Setting.get_finishedText()
     embed = discord.Embed(
         color=discord.Color.green())  
     embed.add_field(
-        name='**Done**', 
+        name=f'**{text}**', 
         value = '',
         inline=False)
     embed.set_author(name=COG_NAME, icon_url=bot_avatar)  
     embed.set_thumbnail(url=MUSIC_ICON)   
     return embed
 
+
+##### Unused
+def skip_prompt(bot, song_name):
+    bot_avatar = bot.user.display_avatar
+    embed = discord.Embed(
+        color=discord.Color.green())  
+    embed.add_field(
+        name=':track_next: **Skipped Song** :track_next:', 
+        value = f'*```{song_name}```*',
+        inline=False)
+    embed.set_author(name=COG_NAME, icon_url=bot_avatar)  
+    embed.set_thumbnail(url=MUSIC_ICON)   
+    return embed
 
 def search_list_prompt(bot):
     bot_avatar = bot.user.display_avatar
@@ -238,16 +255,3 @@ def no_match(bot, query):
     embed.set_thumbnail(url=MUSIC_ICON)
     embed.set_author(name=COG_NAME, icon_url=bot_avatar)     
     return embed
-
-
-def invalid_link(bot, song, platform=''):
-    bot_avatar = bot.user.display_avatar
-    embed = discord.Embed(
-        title=f"**Invalid {platform} Link**\nAllowed:  __Spotify__,  __Youtube__,  __YTMusic__\nPlaylist must be public!",
-        description=f"***```Your Input: {song}```***",
-        color=discord.Color.red()) 
-    embed.set_thumbnail(url=MUSIC_ICON)
-    embed.set_author(name=COG_NAME, icon_url=bot_avatar)     
-    return embed
-
-

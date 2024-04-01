@@ -31,3 +31,5 @@ cog/helper/__pycache__/guild_data.cpython-312.pyc
 chgpt3.py
 .cache
 main.spec
+cog/helper/__pycache__/setting.cpython-312.pyc
+setting.json

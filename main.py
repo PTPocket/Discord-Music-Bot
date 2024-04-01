@@ -3,7 +3,7 @@ from discord.ext import commands
 from config import TOKEN, SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET
 from datetime import datetime
 #Cog import
-from cog.cog import Music_Cog, send_log
+from cog.cog import Music_Cog, log
 
 #Discord Bot Setup
 intents = discord.Intents.default()
@@ -14,7 +14,7 @@ client = commands.Bot(command_prefix="pocket music ", intents = intents)
 
 @client.event
 async def on_ready():
-    send_log(None, client.user, 'Connected to Discord')
+    log(None, client.user, 'Connected to Discord')
 
 async def main():
     async with client:
