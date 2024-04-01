@@ -1,7 +1,6 @@
 import discord
 from datetime import datetime
 
-Timeout_minutes = 30
 def send_log(log_name, description, result = ''):
     time= str(datetime.now())
     print(f"{time} | Guild : {log_name} | {description} -> {result}")

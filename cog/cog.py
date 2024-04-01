@@ -278,11 +278,9 @@ class Music_Cog(commands.Cog):
             #Query is not a link
             song = {'source': 'youtube', 'title': query}
             self.data.queue_song(guild_id, song)
-            print('hi')
             log(guild_name, "QUEUED", query)
-            print('hi')
-            #msg = embed.queue_prompt(self.bot, query)
-            #await interaction.followup.send(embed= msg)
+            msg = embed.queue_prompt(self.bot, query)
+            await interaction.followup.send(embed = msg)
             await self.music_player_start(interaction,reprint=True)
         except Exception as e:
             print(e)

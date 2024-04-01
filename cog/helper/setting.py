@@ -38,13 +38,14 @@ def get_finishedText():
 
 def initialize_settings():
     setting = {
-            'Timeout Minutes'     : 60,
+            'Timeout Minutes'          : 60,
             'Unauthorized Prompt Text' : 'Unauthorized',
             'Skip Error Prompt Text'   : 'Nothing to Skip',
-            'Queue Prompt Text'        : 'Queued',
+            'Queue Prompt Text'        : 'Queued Song',
             'Flush Prompt Text'        : 'Flushed Data',
-            'Finished Prompt Text'     : 'Done',
+            'Finished Prompt Text'     : 'Playlist Uploaded',
         }
+
     if os.path.exists(SETTING_PATH) is True:
         with open(SETTING_PATH, 'r') as file:
             cur_setting = json.load(file)
@@ -52,23 +53,12 @@ def initialize_settings():
         for key in setting:
             if key not in cur_setting_keys:
                 cur_setting[key] = setting[key]
-        
-        with open(SETTING_PATH, 'w'):
-            json.dump(cur_setting_keys, file, indent=4)
-        return
-
-    with open(SETTING_PATH, 'w') as file:
-        setting = {
-            'Timeout Minutes'     : 60,
-
-            'Unauthorized Prompt Text' : 'Unauthorized',
-            'Skip Error Prompt Text'   : 'Nothing to Skip',
-            'Queue Prompt Text'        : 'Queued',
-            'Flush Prompt Text'        : 'Flushed Data',
-            'Finished Prompt Text'     : 'Done',
-        }
-        json.dump(setting, file, indent=4)
-    
+        with open(SETTING_PATH, 'w') as file:
+            json.dump(cur_setting, file, indent=4)
+    else:
+        with open(SETTING_PATH, 'w') as file:
+            json.dump(setting, file, indent=4)
+    print('Setting Initialized')
 
 if __name__ == '__main__':
     initialize_settings()
