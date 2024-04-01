@@ -1,6 +1,5 @@
 import os, json
-SETTING_PATH    = os.curdir+'/setting.json'
-
+SETTING_PATH    = os.getcwd()+'/Music Bot Setting.json'
 
 def get_timeout():
     with open(SETTING_PATH, 'r') as file:
@@ -49,11 +48,9 @@ def initialize_settings():
             'Queue Prompt Text'        : 'Queued',
             'Flush Prompt Text'        : 'Flushed Data',
             'Finished Prompt Text'     : 'Done',
-
         }
         json.dump(setting, file, indent=4)
-    pass
-
+    
 
 if __name__ == '__main__':
     initialize_settings()
