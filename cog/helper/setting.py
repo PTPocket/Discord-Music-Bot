@@ -37,8 +37,26 @@ def get_finishedText():
     return setting['Finished Prompt Text']
 
 def initialize_settings():
+    setting = {
+            'Timeout Minutes'     : 60,
+            'Unauthorized Prompt Text' : 'Unauthorized',
+            'Skip Error Prompt Text'   : 'Nothing to Skip',
+            'Queue Prompt Text'        : 'Queued',
+            'Flush Prompt Text'        : 'Flushed Data',
+            'Finished Prompt Text'     : 'Done',
+        }
     if os.path.exists(SETTING_PATH) is True:
+        with open(SETTING_PATH, 'r') as file:
+            cur_setting = json.load(file)
+        cur_setting_keys = cur_setting.keys()
+        for key in setting:
+            if key not in cur_setting_keys:
+                cur_setting[key] = setting[key]
+        
+        with open(SETTING_PATH, 'w'):
+            json.dump(cur_setting_keys, file, indent=4)
         return
+
     with open(SETTING_PATH, 'w') as file:
         setting = {
             'Timeout Minutes'     : 60,
