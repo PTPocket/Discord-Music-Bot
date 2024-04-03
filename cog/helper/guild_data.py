@@ -153,8 +153,11 @@ class Guild_Music_Properties():
         if self.queue[guild_id] == []:
             return True
         else: return False
+    
     def delete_queue(self,guild_id):
         self.queue[guild_id] = []
+
+
 
     #FEATURES FUNCTIONS
     def flip_mystery(self, guild_id):

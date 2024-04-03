@@ -100,14 +100,16 @@ def MainGuiPrompt(bot, data:Guild_Music_Properties, guild_id, connect = False):
         value = f'*```{current}```*',
         inline=False)
 
-    features = 'Random: '
-    if data.get_random(guild_id) is True:
-        features +=   'On '
-    else: features += 'Off'
+    features = 'Shuffle: '
+    if data.get_shuffle(guild_id) is True:
+        features += 'On '
+    else: 
+        features += 'Off'
     features += '          Loop: '
     if data.get_loop(guild_id) is True:
-        features +=   'On '
-    else: features += 'Off'
+        features += 'On '
+    else: 
+        features += 'Off'
 
 
     embed.set_footer(text = features, icon_url=bot_avatar)

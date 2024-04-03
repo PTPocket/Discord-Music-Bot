@@ -1,10 +1,9 @@
-import discord, os, random, time, yt_dlp, spotipy
-from ytmusicapi import YTMusic
-from tinytag import TinyTag
-from discord.ui import View, Select, Button
-from datetime import datetime
-from spotipy.oauth2 import SpotifyClientCredentials
-from cog.helper import embed
+import discord, os, random, yt_dlp, spotipy
+from ytmusicapi            import YTMusic
+from tinytag               import TinyTag
+from datetime              import datetime
+from spotipy.oauth2        import SpotifyClientCredentials
+from cog.helper            import embed
 from cog.helper.guild_data import Guild_Music_Properties
 
 BLANK = '\u200b'
@@ -78,6 +77,60 @@ async def voice_connect(interaction:discord.Interaction):
             log(guild_name, 'Voice Reconnected', voice_client.channel.name)
 
     return voice_client
+
+def check_features(data:Guild_Music_Properties, guild_id):
+    if data.get_back(guild_id) is True:
+        data.history_to_queue(guild_id)
+        data.history_to_queue(guild_id)
+        data.flip_back(guild_id)
+        return
+    if data.get_loop(guild_id) is True:
+        data.history_to_queue(guild_id)
+        return
+    if data.empty_queue(guild_id) is True and data.get_random(guild_id) is True:
+        flac_song_list = os.listdir(LOCAL_MUSIC_PATH)
+        song = random.choice(flac_song_list)
+        path = LOCAL_MUSIC_PATH + '\\'+ song
+        song_metadata = TinyTag.get(path)
+        title = f"{song_metadata.title} - {song_metadata.artist}"
+        song = {'title': title, 'source': f'{LOCAL_MUSIC_PATH}\\{song}'}
+        data.queue_song(guild_id, song)
+        return
+
+    if data.get_shuffle(guild_id) is True:
+        queue = data.get_queue(guild_id)
+        history = data.get_history(guild_id)
+        num_songs = len(queue)+len(history)
+        rand_int = random.randint(0, num_songs-1)
+        print(rand_int)
+        if rand_int < len(history):
+            new_history = history[len(history)-rand_int::]
+            to_queue = history[0:len(history)-rand_int]
+            to_queue.reverse()
+            new_queue = to_queue + queue
+            data.set_queue(guild_id, new_queue)
+            data.set_history(guild_id, new_history)
+        else:
+            rand_int = rand_int-len(history)
+            new_queue = queue[rand_int::]
+            to_history = queue[0:rand_int]
+            to_history.reverse()
+            new_history = to_history+history
+            data.set_queue(guild_id, new_queue)
+            data.set_history(guild_id, new_history)
+
+
+def add_random_song(data, guild_id):
+    flac_song_list = os.listdir(LOCAL_MUSIC_PATH)
+    song = random.choice(flac_song_list)
+    path = LOCAL_MUSIC_PATH + '\\'+ song
+    song_metadata = TinyTag.get(path)
+    title = f"{song_metadata.title} - {song_metadata.artist}"
+    song = {'title': title, 'source': f'{LOCAL_MUSIC_PATH}\\{song}'}
+    data.prepend_to_queue(guild_id, song)
+
+def get_random_song(data,guild_id):
+    pass
 
 
 def YoutubeGet(query):
@@ -202,8 +255,7 @@ def YTMusicGet(url):
             print('YTMusic: error -> ', e)
             return None
 
-
-def spotify_get(url, client_id, client_secret):
+def SpotifyGet(url, client_id, client_secret):
     client_credentials_manager = SpotifyClientCredentials(client_id=client_id, client_secret=client_secret)
     spotify = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
     if 'open.spotify.com/playlist' in url:
@@ -245,77 +297,27 @@ def spotify_get(url, client_id, client_secret):
         print('Invalid Spotify Link')
         return None
 
-
-def yt_playlist(link):
-    try:
-        # Create a yt_dlp object
-        ydl_opts = {
-            'quiet': True,
-            'extract_flat': True,
-            'force_generic_extractor': True,
-        }
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            result = ydl.extract_info(
-                link,
-                download=False
-            )
-        video_titles = [video['title'] for video in result['entries'] if video['title']!='[Private video]' and video['title'] != '[Deleted video]']
-        return video_titles
-    except Exception as e:
-        return None
-
-def check_features(data:Guild_Music_Properties, guild_id):
-    if data.get_back(guild_id) is True:
-        data.history_to_queue(guild_id)
-        data.history_to_queue(guild_id)
-        data.flip_back(guild_id)
-        return
-    if data.get_loop(guild_id) is True:
-        data.history_to_queue(guild_id)
-        return
-    if data.empty_queue(guild_id) is True and data.get_random(guild_id) is True:
-        flac_song_list = os.listdir(LOCAL_MUSIC_PATH)
-        song = random.choice(flac_song_list)
-        path = LOCAL_MUSIC_PATH + '\\'+ song
-        song_metadata = TinyTag.get(path)
-        title = f"{song_metadata.title} - {song_metadata.artist}"
-        song = {'title': title, 'source': f'{LOCAL_MUSIC_PATH}\\{song}'}
-        data.queue_song(guild_id, song)
-        return
-
-def add_random_song(data, guild_id):
-    flac_song_list = os.listdir(LOCAL_MUSIC_PATH)
-    song = random.choice(flac_song_list)
-    path = LOCAL_MUSIC_PATH + '\\'+ song
-    song_metadata = TinyTag.get(path)
-    title = f"{song_metadata.title} - {song_metadata.artist}"
-    song = {'title': title, 'source': f'{LOCAL_MUSIC_PATH}\\{song}'}
-    data.prepend_to_queue(guild_id, song)
-
-def get_random_song(data,guild_id):
-    pass
-
-
-# class SearchView(View):
-#     def __init__(self, song_list):
-#         super().__init__(timeout=30)
-#         self.add_item(self.SongSelectMenu(song_list))
-#         self.song_choice = None
-#     class SongSelectMenu(Select):
-#         def __init__(self, song_list):
-#             options = []
-#             for i, song in enumerate(song_list):
-#                 path = LOCAL_MUSIC_PATH + '\\'+ song
-#                 file = TinyTag.get(path)
-#                 options.append(discord.SelectOption(
-#                     label = f"{file.title} - {file.artist}",
-#                     value = i,
-#                 ))
-#             super().__init__(placeholder='Search Results', options = options)
-#             self.song_list = song_list
-#         async def callback(self, interaction:discord.Interaction, select_item:discord.ui.Select):
-#             print('awer')
-#             print(select_item.values)
-#             print('test')
-#             await interaction.response.send_message()
-
+if __name__ == '__main__':
+    spotify_links = [
+        'https://open.spotify.com/track/6v1sy4kEyzRkrE9KLiD9Dz?si=4720f0d312624378',
+        'https://open.spotify.com/playlist/7yzkSw4oBHucz0ZgpkLotN?si=9d270eead99040c4',
+    ]
+    youtube_links = [
+        'https://www.youtube.com/watch?v=hdcTmpvDO0I',
+        'https://www.youtube.com/watch?v=FltgZ6BEM1w&list=PLtkOk19NVSZQqt3xbiTdgCYkwl2997L1u&index=1',
+        'https://www.youtube.com/playlist?list=PLtkOk19NVSZQqt3xbiTdgCYkwl2997L1u',
+    ]
+    ytmusic_links = [
+        'https://music.youtube.com/watch?v=-QuVe-hjMs0&si=FbzqlY1iZ6xwwyju',
+        'https://music.youtube.com/watch?v=FltgZ6BEM1w&list=PLtkOk19NVSZQqt3xbiTdgCYkwl2997L1u',
+        'https://music.youtube.com/playlist?list=PLtkOk19NVSZQqt3xbiTdgCYkwl2997L1u'
+    ]
+    assert type(SpotifyGet(spotify_links[0])) == dict
+    assert type(SpotifyGet(spotify_links[1])) == list
+    assert type(YoutubeGet(youtube_links[0])) == dict
+    assert type(YoutubeGet(youtube_links[1])) == dict
+    assert type(YoutubeGet(youtube_links[2])) == list
+    assert type(YoutubeGet('I like to move it')) == dict
+    assert type(YTMusicGet(ytmusic_links[0])) == dict
+    assert type(YTMusicGet(ytmusic_links[0])) == dict
+    assert type(YTMusicGet(ytmusic_links[0])) == list

@@ -37,7 +37,7 @@ def get_finishedText():
     return setting['Finished Prompt Text']
 
 def initialize_settings():
-    setting = {
+    default_setting = {
             'Timeout Minutes'          : 60,
             'Unauthorized Prompt Text' : 'Unauthorized',
             'Skip Error Prompt Text'   : 'Nothing to Skip',
@@ -50,14 +50,14 @@ def initialize_settings():
         with open(SETTING_PATH, 'r') as file:
             cur_setting = json.load(file)
         cur_setting_keys = cur_setting.keys()
-        for key in setting:
+        for key in default_setting:
             if key not in cur_setting_keys:
-                cur_setting[key] = setting[key]
+                cur_setting[key] = default_setting[key]
         with open(SETTING_PATH, 'w') as file:
             json.dump(cur_setting, file, indent=4)
     else:
         with open(SETTING_PATH, 'w') as file:
-            json.dump(setting, file, indent=4)
+            json.dump(default_setting, file, indent=4)
     print('Setting Initialized')
 
 if __name__ == '__main__':
