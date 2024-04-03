@@ -17,6 +17,7 @@ class Guild_Music_Properties():
         self.back    = {}
         self.mystery = {}
         self.shuffle = {}
+        self.last_shuffle = {}
         #FOR GUI
         self.channel = {}
         self.message = {}
@@ -39,6 +40,7 @@ class Guild_Music_Properties():
             self.random [guild_id] = False
             self.mystery[guild_id] = False
             self.shuffle[guild_id] = False
+            self.last_shuffle[guild_id] = None
             self.channel[guild_id] = None
             self.message[guild_id] = None
             send_log(log_name, description )
@@ -71,6 +73,8 @@ class Guild_Music_Properties():
         return self.random[guild_id]
     def get_shuffle(self,guild_id):
         return self.shuffle[guild_id]
+    def get_last_shuffle(self,guild_id):
+        return self.last_shuffle[guild_id]
     def get_channel(self,guild_id):
         return self.channel[guild_id]
     def get_message(self,guild_id):
@@ -100,6 +104,8 @@ class Guild_Music_Properties():
         self.random[guild_id] = value
     def set_shuffle(self, guild_id, value):
         self.shuffle[guild_id] = value
+    def set_last_shuffle(self,guild_id, value):
+        self.last_shuffle[guild_id] = value
     def set_channel(self, guild_id, channel):
         self.channel[guild_id] = channel
     def set_message(self,guild_id, message):

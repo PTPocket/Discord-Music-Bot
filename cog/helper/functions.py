@@ -102,7 +102,10 @@ def check_features(data:Guild_Music_Properties, guild_id):
         history = data.get_history(guild_id)
         num_songs = len(queue)+len(history)
         rand_int = random.randint(0, num_songs-1)
-        print(rand_int)
+        last_shuffle_int = data.get_last_shuffle(guild_id)
+        while rand_int == last_shuffle_int and num_songs > 1:
+            rand_int = random.randint(0, num_songs-1)
+        data.set_last_shuffle(guild_id, rand_int)
         if rand_int < len(history):
             new_history = history[len(history)-rand_int::]
             to_queue = history[0:len(history)-rand_int]

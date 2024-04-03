@@ -66,7 +66,7 @@ class Music_Cog(commands.Cog):
             self.data.current_to_history(guild_id)
 
         check_features(self.data, guild_id)
-        
+
         if self.data.empty_queue(guild_id):
             self.data.set_idle_timestamp(guild_id)
             self.gui_print.add(guild_id)
@@ -637,12 +637,19 @@ class MusicFunctions(View):
             await interaction.response.defer()
             guild_name = interaction.user.guild.name
             log(guild_name, 'SHUFFLE BUTTON', 'Clicked')
-            self.data.set_random(self.guild_id, False)
-            self.data.set_loop(self.guild_id, False)
-            self.data.flip_shuffle(self.guild_id)
-            if self.data.get_shuffle(self.guild_id) is True:
-                await self.music_cog.music_player_start(interaction)
-            await self.music_cog.GUI_HANDLER(self.guild_id)
+            voice_client = interaction.client.get_guild(self.guild_id).voice_client
+            if voice_client is None:
+                return
+            queue = self.data.get_queue(self.guild_id)
+            history = self.data.get_history(self.guild_id)
+            num_songs = len(queue)+len(history)
+            if num_songs > 0 or voice_client.is_playing() or voice_client.is_paused():
+                self.data.set_random(self.guild_id, False)
+                self.data.set_loop(self.guild_id, False)
+                self.data.flip_shuffle(self.guild_id)
+                if self.data.get_shuffle(self.guild_id) is True:
+                    await self.music_cog.music_player_start(interaction)
+                await self.music_cog.GUI_HANDLER(self.guild_id)
 
     class LoopButton(Button):
         def __init__(self,music_cog, data:Guild_Music_Properties, guild_id):
