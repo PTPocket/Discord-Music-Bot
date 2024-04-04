@@ -28,62 +28,62 @@ class Music_Cog(commands.Cog):
         self.disconnect_check.start()
 
 
-    async def GUI_HANDLER(self, guild_id, reprint = False, connect = False):
+    async def GUI_HANDLER(self, guildID, reprint = False, connect = False):
         try:
-            player_embed = embed.MainGuiPrompt(self.bot, self.data, guild_id, connect = connect)
-            view = MusicFunctions(self, self.data, guild_id)
-            last_message = self.data.get_message(guild_id)
+            player_embed = embed.MainGuiPrompt(self.bot, self.data, guildID, connect = connect)
+            view = MusicFunctions(self, self.data, guildID)
+            last_message = self.data.get_message(guildID)
             #First message
             if last_message is None:
-                message = await self.data.get_channel(guild_id).send(embed = player_embed, view = view)
-                self.data.set_message(guild_id, message)
+                message = await self.data.get_channel(guildID).send(embed = player_embed, view = view)
+                self.data.set_message(guildID, message)
                 return
             #New message when last message not at bottom
             if reprint is True:
-                message = await self.data.get_channel(guild_id).send(embed = player_embed, view = view)
+                message = await self.data.get_channel(guildID).send(embed = player_embed, view = view)
                 if last_message is not None:
                     await last_message.delete()
-                self.data.set_message(guild_id, message)
+                self.data.set_message(guildID, message)
                 return
             #Edit message when its at bottom and same channel
-            if self.data.get_channel(guild_id).id == last_message.channel.id:
-                msg = self.data.get_message(guild_id)
+            if self.data.get_channel(guildID).id == last_message.channel.id:
+                msg = self.data.get_message(guildID)
                 await msg.edit(embed = player_embed, view = view)
                 return
             else:#new message when its new channel
-                message = await self.data.get_channel(guild_id).send(embed = player_embed, view = view)
+                message = await self.data.get_channel(guildID).send(embed = player_embed, view = view)
                 await last_message.delete()
-                self.data.set_message(guild_id, message)
+                self.data.set_message(guildID, message)
                 return
         except Exception as e: 
             print(e)
 
     #MUSIC PLAYER LOOP (not recursive)
     def music_player(self, interaction:discord.Interaction, recall = False):
-        guild_name = interaction.user.guild.name
-        guild_id = interaction.user.guild.id
+        guildName = interaction.user.guild.name
+        guildID = interaction.user.guild.id
         if recall is True:
-            self.data.current_to_history(guild_id)
+            self.data.current_to_history(guildID)
 
-        check_features(self.data, guild_id)
+        check_features(self.data, guildID)
 
-        if self.data.empty_queue(guild_id):
-            self.data.set_idle_timestamp(guild_id)
-            self.gui_print.add(guild_id)
-            log(guild_name, 'PLAYER', 'end')
+        if self.data.empty_queue(guildID):
+            self.data.set_idle_timestamp(guildID)
+            self.gui_print.add(guildID)
+            log(guildName, 'PLAYER', 'end')
             return
 
-        self.data.queue_to_current(guild_id)
-        song = self.data.get_current_song(guild_id)
+        self.data.queue_to_current(guildID)
+        song = self.data.get_current_song(guildID)
         if song['author'] is None:
             song = SearchYoutube(song['title'])
-            self.data.set_current_song(guild_id, song)
+            self.data.set_current_song(guildID, song)
         else:
             full_title = f'{song['title']} by {song['author']}'
             song = SearchYoutube(full_title)
         
         if recall is True:
-            self.gui_print.add(guild_id)
+            self.gui_print.add(guildID)
         
         if LOCAL_MUSIC_PATH in song['source']:
             player = FFmpegPCMAudio(
@@ -95,217 +95,206 @@ class Music_Cog(commands.Cog):
                 **FFMPEG_OPTIONS,
                 executable= FFMPEG_LOC)
         player = discord.PCMVolumeTransformer(player, volume=0.16)
-        voice_client = interaction.client.get_guild(guild_id).voice_client
-        log(guild_name, "NOW PLAYING", f'\"{song["title"]}\"')
-        self.data.set_idle_timestamp(guild_id)
+        voice_client = interaction.client.get_guild(guildID).voice_client
+        log(guildName, "NOW PLAYING", f'\"{song["title"]}\"')
+        self.data.set_idle_timestamp(guildID)
         voice_client.play(player, after= lambda x=None: self.music_player(interaction, recall=True))
         return True
     
     #CHECKS IF MUSIC_PLAYER LOOP SHOULD START
     async def music_player_start(self, interaction:discord.Interaction, reprint=False):
 
-        guild_name = interaction.user.guild.name
-        guild_id = interaction.user.guild.id
+        guildName = interaction.user.guild.name
+        guildID = interaction.user.guild.id
         await voice_connect(interaction)
-        voice_client = interaction.client.get_guild(guild_id).voice_client
-        self.data.set_channel(guild_id, interaction.channel)
+        voice_client = interaction.client.get_guild(guildID).voice_client
+        self.data.set_channel(guildID, interaction.channel)
         connect_only = False
-        if voice_client.is_playing() == voice_client.is_paused() == False and self.data.get_current_song(guild_id) is None:
-            log(guild_name, 'MUSIC PLAYER', 'Start')
+        if voice_client.is_playing() == voice_client.is_paused() == False and self.data.get_current_song(guildID) is None:
+            log(guildName, 'MUSIC PLAYER', 'Start')
             try:
                 self.music_player(interaction)
             except Exception as e:
                 print(e)
                 connect_only = True
         
-        await self.GUI_HANDLER(guild_id, connect = connect_only,reprint=reprint)
+        await self.GUI_HANDLER(guildID, connect = connect_only,reprint=reprint)
         
 #######PLAY FUNCTIONS######################################################
     @app_commands.check(valid_play_command)
     @app_commands.command(name= "play", description="Play Song or Playlist with the Title or Link (Spotify, YouTube, YTMusic)")
     async def play(self, interaction:discord.Interaction, title_or_link:str):
         try:
-            guild_name = interaction.user.guild.name
-            guild_id = interaction.user.guild.id
+            guildName = interaction.user.guild.name
+            guildID = interaction.user.guild.id
             self.data.initialize(interaction)
             await interaction.response.defer(ephemeral=True)
             
             if 'music.youtube.com' in title_or_link:
-                title_or_link = title_or_link.replace(' ','')
                 if '/playlist' in title_or_link:
-                    playlist = YTMusicGet(title_or_link)
+                    playlist = GetYTMPlaylist(title_or_link)
                     if playlist is None:
-                        log(guild_name, 'ERROR', 'YTMusic Playlist')
+                        log(guildName, 'ERROR', 'YTMusic Playlist')
                         msg = embed.invalid_link(self.bot, title_or_link, 'YTMusic Playlist')
                         await interaction.followup.send(embed= msg, ephemeral=True)
                         return
-                    song_names_list = []
-                    name_list = ''
-                    last_ind = None
-                    for ind, song in enumerate(playlist):
-                        self.data.queue_song(guild_id,song)
-                        title = song['title']
-                        author = song['author']
-                        last_ind = ind+1
-                        row = embed.title(f"{last_ind}. {title} by {author}")
-                        if len(name_list) + len(row) < 1000:
-                            name_list += row+'\n'
-                        else:
-                            song_names_list.append(name_list)
-                            name_list = row+'\n'
-                    song_names_list.append(name_list)
-                    log(guild_name, "QUEUED", f"YTMusic ({len(playlist)} songs)")
+                    playlistType = 'YTMusic'
+                    playlist_emb = queuePlaylist(guildName,guildID,playlist,playlistType,self.data)
                     done = embed.finished_prompt(self.bot)
                     await interaction.followup.send(embed = done)
-                    msg = embed.queued_playlist_prompt(self.bot, song_names_list, len(playlist), title_or_link, 'YTMusic')
+                    msg = embed.queued_playlist_prompt(self.bot, playlist_emb, len(playlist), title_or_link, 'YTMusic')
                     await interaction.channel.send(embed=msg)
                     await self.music_player_start(interaction,reprint=True)
-                elif '/watch' in title_or_link:
-                    song = YTMusicGet(title_or_link)
+                elif '/watch?v=' in title_or_link:
+                    song = GetYTMSong(title_or_link)
                     if song is None:
-                        log(guild_name, 'ERROR', 'YTMusic Song')
+                        log(guildName, 'ERROR', 'YTMusic Song Link')
                         msg = embed.invalid_link(self.bot, title_or_link, 'YTMusic Song')
                         await interaction.followup.send(embed= msg, ephemeral=True)
-                        await self.GUI_HANDLER(guild_id)
+                        await self.GUI_HANDLER(guildID)
                         return
-                    self.data.queue_song(guild_id, song)
+                    self.data.queue_song(guildID, song)
                     prompt = song['title'] + ' by ' + song['author']
                     msg = embed.queue_prompt(self.bot, prompt)
                     await interaction.followup.send(embed= msg)
-                    log(guild_name, "QUEUED", f"YTMusic link ({prompt})" )
+                    log(guildName, "QUEUED", f"YTMusic link ({prompt})" )
                     await self.music_player_start(interaction,reprint=True)
                 else:
-                    log(guild_name, 'ERROR', 'YTMusic')
-                    msg = embed.invalid_link(self.bot, title_or_link, 'YTMusic')
+                    log(guildName, 'ERROR', 'YTMusic')
+                    msg = embed.invalid_link(self.bot, title_or_link, 'YTMusic Song')
                     await interaction.followup.send(embed= msg, ephemeral=True)
                 return
             
             if 'youtube.com/' in title_or_link:
-                title_or_link = title_or_link.replace(' ','')
-                if '/watch' in title_or_link:
-                    song = YoutubeGet(title_or_link)
+                if 'watch?v=' in title_or_link:
+                    song = GetYTSong(title_or_link)
                     if song is None:
-                        log(guild_name, 'ERROR', 'Youtube Watch')
+                        log(guildName, 'ERROR', 'Youtube Watch')
                         msg = embed.invalid_link(self.bot, title_or_link, 'Youtube Song')
                         await interaction.followup.send(embed= msg, ephemeral=True)
-                        await self.GUI_HANDLER(guild_id)
+                        await self.GUI_HANDLER(guildID)
                         return##################################################
-                    self.data.queue_song(guild_id, song)
-                    log(guild_name, "QUEUED", f"youtube link ({song['title']})" )
+                    self.data.queue_song(guildID, song)
+                    log(guildName, "QUEUED", f"youtube link ({song['title']})" )
                     msg = embed.queue_prompt(self.bot, song['title'])
                     await interaction.followup.send(embed= msg)
                     await self.music_player_start(interaction,reprint=True)
-                elif '/playlist' in title_or_link:
-                    playlist = YoutubeGet(title_or_link)
+                    return
+                if '/playlist' in title_or_link:
+                    playlist = GetYTPlaylist(title_or_link)
                     if playlist is None:
-                        log(guild_name, 'ERROR', 'Youtube Playlist')
+                        log(guildName, 'ERROR', 'Youtube Playlist')
                         msg = embed.invalid_link(self.bot, title_or_link, 'YT Playlist')
                         await interaction.followup.send(embed= msg, ephemeral=True)
                         return
-                    song_names_list = []
-                    name_list = ''
-                    last_ind = None
-                    for ind, song in enumerate(playlist):
-                        self.data.queue_song(guild_id,song)
-                        title = song['title']
-                        author = song['author']
-                        last_ind = ind+1
-                        row = embed.title(f"{last_ind}. {title} by {author}")
-                        if len(name_list) + len(row) < 1000:
-                            name_list += row+'\n'
-                        else:
-                            song_names_list.append(name_list)
-                            name_list = row+'\n'
-                    song_names_list.append(name_list)
-                    log(guild_name, "QUEUED", f"Youtube ({len(playlist)} songs)")
+                    playlistType = 'Youtube'
+                    playlist_emb = queuePlaylist(guildName,guildID,playlist,playlistType,self.data)
                     done = embed.finished_prompt(self.bot)
                     await interaction.followup.send(embed = done)
-                    msg = embed.queued_playlist_prompt(self.bot, song_names_list, len(playlist), title_or_link, 'Youtube')
+                    msg = embed.queued_playlist_prompt(self.bot, playlist_emb, len(playlist), title_or_link, 'Youtube')
                     await interaction.channel.send(embed=msg)
                     await self.music_player_start(interaction,reprint=True)
-                else:
-                    log(guild_name, 'ERROR', 'Youtube')
-                    msg = embed.invalid_link(self.bot, title_or_link, 'Youtube')
-                    await interaction.followup.send(embed= msg, ephemeral=True)
-                return
+                    return
+                log(guildName, 'ERROR', 'Youtube')
+                msg = embed.invalid_link(self.bot, title_or_link, 'Youtube')
+                await interaction.followup.send(embed= msg, ephemeral=True)
             
             if 'open.spotify.com' in title_or_link:
-                title_or_link = title_or_link.replace(' ','')
-                if 'track' in title_or_link:
-                    song = SpotifyGet(title_or_link, self.client_id, self.client_secret)
-                    if song is None:
-                        log(guild_name, 'ERROR', 'Spotify Song')
-                        msg = embed.invalid_link(self.bot, title_or_link, 'Spotify Track')
-                        await interaction.followup.send(embed= msg, ephemeral=True)
-                        return
-                    self.data.queue_song(guild_id, song)
-                    full_title = song['title'] + ' by ' + song['author']
-                    log(guild_name, "QUEUED", f"Spotify Track ({full_title})" )
+                song_data = GetSpotify(title_or_link, self.client_id, self.client_secret)
+                if song_data is None:
+                    log(guildName, 'ERROR', 'Spotify Link')
+                    msg = embed.invalid_link(self.bot, title_or_link, 'Spotify')
+                    await interaction.followup.send(embed= msg, ephemeral=True)
+                    return
+                if type(song_data) is dict:
+                    self.data.queue_song(guildID, song_data)
+                    full_title = song_data['title'] + ' by ' + song_data['author']
+                    log(guildName, "QUEUED", f"Spotify Track ({full_title})" )
                     msg = embed.queue_prompt(self.bot, full_title)
                     await interaction.followup.send(embed= msg)
                     await self.music_player_start(interaction,reprint=True)
-                elif 'playlist' in title_or_link:
-                    playlist = SpotifyGet(title_or_link, self.client_id, self.client_secret)
-                    if playlist is None:
-                        log(guild_name, 'ERROR', 'Spotify Playlist')
-                        msg = embed.invalid_link(self.bot, title_or_link, 'Spotify Playlist')
-                        await interaction.followup.send(embed= msg, ephemeral=True)
-                        return 
-                    song_names_list = []
-                    name_list = ''
-                    last_ind = None
-                    for ind, song in enumerate(playlist):
-                        self.data.queue_song(guild_id,song)
-                        title = song['title']
-                        author = song['author']
-                        last_ind = ind+1
-                        row = embed.title(f"{last_ind}. {title} by {author}")
-                        if len(name_list) + len(row) < 1000:
-                            name_list += row+'\n'
-                        else:
-                            song_names_list.append(name_list)
-                            name_list = row+'\n'
-                    song_names_list.append(name_list)
-                    log(guild_name, "QUEUED", f"Spotify ({len(playlist)} songs)")
+                    return
+                if type(song_data) is list:
+                    playlistType = 'Spotify'
+                    playlist = song_data
+                    playlist_emb = queuePlaylist(guildName,guildID,playlist,playlistType,self.data)
                     done = embed.finished_prompt(self.bot)
                     await interaction.followup.send(embed = done)
-                    msg = embed.queued_playlist_prompt(self.bot, song_names_list, len(playlist), title_or_link, 'Spotify')
+                    msg = embed.queued_playlist_prompt(self.bot, playlist_emb, len(playlist), title_or_link, 'Spotify')
                     await interaction.channel.send(embed=msg)
                     await self.music_player_start(interaction,reprint=True)
-                else:
-                    log(guild_name, 'ERROR', 'Spotify')
-                    msg = embed.invalid_link(self.bot, title_or_link, 'Spotify')
-                    await interaction.followup.send(embed= msg, ephemeral=True)
+                    return
+                log(guildName, 'ERROR', 'Spotify')
+                msg = embed.invalid_link(self.bot, title_or_link, 'Spotify')
+                await interaction.followup.send(embed= msg, ephemeral=True)
                 return
 
             if 'https://' in title_or_link:
-                log(guild_name, 'ERROR', 'playlist link')
+                log(guildName, 'ERROR', 'playlist link')
                 msg = embed.invalid_link(self.bot, title_or_link)
                 await interaction.followup.send(embed= msg, ephemeral=True)
                 return
             
             #title_or_link is not a link
             song = {'title': title_or_link, 'author': None}
-            self.data.queue_song(guild_id, song)
-            log(guild_name, "QUEUED", title_or_link)
+            self.data.queue_song(guildID, song)
+            log(guildName, "QUEUED", title_or_link)
             msg = embed.queue_prompt(self.bot, title_or_link)
             await interaction.followup.send(embed = msg)
             await self.music_player_start(interaction,reprint=True)
         except Exception as e:
-            log(guild_name, "PLAY ERROR", e)
+            log(guildName, "PLAY ERROR", e)
+
+    @app_commands.check(valid_play_command)
+    @app_commands.command(name= "playlist", description="Queue a Playlist with a Link (Spotify, YouTube, YTMusic)")
+    async def playlist(self, interaction:discord.Interaction, link:str):
+        try:
+            guildName = interaction.user.guild.name
+            guildID = interaction.user.guild.id
+            self.data.initialize(interaction)
+            await interaction.response.defer(ephemeral=True)
+            
+            if 'music.youtube.com' in link and 'list=' in link:
+                playlistType = 'YTMusic'
+                playlist = GetYTMPlaylist(link)
+            elif 'youtube.com' in link and 'list=' in link:
+                playlistType = 'Youtube'
+                playlist = GetYTPlaylist(link)
+            elif 'open.spotify.com/playlist' in link:
+                playlistType = 'Spotify'
+                playlist = GetSpotify(link, self.client_id, self.client_secret)
+            else:
+                log(guildName, 'ERROR', 'playlist link')
+                msg = embed.invalid_link(self.bot, link)
+                await interaction.followup.send(embed= msg, ephemeral=True)
+                return
+            if playlist is None:
+                log(guildName, 'ERROR', f'{playlistType} Playlist')
+                msg = embed.invalid_link(self.bot, link, f'{playlistType} Playlist')
+                await interaction.followup.send(embed= msg, ephemeral=True)
+                return 
+            playlist_emb = queuePlaylist(guildName,guildID,playlist,playlistType,self.data)
+            done = embed.finished_prompt(self.bot)
+            await interaction.followup.send(embed = done)
+            msg = embed.queued_playlist_prompt(self.bot, playlist_emb, len(playlist), link, playlistType)
+            await interaction.channel.send(embed=msg)
+            await self.music_player_start(interaction,reprint=True)
+        except Exception as e:
+            log(guildName, 'PLAYLIST ERROR', e)
+            return
 
     @app_commands.check(valid_play_command)
     @app_commands.command(name= "play_random", description="Play random songs from pocket bot library forever")
     async def play_random(self, interaction:discord.Interaction):
-        guild_name = interaction.user.guild.name
-        guild_id = interaction.user.guild.id
+        guildName = interaction.user.guild.name
+        guildID = interaction.user.guild.id
         self.data.initialize(interaction)
         
         await interaction.response.defer()
-        if self.data.flip_random(guild_id) is True:
-            log(guild_name, 'RANDOM SONG', 'On')
+        if self.data.flip_random(guildID) is True:
+            log(guildName, 'RANDOM SONG', 'On')
         else: 
-            log(guild_name, 'RANDOM SONG', 'Off')
+            log(guildName, 'RANDOM SONG', 'Off')
         await self.music_player_start(interaction)
         await interaction.delete_original_response()
 
@@ -313,21 +302,21 @@ class Music_Cog(commands.Cog):
     @app_commands.command(name= "skip", description="Skips song")
     async def skip(self, interaction:discord.Interaction):
         await interaction.response.defer(ephemeral=True)
-        guild_name = interaction.user.guild.name
-        guild_id = interaction.user.guild.id
-        log(guild_name, 'SKIP COMMAND')
+        guildName = interaction.user.guild.name
+        guildID = interaction.user.guild.id
+        log(guildName, 'SKIP COMMAND')
         self.data.initialize(interaction)
-        voice_client = interaction.client.get_guild(guild_id).voice_client
+        voice_client = interaction.client.get_guild(guildID).voice_client
         if voice_client is None:
             msg = embed.skip_error_prompt(self.bot)
             await interaction.followup.send(embed= msg, ephemeral=True)
             return
         if (voice_client.is_playing() or voice_client.is_paused()):
-            self.data.set_loop(guild_id, False)
-            #current_song = self.data.get_current_song(guild_id)
+            self.data.set_loop(guildID, False)
+            #current_song = self.data.get_current_song(guildID)
             voice_client.stop()
             interaction.delete_original_response()
-            await self.GUI_HANDLER(guild_id)
+            await self.GUI_HANDLER(guildID)
             return
         msg = embed.skip_error_prompt(self.bot)
         await interaction.followup.send(embed= msg, ephemeral=True)
@@ -337,8 +326,8 @@ class Music_Cog(commands.Cog):
     # @app_commands.command(name= "local_library", description="Search and play downloaded songs on bot server")
     # async def local_library(self, interaction:discord.Interaction, title_or_link:str):
     #     return
-    #     guild_name = interaction.user.guild.name
-    #     guild_id = interaction.user.guild.id
+    #     guildName = interaction.user.guild.name
+    #     guildID = interaction.user.guild.id
     #     self.data.initialize(interaction)
     #     local_song_list = os.listdir(LOCAL_MUSIC_PATH)
     #     title_or_link = title_or_link.lower()
@@ -346,7 +335,7 @@ class Music_Cog(commands.Cog):
     #     if not title_or_link_matches: #If there are no matches for title_or_link from list of songs
     #         emb_msg = embed.no_match(self.bot, title_or_link)
     #         await interaction.response.send_message(embed= emb_msg, ephemeral=True)
-    #         await self.GUI_HANDLER(guild_id, reprint = True)
+    #         await self.GUI_HANDLER(guildID, reprint = True)
     #         return
     #     if len(title_or_link_matches) > 25:
     #         title_or_link_matches = title_or_link_matches[0:25]
@@ -358,8 +347,8 @@ class Music_Cog(commands.Cog):
     #     if timeout is True:
     #         return
     #     song = sview.song_choice
-    #     self.data.queue_song(guild_id, song)
-    #     log(guild_name, "QUEUED", song['title'])
+    #     self.data.queue_song(guildID, song)
+    #     log(guildName, "QUEUED", song['title'])
     #     await self.music_player_start(interaction)
     #     await interaction.delete_original_response()
 
@@ -368,25 +357,25 @@ class Music_Cog(commands.Cog):
     @tasks.loop(seconds = 5)
     async def gui_loop(self):
         while self.gui_print:
-            guild_id = self.gui_print.pop()
-            await self.GUI_HANDLER(guild_id)
+            guildID = self.gui_print.pop()
+            await self.GUI_HANDLER(guildID)
         
 ####### Auto Disconnect Bot After X Seconds idle
     @tasks.loop(minutes=3)
     async def disconnect_check(self):
         all_voice_connections = self.bot.voice_clients
         for voice in all_voice_connections:    
-            guild_id = voice.guild.id
-            last_idle = self.data.get_time(guild_id)
+            guildID = voice.guild.id
+            last_idle = self.data.get_time(guildID)
             if last_idle is None or voice.is_playing():
-                self.data.set_idle_timestamp(guild_id)
+                self.data.set_idle_timestamp(guildID)
                 continue
             time_passed = (datetime.today()-last_idle).seconds
             timeout = Setting.get_timeout()
             if  time_passed > timeout:
-                self.data.full_reset(guild_id)
+                self.data.full_reset(guildID)
                 await voice.disconnect()
-                await self.GUI_HANDLER(guild_id)
+                await self.GUI_HANDLER(guildID)
                 log(voice.guild.name, 'VOICE DISCONNECTED (auto)', )
 
 
@@ -394,10 +383,10 @@ class Music_Cog(commands.Cog):
     # Keep music player at bottom of channel
     @commands.Cog.listener() 
     async def on_message(self, message):
-        guild_name = message.guild.name
-        guild_id = message.guild.id
-        if message.author.id != self.bot.user.id and message.channel.id == self.data.get_message(guild_id).channel.id:
-            await self.GUI_HANDLER(guild_id, reprint = True)
+        guildName = message.guild.name
+        guildID = message.guild.id
+        if message.author.id != self.bot.user.id and message.channel.id == self.data.get_message(guildID).channel.id:
+            await self.GUI_HANDLER(guildID, reprint = True)
 
     # RESET BOT FOR GUILD IF DISCONNECTED FROM VOICE CHANNEL
     @commands.Cog.listener()
@@ -405,22 +394,22 @@ class Music_Cog(commands.Cog):
         if after.channel is not None:return
         users = self.bot.get_channel(before.channel.id).members
         if users == []: return
-        guild_name = member.guild.name
-        guild_id= member.guild.id
+        guildName = member.guild.name
+        guildID= member.guild.id
         connected_user_ids = [user.id for user in users]
 
         #Disconnects if bot is only one is channel
         if (len(connected_user_ids) == 1 and self.bot.user.id in connected_user_ids) or \
            (len(connected_user_ids) == 2 and self.bot.user.id in connected_user_ids and 990490227401453618 in connected_user_ids):
-            voice_client = self.bot.get_guild(guild_id).voice_client
-            self.data.reset(guild_id)
+            voice_client = self.bot.get_guild(guildID).voice_client
+            self.data.reset(guildID)
             if voice_client is not None:
                 if voice_client.is_playing() or voice_client.is_paused():
-                    self.gui_print.add(guild_id)
+                    self.gui_print.add(guildID)
                     voice_client.stop()
                 await voice_client.disconnect()
-            log(guild_name, 'VOICE DISCONNECTED (no active users)', before.channel.name)
-            await self.GUI_HANDLER(guild_id)
+            log(guildName, 'VOICE DISCONNECTED (no active users)', before.channel.name)
+            await self.GUI_HANDLER(guildID)
 
             return
         
@@ -429,10 +418,10 @@ class Music_Cog(commands.Cog):
 #####################################################################################
     @commands.command(name= "sync", description= "Sync app commands with discord server")
     async def sync(self,ctx):
-        guild_name = ctx.guild.name
+        guildName = ctx.guild.name
         try:
             sync_num = await ctx.bot.tree.sync()
-            log(guild_name, 'COMMANDS SYNCED', sync_num)
+            log(guildName, 'COMMANDS SYNCED', sync_num)
         except Exception as e:
             print(e)
 
@@ -444,26 +433,26 @@ class AddPlaylistModal(discord.ui.Modal, title='Save Playlist with Link'):
         await interaction.response.send_message(f'Thanks for your response, {self.name}{self.link}!', ephemeral=True)
 
 class MusicFunctions(View):
-    def __init__(self, music_cog, data:Guild_Music_Properties, guild_id):
+    def __init__(self, music_cog, data:Guild_Music_Properties, guildID):
         super().__init__(timeout=None)
-        #self.add_item(self.SongSelectMenu(music_cog,data,guild_id))
-        self.add_item(self.PreviousButton  (music_cog, data, guild_id))
-        self.add_item(self.PlayPause       (music_cog, data, guild_id))
-        self.add_item(self.NextButton      (music_cog, data, guild_id))
-        self.add_item(self.ShuffleButton      (music_cog, data, guild_id))
-        self.add_item(self.LoopButton      (music_cog, data, guild_id))
-        #self.add_item(self.RandomButton    (music_cog, data, guild_id))
-        #self.add_item(self.EmptyQueueButton    (music_cog, data, guild_id))
-        #self.add_item(self.RandomSongButton(music_cog, data, guild_id))
-        #self.add_item(self.AddPlaylistButton(music_cog, data, guild_id))
-        self.add_item(self.ResetButton(music_cog, data, guild_id))
-        self.add_item(self.DisconnectButton(music_cog, data, guild_id))
+        #self.add_item(self.SongSelectMenu(music_cog,data,guildID))
+        self.add_item(self.PreviousButton  (music_cog, data, guildID))
+        self.add_item(self.PlayPause       (music_cog, data, guildID))
+        self.add_item(self.NextButton      (music_cog, data, guildID))
+        self.add_item(self.ShuffleButton      (music_cog, data, guildID))
+        self.add_item(self.LoopButton      (music_cog, data, guildID))
+        #self.add_item(self.RandomButton    (music_cog, data, guildID))
+        #self.add_item(self.EmptyQueueButton    (music_cog, data, guildID))
+        #self.add_item(self.RandomSongButton(music_cog, data, guildID))
+        #self.add_item(self.AddPlaylistButton(music_cog, data, guildID))
+        self.add_item(self.ResetButton(music_cog, data, guildID))
+        self.add_item(self.DisconnectButton(music_cog, data, guildID))
         
     async def interaction_check(self, interaction: discord.Interaction):
         user = interaction.user
-        guild_name = interaction.user.guild.name
-        guild_id = interaction.user.guild.id
-        voice_client = interaction.client.get_guild(guild_id).voice_client
+        guildName = interaction.user.guild.name
+        guildID = interaction.user.guild.id
+        voice_client = interaction.client.get_guild(guildID).voice_client
         access = False
         if user.voice is None:
             access = False
@@ -473,21 +462,21 @@ class MusicFunctions(View):
             access = True
         
         if access is True:
-            log(guild_name, 'ACCESS GRANTED', user) 
+            log(guildName, 'ACCESS GRANTED', user) 
             return True
         else:
-            log(guild_name, 'ACCESS DENIED', user)
+            log(guildName, 'ACCESS DENIED', user)
             await interaction.response.defer()
             return False
 
     class SongSelectMenu(Select):
-        def __init__(self, music_cog, data:Guild_Music_Properties, guild_id):
+        def __init__(self, music_cog, data:Guild_Music_Properties, guildID):
             self.data      = data
             self.music_cog = music_cog
-            self.guild_id  = guild_id
+            self.guildID  = guildID
             options = []
 
-            song_list = self.data.get_all_songs(guild_id)
+            song_list = self.data.get_all_songs(guildID)
             incre = float(len(song_list))/25
             if incre < 1:
                 incre = 1
@@ -503,10 +492,10 @@ class MusicFunctions(View):
             self.song_list = song_list
 
         async def callback(self, interaction:discord.Interaction):
-            guild_name = interaction.user.guild.name
-            log(guild_name, 'MENU OPTION', 'Clicked')
-            guild_id = interaction.user.guild.id
-            voice_client = interaction.client.get_guild(guild_id).voice_client
+            guildName = interaction.user.guild.name
+            log(guildName, 'MENU OPTION', 'Clicked')
+            guildID = interaction.user.guild.id
+            voice_client = interaction.client.get_guild(guildID).voice_client
             song_title = self.values[0]
             if voice_client is None:
                 await interaction.response.defer()
@@ -522,34 +511,34 @@ class MusicFunctions(View):
                 for i in range(len(all_songs)):
                     if song_title == all_songs['title']:
                         index = i
-                self.data.set_queue(guild_id, all_songs[index:len(all_songs)])
-                self.data.set_history(guild_id, all_songs[0:index])
+                self.data.set_queue(guildID, all_songs[index:len(all_songs)])
+                self.data.set_history(guildID, all_songs[0:index])
                 await self.music_cog.music_player_start(interaction) 
                 return
             await interaction.response.defer()
             
     class PlayPause(Button):
-        def __init__(self,music_cog, data:Guild_Music_Properties,guild_id):
+        def __init__(self,music_cog, data:Guild_Music_Properties,guildID):
             super().__init__(emoji = '⏯', style= discord.ButtonStyle.blurple)
             self.data = data
             self.music_cog = music_cog
-            self.guild_id = guild_id
+            self.guildID = guildID
         async def callback(self, interaction: discord.Interaction):
-            guild_name = interaction.user.guild.name
-            voice_client = interaction.client.get_guild(self.guild_id).voice_client
-            song = self.data.get_current_song(self.guild_id)
+            guildName = interaction.user.guild.name
+            voice_client = interaction.client.get_guild(self.guildID).voice_client
+            song = self.data.get_current_song(self.guildID)
             if voice_client is None:
                 self.style = discord.ButtonStyle.grey
                 await interaction.response.edit_message(view=self.view)
                 return
             if voice_client.is_playing() and not voice_client.is_paused():
-                log(guild_name, 'PAUSED',song['title'])
+                log(guildName, 'PAUSED',song['title'])
                 voice_client.pause()
                 self.style = discord.ButtonStyle.grey
                 await interaction.response.edit_message(view=self.view)
                 return
             if not voice_client.is_playing() and voice_client.is_paused():
-                log(guild_name, 'RESUMED',song['title'])
+                log(guildName, 'RESUMED',song['title'])
                 self.style = discord.ButtonStyle.blurple
                 await interaction.response.edit_message(view=self.view)
                 voice_client.resume()
@@ -557,111 +546,111 @@ class MusicFunctions(View):
             await interaction.response.defer()
             
     class RandomButton(Button):
-        def __init__(self, music_cog, data:Guild_Music_Properties, guild_id):
-            if data.get_random(guild_id) == True:
+        def __init__(self, music_cog, data:Guild_Music_Properties, guildID):
+            if data.get_random(guildID) == True:
                 style= discord.ButtonStyle.blurple
             else:
                 style= discord.ButtonStyle.grey
             super().__init__(emoji='♾', label='Forever', style= style)
             self.data = data
             self.music_cog = music_cog
-            self.guild_id = guild_id
+            self.guildID = guildID
         async def callback(self, interaction: discord.Interaction):
-            guild_name = interaction.user.guild.name
-            if self.data.flip_random(self.guild_id) is True:
-                log(guild_name, 'RANDOM SONG', 'On')
-                self.data.set_loop(self.guild_id, False)
+            guildName = interaction.user.guild.name
+            if self.data.flip_random(self.guildID) is True:
+                log(guildName, 'RANDOM SONG', 'On')
+                self.data.set_loop(self.guildID, False)
                 await self.music_cog.music_player_start(interaction) 
             else: 
-                log(guild_name, 'RANDOM SONG', 'Off')
-                await self.music_cog.GUI_HANDLER(self.guild_id)
+                log(guildName, 'RANDOM SONG', 'Off')
+                await self.music_cog.GUI_HANDLER(self.guildID)
             await interaction.response.defer()
     
     class PreviousButton(Button):
-        def __init__(self,music_cog, data:Guild_Music_Properties, guild_id):
+        def __init__(self,music_cog, data:Guild_Music_Properties, guildID):
             super().__init__(emoji = "⏮", style= discord.ButtonStyle.blurple)
             self.data = data
             self.music_cog = music_cog
-            self.guild_id = guild_id
+            self.guildID = guildID
         async def callback(self, interaction: discord.Interaction):
-            guild_name = interaction.user.guild.name
-            log(guild_name, 'PREVIOUS BUTTON', 'Clicked')
-            voice_client = interaction.client.get_guild(self.guild_id).voice_client
+            guildName = interaction.user.guild.name
+            log(guildName, 'PREVIOUS BUTTON', 'Clicked')
+            voice_client = interaction.client.get_guild(self.guildID).voice_client
             #IF VOICE RUNNING
             if voice_client is None:
                 print('No voice_client')
-                self.data.set_loop(self.guild_id, False)
-                self.data.history_to_queue(self.guild_id)
+                self.data.set_loop(self.guildID, False)
+                self.data.history_to_queue(self.guildID)
                 await interaction.response.defer()
                 await self.music_cog.music_player_start(interaction) 
             elif voice_client.is_playing() or voice_client.is_paused():
                 print('PLAYING OR PAUSED')
-                self.data.flip_back(self.guild_id)
-                self.data.set_loop(self.guild_id, False)
+                self.data.flip_back(self.guildID)
+                self.data.set_loop(self.guildID, False)
                 voice_client.stop()
                 await interaction.response.defer()
                 await self.music_cog.music_player_start(interaction)
             else:
                 print('Nothing Playing')
-                self.data.set_loop(self.guild_id, False)
-                self.data.flip_back(self.guild_id)
-                self.data.history_to_queue(self.guild_id)
+                self.data.set_loop(self.guildID, False)
+                self.data.flip_back(self.guildID)
+                self.data.history_to_queue(self.guildID)
                 voice_client.stop()
                 await interaction.response.defer()
                 await self.music_cog.music_player_start(interaction) 
      
     class NextButton(Button):
-        def __init__(self,music_cog, data:Guild_Music_Properties, guild_id):
+        def __init__(self,music_cog, data:Guild_Music_Properties, guildID):
             super().__init__(emoji = "⏭", style= discord.ButtonStyle.blurple)
             self.data = data
             self.music_cog = music_cog
-            self.guild_id = guild_id
+            self.guildID = guildID
         async def callback(self, interaction: discord.Interaction):
-            guild_name = interaction.user.guild.name
-            log(guild_name, 'NEXT BUTTON', 'Clicked')
-            voice_client = interaction.client.get_guild(self.guild_id).voice_client
+            guildName = interaction.user.guild.name
+            log(guildName, 'NEXT BUTTON', 'Clicked')
+            voice_client = interaction.client.get_guild(self.guildID).voice_client
             if voice_client is None:
                 await interaction.response.defer()
                 return
             if (voice_client.is_playing() or voice_client.is_paused()):
-                self.data.set_loop(self.guild_id, False)
+                self.data.set_loop(self.guildID, False)
                 voice_client.stop()
                 await interaction.response.defer()
-                await self.music_cog.GUI_HANDLER(self.guild_id)
+                await self.music_cog.GUI_HANDLER(self.guildID)
                 return
             await interaction.response.defer()
 
     class ShuffleButton(Button):
-        def __init__(self,music_cog, data:Guild_Music_Properties,guild_id):
-            if data.get_shuffle(guild_id) is True:
+        def __init__(self,music_cog, data:Guild_Music_Properties,guildID):
+            if data.get_shuffle(guildID) is True:
                 style= discord.ButtonStyle.blurple
             else:
                 style= discord.ButtonStyle.grey
             super().__init__(emoji = "🔀", style= style)
             self.data = data
             self.music_cog = music_cog
-            self.guild_id = guild_id
+            self.guildID = guildID
         async def callback(self, interaction: discord.Interaction):
             await interaction.response.defer()
-            guild_name = interaction.user.guild.name
-            log(guild_name, 'SHUFFLE BUTTON', 'Clicked')
-            voice_client = interaction.client.get_guild(self.guild_id).voice_client
+            guildName = interaction.user.guild.name
+            log(guildName, 'SHUFFLE BUTTON', 'Clicked')
+            voice_client = interaction.client.get_guild(self.guildID).voice_client
             if voice_client is None:
                 return
-            queue = self.data.get_queue(self.guild_id)
-            history = self.data.get_history(self.guild_id)
+            queue = self.data.get_queue(self.guildID)
+            history = self.data.get_history(self.guildID)
             num_songs = len(queue)+len(history)
             if num_songs > 0 or voice_client.is_playing() or voice_client.is_paused():
-                self.data.set_random(self.guild_id, False)
-                self.data.set_loop(self.guild_id, False)
-                self.data.flip_shuffle(self.guild_id)
-                if self.data.get_shuffle(self.guild_id) is True:
+                self.data.set_random(self.guildID, False)
+                self.data.set_loop(self.guildID, False)
+                self.data.flip_shuffle(self.guildID)
+                if self.data.get_shuffle(self.guildID) is True:
                     await self.music_cog.music_player_start(interaction)
-                await self.music_cog.GUI_HANDLER(self.guild_id)
+                await self.music_cog.GUI_HANDLER(self.guildID)
 
     class LoopButton(Button):
-        def __init__(self,music_cog, data:Guild_Music_Properties, guild_id):
-            if data.get_loop(guild_id) is True:
+        def __init__(self,music_cog, data:Guild_Music_Properties, guildID):
+            if data.get_loop(guildID) is True:
                 style= discord.ButtonStyle.blurple
             else:
                 style= discord.ButtonStyle.grey
@@ -669,102 +658,102 @@ class MusicFunctions(View):
             self.music_cog = music_cog
             self.data = data
         async def callback(self, interaction: discord.Interaction):
-            guild_name = interaction.user.guild.name
-            guild_id = interaction.user.guild.id
-            voice_client = interaction.client.get_guild(guild_id).voice_client
+            guildName = interaction.user.guild.name
+            guildID = interaction.user.guild.id
+            voice_client = interaction.client.get_guild(guildID).voice_client
             await interaction.response.defer()
             if voice_client is None:
                 return
             if voice_client.is_playing() or voice_client.is_paused():
-                song = self.data.get_current_song(guild_id)
-                self.data.flip_loop(guild_id)
-                self.data.set_random(guild_id, False)
-                log(guild_name, 'LOOP', f"{song['title']}")
-                await self.music_cog.GUI_HANDLER(guild_id)
+                song = self.data.get_current_song(guildID)
+                self.data.flip_loop(guildID)
+                self.data.set_random(guildID, False)
+                log(guildName, 'LOOP', f"{song['title']}")
+                await self.music_cog.GUI_HANDLER(guildID)
                 return
             
     
     class RandomSongButton(Button):
-        def __init__(self,music_cog, data:Guild_Music_Properties, guild_id):
+        def __init__(self,music_cog, data:Guild_Music_Properties, guildID):
             super().__init__(label = 'Random Song', style= discord.ButtonStyle.blurple)
             self.data = data
             self.music_cog = music_cog
-            self.guild_id = guild_id
+            self.guildID = guildID
         async def callback(self, interaction: discord.Interaction):
-            guild_name = interaction.user.guild.name
-            log(guild_name, 'MYSTERY BUTTON', 'Clicked')
-            voice_client = interaction.client.get_guild(self.guild_id).voice_client
-            add_random_song(self.data, self.guild_id)
+            guildName = interaction.user.guild.name
+            log(guildName, 'MYSTERY BUTTON', 'Clicked')
+            voice_client = interaction.client.get_guild(self.guildID).voice_client
+            add_random_song(self.data, self.guildID)
             if voice_client is not None and (voice_client.is_playing() or voice_client.is_paused()):
                 voice_client.stop()
-            self.data.set_loop(self.guild_id, False)
+            self.data.set_loop(self.guildID, False)
             await interaction.response.defer()
             await self.music_cog.music_player_start(interaction) 
 
     class EmptyQueueButton(Button):
-        def __init__(self,music_cog, data:Guild_Music_Properties, guild_id):
+        def __init__(self,music_cog, data:Guild_Music_Properties, guildID):
             super().__init__(emoji='🗑', label = 'Empty Queue', style=discord.ButtonStyle.grey)
             self.music_cog = music_cog
             self.data = data
-            self.guild_id = guild_id
+            self.guildID = guildID
         async def callback(self, interaction: discord.Interaction):
             await interaction.response.defer()
-            guild_name = interaction.user.guild.name
-            log(guild_name, 'EMPTY QUEUE BUTTON', 'Clicked')
-            guild_name = interaction.user.guild.name
-            self.data.delete_queue(self.guild_id)
-            # voice_client = interaction.client.get_guild(self.guild_id).voice_client
+            guildName = interaction.user.guild.name
+            log(guildName, 'EMPTY QUEUE BUTTON', 'Clicked')
+            guildName = interaction.user.guild.name
+            self.data.delete_queue(self.guildID)
+            # voice_client = interaction.client.get_guild(self.guildID).voice_client
             # if voice_client is not None and (voice_client.is_playing() or voice_client.is_paused()):
             #     voice_client.stop()
-            log(guild_name, 'QUEUE', 'empty')
-            await self.music_cog.GUI_HANDLER(self.guild_id)
+            log(guildName, 'QUEUE', 'empty')
+            await self.music_cog.GUI_HANDLER(self.guildID)
 
     class DisconnectButton(Button):
-        def __init__(self,music_cog, data:Guild_Music_Properties, guild_id):
+        def __init__(self,music_cog, data:Guild_Music_Properties, guildID):
             super().__init__(label = 'Disconnect', style=discord.ButtonStyle.grey)
             self.music_cog = music_cog
             self.data = data
-            self.guild_id = guild_id
+            self.guildID = guildID
         async def callback(self, interaction: discord.Interaction):
-            guild_name = interaction.user.guild.name
-            log(guild_name, 'DISCONNECT BUTTON', 'Clicked')
-            voice_client = interaction.client.get_guild(self.guild_id).voice_client
-            self.data.full_reset(self.guild_id)
+            guildName = interaction.user.guild.name
+            log(guildName, 'DISCONNECT BUTTON', 'Clicked')
+            voice_client = interaction.client.get_guild(self.guildID).voice_client
+            self.data.full_reset(self.guildID)
             if voice_client is not None:
                 if voice_client.is_playing() or voice_client.is_paused():
                     voice_client.stop()
                 await voice_client.disconnect()
-                log(guild_name, 'VOICE DISCONNECTED (force)')
+                log(guildName, 'VOICE DISCONNECTED (force)')
             await interaction.response.defer()
-            await self.music_cog.GUI_HANDLER(self.guild_id)
+            await self.music_cog.GUI_HANDLER(self.guildID)
 
     class ResetButton(Button):
-        def __init__(self,music_cog, data:Guild_Music_Properties, guild_id):
+        def __init__(self,music_cog, data:Guild_Music_Properties, guildID):
             super().__init__(emoji='🚽',label = 'Flush', style=discord.ButtonStyle.grey)
             self.music_cog = music_cog
             self.data = data
-            self.guild_id = guild_id
+            self.guildID = guildID
         async def callback(self, interaction: discord.Interaction):
             await interaction.response.defer(ephemeral=True)
-            guild_name = interaction.user.guild.name
-            log(guild_name, 'FLUSH BUTTON', 'Clicked')
-            voice_client = interaction.client.get_guild(self.guild_id).voice_client
-            self.data.reset(self.guild_id)
+            guildName = interaction.user.guild.name
+            log(guildName, 'FLUSH BUTTON', 'Clicked')
+            voice_client = interaction.client.get_guild(self.guildID).voice_client
+            self.data.reset(self.guildID)
             if voice_client is not None:
                 if voice_client.is_playing() or voice_client.is_paused():
                     voice_client.stop()
-            self.data.full_reset(self.guild_id)
+            self.data.full_reset(self.guildID)
             #await interaction.response.send_message(embed=embed.flush_prompt(self.music_cog.bot),ephemeral=True)
-            await self.music_cog.GUI_HANDLER(self.guild_id)
+            await self.music_cog.GUI_HANDLER(self.guildID)
 
     class AddPlaylistButton(Button):
-        def __init__(self,music_cog, data:Guild_Music_Properties, guild_id):
+        def __init__(self,music_cog, data:Guild_Music_Properties, guildID):
             super().__init__(emoji='➕',label = 'Playlist', style=discord.ButtonStyle.blurple)
             self.music_cog = music_cog
             self.data = data
-            self.guild_id = guild_id
+            self.guildID = guildID
         async def callback(self, interaction: discord.Interaction):
-            guild_name = interaction.user.guild.name
-            log(guild_name, 'ADD PLAYLIST BUTTON', 'Clicked')
+            guildName = interaction.user.guild.name
+            log(guildName, 'ADD PLAYLIST BUTTON', 'Clicked')
             await interaction.response.send_modal(AddPlaylistModal())
-            #await self.music_cog.GUI_HANDLER(self.guild_id, reprint=True)
+            #await self.music_cog.GUI_HANDLER(self.guildID, reprint=True)
