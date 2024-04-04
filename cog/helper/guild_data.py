@@ -1,9 +1,15 @@
 import discord
 from datetime import datetime
-
-def send_log(log_name, description, result = ''):
+def log(guild_name, action:str, description = '', error = ''):
     time= str(datetime.now())
-    print(f"{time} | Guild : {log_name} | {description} -> {result}")
+    action = str(action).upper()
+    description = str(description).lower()
+    if description == '' and error == '':
+        print(f"{time} | GUILD: {guild_name} | {action}")
+    if description != '':
+        print(f"{time} | GUILD: {guild_name} | {action} -> {description}")
+    if error != '':
+        print('Error Prompt: ', error)
 
 class Guild_Music_Properties():
     def __init__(self):
@@ -27,8 +33,7 @@ class Guild_Music_Properties():
 
 
     def initialize(self, interaction:discord.Interaction):
-        log_name = interaction.user.guild.name
-        description = 'Initialized Variables for Guild'
+        guildName = interaction.user.guild.name
         guild_id = interaction.user.guild.id
         if guild_id not in self.queue:
             self.queue  [guild_id] = []
@@ -43,7 +48,7 @@ class Guild_Music_Properties():
             self.last_shuffle[guild_id] = None
             self.channel[guild_id] = None
             self.message[guild_id] = None
-            send_log(log_name, description )
+            log(guildName, 'initialized', 'data')
     
     #RETRIEVE VALUES FUNCTIONS
     def get_last_played(self, guild_id):
@@ -198,9 +203,11 @@ class Guild_Music_Properties():
             self.set_shuffle(guild_id, True)
 
     def reset_features(self, guild_id):
-        self.loop[guild_id]   = False
-        self.random[guild_id] = False
-    
+        self.loop   [guild_id] = False
+        self.random [guild_id] = False
+        self.mystery[guild_id] = False
+        self.shuffle[guild_id] = False
+        
     def reset(self, guild_id):
         self.current_to_history(guild_id)
         self.queue[guild_id]  = []

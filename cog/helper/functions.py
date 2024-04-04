@@ -8,9 +8,19 @@ from cog.helper.guild_data import Guild_Music_Properties
 
 BLANK = '\u200b'
 LOCAL_MUSIC_PATH = "C:\\Users\\p\\Documents\\SERVER\\music\\Formatted"
-def log(guild_name, description, result = ''):
-    time= str(datetime.now())
-    print(f"{time} | Guild : {guild_name} | {description} -> {result}")
+def log(guild_name, action:str, description = '', error = ''):
+    try:
+        time= str(datetime.now())
+        action = str(action).upper()
+        description = str(description).lower()
+        if description == '' and error == '':
+            print(f"{time} | GUILD: {guild_name} | {action}")
+        if description != '':
+            print(f"{time} | GUILD: {guild_name} | {action} -> {description}")
+        if error != '':
+            print('Error Prompt: ', error)
+    except Exception as e:
+        print(e)
 
 
 async def valid_play_command(interaction:discord.Interaction):
@@ -87,15 +97,6 @@ def check_features(data:Guild_Music_Properties, guild_id):
     if data.get_loop(guild_id) is True:
         data.history_to_queue(guild_id)
         return
-    if data.empty_queue(guild_id) is True and data.get_random(guild_id) is True:
-        flac_song_list = os.listdir(LOCAL_MUSIC_PATH)
-        song = random.choice(flac_song_list)
-        path = LOCAL_MUSIC_PATH + '\\'+ song
-        song_metadata = TinyTag.get(path)
-        title = f"{song_metadata.title} - {song_metadata.artist}"
-        song = {'title': title, 'source': f'{LOCAL_MUSIC_PATH}\\{song}'}
-        data.queue_song(guild_id, song)
-        return
 
     if data.get_shuffle(guild_id) is True:
         queue = data.get_queue(guild_id)
@@ -121,7 +122,17 @@ def check_features(data:Guild_Music_Properties, guild_id):
             new_history = to_history+history
             data.set_queue(guild_id, new_queue)
             data.set_history(guild_id, new_history)
+        return
 
+    if data.empty_queue(guild_id) is True and data.get_random(guild_id) is True:
+        flac_song_list = os.listdir(LOCAL_MUSIC_PATH)
+        song = random.choice(flac_song_list)
+        path = LOCAL_MUSIC_PATH + '\\'+ song
+        song_metadata = TinyTag.get(path)
+        title = f"{song_metadata.title} - {song_metadata.artist}"
+        song = {'title': title, 'source': f'{LOCAL_MUSIC_PATH}\\{song}'}
+        data.queue_song(guild_id, song)
+        return
 
 def add_random_song(data, guild_id):
     flac_song_list = os.listdir(LOCAL_MUSIC_PATH)
@@ -132,10 +143,9 @@ def add_random_song(data, guild_id):
     song = {'title': title, 'source': f'{LOCAL_MUSIC_PATH}\\{song}'}
     data.prepend_to_queue(guild_id, song)
 
-def get_random_song(data,guild_id):
-    pass
 
-def queuePlaylist(guildName, guildID, playlist, playlistType, data:Guild_Music_Properties):
+def queuePlaylist(guildName, guildID, playlist, playlistType:str, data:Guild_Music_Properties):
+        playlistType = playlistType.lower()
         song_names_list = []
         name_list = ''
         last_ind = None
@@ -151,27 +161,32 @@ def queuePlaylist(guildName, guildID, playlist, playlistType, data:Guild_Music_P
                 song_names_list.append(name_list)
                 name_list = row+'\n'
         song_names_list.append(name_list)
-        log(guildName, "QUEUED", f"{playlistType} ({len(playlist)} songs)")
+        log(guildName, "QUEUED", f"{len(playlist)} songs ({playlistType})")
         return song_names_list
 
 
 def SearchYoutube(query):
-    ydl_opts = {
-        'quiet': True,
-        'format': 'bestaudio/best',
-        'postprocessors': [{
-            'key': 'FFmpegExtractAudio',
-            'preferredcodec': 'mp3',
-            'preferredquality': '192',
-        }],
-    }
-    # Create yt-dlp instance
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        # Search for videos matching the query
-        result = ydl.extract_info(f"ytsearch1:{query}", download=False)['entries'][0]
-        return {'source': result['url'], 'title': result['title'], 'author':result['uploader']}
+    try:
+        ydl_opts = {
+            'quiet': True,
+            'format': 'bestaudio/best',
+            'postprocessors': [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'mp3',
+                'preferredquality': '192',
+            }],
+        }
+        # Create yt-dlp instance
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            # Search for videos matching the query
+            result = ydl.extract_info(f"ytsearch1:{query}", download=False)['entries'][0]
+            return {'source': result['url'], 'title': result['title'], 'author':result['uploader']}
+    except Exception as e:
+        print(e)
+        return None
 
 def GetYTSong(link):
+
     link = link.replace(' ','').replace('\n','')
     link = link.split('&list=')[0]
     song = {'title': link, 'author':None}
@@ -199,7 +214,7 @@ def GetYTPlaylist(link):
                 playlist.append({'title':title, 'author':author})
             return playlist
     except Exception as e:
-        print('GetYTPlaylist Error', e)
+        print(e)
         return None
 
 def GetYTMSong(link:str):
@@ -213,7 +228,7 @@ def GetYTMSong(link:str):
         author = song['videoDetails']['author']
         return {'title':title, 'author':author}
     except Exception as e:
-        print('GetYTMSong: error -> ', e)
+        print(e)
         return None
 
 def GetYTMPlaylist(link:str):
@@ -236,7 +251,7 @@ def GetYTMPlaylist(link:str):
             formatted_playlist.append({'title':title, 'author':author})
         return formatted_playlist
     except Exception as e:
-        print('GetYTMPlaylist: error -> ', e)
+        print(e)
         return None
 
 def GetSpotify(link, client_id, client_secret):
@@ -255,7 +270,6 @@ def GetSpotify(link, client_id, client_secret):
                     title = track['name']
                     author = ''
                     for artist in track['artists']:
-                        print(artist['name'])
                         author+=artist['name']+', '
                     author = author[:-2]
                     playlist.append({'title':title, 'author':author})
@@ -271,9 +285,8 @@ def GetSpotify(link, client_id, client_secret):
                 author = author[:-2]
                 return {'title': title, 'author':author}
         else:
-            print('Invalid Spotify Link')
             return None
     except Exception as e:
-        print('SpotifyGet: error -> ', e)
+        print(e)
         return None
     

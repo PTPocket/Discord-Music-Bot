@@ -1,4 +1,6 @@
 import os, json
+from cog.helper.functions import log
+
 SETTING_PATH    = os.getcwd()+'/Music Bot Setting.json'
 
 def get_timeout():
@@ -58,8 +60,4 @@ def initialize_settings():
     else:
         with open(SETTING_PATH, 'w') as file:
             json.dump(default_setting, file, indent=4)
-    print('Setting Initialized')
-
-if __name__ == '__main__':
-    initialize_settings()
-    print(get_timeout())
+    log(None, 'initialized', 'bot setting')
