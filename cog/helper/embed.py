@@ -8,15 +8,8 @@ BLANK = '\u200b'
 
 #####USING########
 def title(title, length = 37):
-    temp_title = str(title).split(' by ')
-    if len(temp_title) > 1:
-        remove_artist_ind = (len(title)-len(temp_title[len(temp_title)-1]))-4
-        title = title[0:remove_artist_ind]
-        if len(title) > length:
-            title = title[0:length]+'...'
-    else:
-        if len(title) > length:
-            title = title[0:length]+'...'
+    if len(title) > length:
+        title = title[0:length]+'...'
     return title
 
 ##### Not From Setting ######
@@ -33,7 +26,7 @@ def MainGuiPrompt(bot, data:Guild_Music_Properties, guild_id, connect = False):
     queue = data.get_queue(guild_id)
     for ind, song in enumerate(queue):
         if ind == 0:
-            next_song = title(song['title'],20)
+            next_song = title(song['title'],17)
         else: 
             song_title = title(f"{ind}. {song['title']}")
             queue_msg = song_title +"\n" + queue_msg
@@ -65,7 +58,7 @@ def MainGuiPrompt(bot, data:Guild_Music_Properties, guild_id, connect = False):
     #NEXT AND PREVIOUS SONG #####
     last_song = data.get_last_played(guild_id)
     if last_song is None:last_song = '...'
-    else:last_song= title(last_song['title'],20)
+    else:last_song= title(last_song['title'],17)
     if len(next_song) > len(last_song):
         length_diff = len(next_song)-len(last_song)
         last_song = last_song + (' '*length_diff)
@@ -81,14 +74,15 @@ def MainGuiPrompt(bot, data:Guild_Music_Properties, guild_id, connect = False):
         value = f"*```{last_song}```*",
         inline=True)
     
-    if connect is True:
-        playing = 'Click or Enter Command' 
-    else: 
-        current = data.get_current_song(guild_id)
-        if current is None:
-            current = '...'
-        else:
+    current = data.get_current_song(guild_id)
+    if current is None:
+        current = '...'
+    else:
+        if current['author'] is None:
             current = current['title']
+        else:
+            current = current['title'] + ' by ' + current['author']
+
     embed.add_field(
         name='', 
         value = line,

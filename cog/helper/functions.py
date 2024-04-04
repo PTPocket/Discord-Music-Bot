@@ -135,110 +135,65 @@ def add_random_song(data, guild_id):
 def get_random_song(data,guild_id):
     pass
 
+def SearchYoutube(query):
+    ydl_opts = {
+        'quiet': True,
+        'format': 'bestaudio/best',
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+            'preferredquality': '192',
+        }],
+    }
+    # Create yt-dlp instance
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        # Search for videos matching the query
+        result = ydl.extract_info(f"ytsearch1:{query}", download=False)['entries'][0]
+        return {'source': result['url'], 'title': result['title'], 'author':result['uploader']}
 
 def YoutubeGet(query):
-    if '/watch' in query:
-        if '&list=' in query:
-            split_url = query.split('&list=')
-            query = split_url[0]
-        # Configure yt-dlp options
-        ydl_opts = {
-            'format': 'bestaudio/best',
-            'postprocessors': [{
-                'key': 'FFmpegExtractAudio',
-                'preferredcodec': 'mp3',
-                'preferredquality': '192',
-            }],
-        }
-        # Create yt-dlp instance
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            try:
-                # Search for videos matching the query
-                search_results = ydl.extract_info(f"ytsearch1:{query}", download=False)['entries'][0]
-                success = True
-            except Exception as e:
-                print("YT_DLP Error:", e)
-                success = False
-        if success is True:
-            return {'source': search_results['url'], 'title': search_results['title']}
-        else:
-            return None
-    elif '/playlist' in query:
-        # Create a yt_dlp object
-        ydl_opts = {
-            'quiet': True,
-            'extract_flat': True,
-            'force_generic_extractor': True,
-        }
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            try:
+    try:
+        if '/playlist' in query:
+            # Create a yt_dlp object
+            ydl_opts = {
+                'quiet': True,
+                'extract_flat': True,
+                'force_generic_extractor': True,
+            }
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 result = ydl.extract_info(query,download=False)
-                video_titles = [video['title'] for video in result['entries'] if video['title']!='[Private video]' and video['title'] != '[Deleted video]']
-                success = True
-            except Exception as e:
-                print('YoutubeGet: error -> ', e)
-                success = False
-        if success is True:
-            return video_titles
-        else:
-            return None
-    else:
-        ydl_opts = {
-            'format': 'bestaudio/best',
-            'postprocessors': [{
-                'key': 'FFmpegExtractAudio',
-                'preferredcodec': 'mp3',
-                'preferredquality': '192',
-            }],
-        }
-        # Create yt-dlp instance
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            try:
-                # Search for videos matching the query
-                search_results = ydl.extract_info(f"ytsearch1:{query}", download=False)['entries'][0]
-                success = True
-            except Exception as e:
-                print("YT_DLP Error:", e)
-                success = False
-        if success is True:
-            return {'source': search_results['url'], 'title': search_results['title']}
-        else:
-            return None
+                playlist = []
+                for item in result['entries']:
+                    if item['title']=='[Private video]' and item['title'] == '[Deleted video]':
+                        continue
+                    title = item['title']
+                    author = item['uploader']
+                    playlist.append({'title':title, 'author':author})
+                return playlist
 
-def YTMusicGet(url):
-    if 'watch' in url and 'list=' in url:
-        url = url.split('music.')
-        url = url[0]+url[1]
-        url = url.split('&list=')[0]
-        return YoutubeGet(url)
-    elif 'watch' in url:
-        split_url = url.split('music.')
-        url = split_url[0]+split_url[1]
-        # Configure yt-dlp options
-        ydl_opts = {
-            'format': 'bestaudio/best',
-            'postprocessors': [{
-                'key': 'FFmpegExtractAudio',
-                'preferredcodec': 'mp3',
-                'preferredquality': '192',
-            }],
-        }
-        # Create yt-dlp instance
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            try:
-                # Search for videos matching the query
-                search_results = ydl.extract_info(url, download=False)#['entries'][0]
-                success = True
-            except Exception as e:
-                print("YT_DLP Error:", e)
-                success = False
-        if success is True:
-            return {'source': search_results['url'], 'title': search_results['title']}
+        elif '/watch?v=' in query:
+            if '&list=' in query:
+                split_url = query.split('&list=')
+                query = split_url[0]
+            return {'title': query, 'author':None}
         else:
+            print('Invalid Spotify Link')
             return None
-    elif 'playlist' in url:
-        try:
-            ytmusic = YTMusic()
+    except Exception as e:
+        print('YoutubeGet Error : ', e)
+        return None
+
+def YTMusicGet(url:str):
+    try:
+        ytmusic = YTMusic()
+        if '/watch?v=' in url:
+            splitURL = url.split('/watch?v=')[1]
+            songID = splitURL.split('&')[0]
+            song = ytmusic.get_song(songID)
+            title = song['videoDetails']['title']
+            author = song['videoDetails']['author']
+            return {'title':title, 'author':author}
+        elif 'playlist' in url:
             # Extract playlistId from the URL
             playlist_id = url.split('list=')[1]
             # Get playlist details
@@ -246,81 +201,54 @@ def YTMusicGet(url):
             # Extract playlist items
             playlist = playlist['tracks']
             formatted_playlist = []
-            complete_title = None
             for song in playlist:
-                complete_title = song['title'] + ' by '
+                title = song['title']
+                author = ''
                 for artist in song['artists']:
-                    complete_title += artist['name']
-                formatted_playlist.append(complete_title)
-                complete_title=None
+                    author += artist['name'] +', '
+                author = author[:-2]
+                formatted_playlist.append({'title':title, 'author':author})
             return formatted_playlist
-        except Exception as e:
-            print('YTMusic: error -> ', e)
+        else:
+            print('Invalid YTMusic Link')
             return None
-
-def SpotifyGet(url, client_id, client_secret):
-    client_credentials_manager = SpotifyClientCredentials(client_id=client_id, client_secret=client_secret)
-    spotify = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
-    if 'open.spotify.com/playlist' in url:
-        try:
-            # Initialize Spotipy with your credentials
-            # Get playlist tracks
-            results = spotify.playlist_tracks(url)
-            # Extract track names
-            song_titles = []
-            for item in results['items']:
-                track = item['track']
-                artists = ''
-                for i in range(len(track['artists'])):
-                    artists += track['artists'][i]['name'] + ','
-                song_titles.append(f"{track['name']} by {artists[:-1]}")
-            return song_titles
-        except Exception as e:
-            print(e)
-            return None
-    elif 'open.spotify.com/track' in url:
-        try:
-            # Extract track ID from the Spotify link
-            track_id = url.split('/')[-1]
-
-            # Retrieve track information
-            track_info = spotify.track(url)
-
-            # Extract title and artist from track information
-            song_name = track_info['name']
-            all_artists = ''
-            for artist in track_info['artists']:
-                all_artists += artist['name'] +','
-            title = song_name + ' by ' +all_artists[:-1]
-            return {'source':'spotify', 'title': title}
-        except Exception as e:
-            print(e)
-            return None
-    else:
-        print('Invalid Spotify Link')
+    except Exception as e:
+        print('YTMusic: error -> ', e)
         return None
 
-if __name__ == '__main__':
-    spotify_links = [
-        'https://open.spotify.com/track/6v1sy4kEyzRkrE9KLiD9Dz?si=4720f0d312624378',
-        'https://open.spotify.com/playlist/7yzkSw4oBHucz0ZgpkLotN?si=9d270eead99040c4',
-    ]
-    youtube_links = [
-        'https://www.youtube.com/watch?v=hdcTmpvDO0I',
-        'https://www.youtube.com/watch?v=FltgZ6BEM1w&list=PLtkOk19NVSZQqt3xbiTdgCYkwl2997L1u&index=1',
-        'https://www.youtube.com/playlist?list=PLtkOk19NVSZQqt3xbiTdgCYkwl2997L1u',
-    ]
-    ytmusic_links = [
-        'https://music.youtube.com/watch?v=-QuVe-hjMs0&si=FbzqlY1iZ6xwwyju',
-        'https://music.youtube.com/watch?v=FltgZ6BEM1w&list=PLtkOk19NVSZQqt3xbiTdgCYkwl2997L1u',
-        'https://music.youtube.com/playlist?list=PLtkOk19NVSZQqt3xbiTdgCYkwl2997L1u'
-    ]
-    assert type(SpotifyGet(spotify_links[0])) == dict
-    assert type(SpotifyGet(spotify_links[1])) == list
-    assert type(YoutubeGet(youtube_links[0])) == dict
-    assert type(YoutubeGet(youtube_links[1])) == dict
-    assert type(YoutubeGet(youtube_links[2])) == list
-    assert type(YoutubeGet('I like to move it')) == dict
-    assert type(YTMusicGet(ytmusic_links[0])) == dict
-    assert type(YTMusicGet(ytmusic_links[0])) == dict
-    assert type(YTMusicGet(ytmusic_links[0])) == list
+def SpotifyGet(url, client_id, client_secret):
+    try:
+        client_credentials_manager = SpotifyClientCredentials(client_id=client_id, client_secret=client_secret)
+        spotify = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
+        if 'open.spotify.com/playlist' in url:
+                # Initialize Spotipy with your credentials
+                # Get playlist tracks
+                results = spotify.playlist_tracks(url)
+                # Extract track names
+                playlist = []
+                for item in results['items']:
+                    track = item['track']
+                    title = track['name']
+                    author = ''
+                    for artist in track['artists']:
+                        print(artist['name'])
+                        author+=artist['name']+', '
+                    author = author[:-2]
+                    playlist.append({'title':title, 'author':author})
+                return playlist
+        elif 'open.spotify.com/track' in url:
+                # Retrieve track information
+                track_info = spotify.track(url)
+                # Extract title and artist from track information
+                title = track_info['name']
+                author = ''
+                for artist in track_info['artists']:
+                    author += artist['name'] +', '
+                author = author[:-2]
+                return {'title': title, 'author':author}
+        else:
+            print('Invalid Spotify Link')
+            return None
+    except Exception as e:
+        print('SpotifyGet: error -> ', e)
+        return None
