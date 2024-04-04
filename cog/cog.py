@@ -579,7 +579,6 @@ class MusicFunctions(View):
             self.music_cog = music_cog
             self.guildID = guildID
         async def callback(self, interaction: discord.Interaction):
-            await interaction.response.defer()
             guildName = interaction.user.guild.name
             log(guildName, 'BUTTON', 'previous')
             voice_client = interaction.client.get_guild(self.guildID).voice_client
@@ -587,18 +586,24 @@ class MusicFunctions(View):
             if voice_client is None:
                 self.data.set_loop(self.guildID, False)
                 self.data.history_to_queue(self.guildID)
+                await interaction.response.defer(thinking=True)
                 await self.music_cog.music_player_start(interaction) 
+                await interaction.delete_original_response()
                 return
             if voice_client.is_playing() or voice_client.is_paused():
                 self.data.set_loop(self.guildID, False)
                 self.data.flip_back(self.guildID)
                 voice_client.stop()
+                await interaction.response.defer(thinking=True)
                 await self.music_cog.music_player_start(interaction)
+                await interaction.delete_original_response()
                 return
             else:
                 self.data.set_loop(self.guildID, False)
                 self.data.history_to_queue(self.guildID)
+                await interaction.response.defer(thinking=True)
                 await self.music_cog.music_player_start(interaction) 
+                await interaction.delete_original_response()
                 return
      
     class NextButton(Button):
@@ -608,18 +613,21 @@ class MusicFunctions(View):
             self.music_cog = music_cog
             self.guildID = guildID
         async def callback(self, interaction: discord.Interaction):
+            
             guildName = interaction.user.guild.name
             log(guildName, 'BUTTON', 'next')
-            await interaction.response.defer()
             voice_client = interaction.client.get_guild(self.guildID).voice_client
             if voice_client is None:
+                await interaction.response.defer()
                 return
             if (voice_client.is_playing() or voice_client.is_paused()):
                 self.data.set_loop(self.guildID, False)
                 voice_client.stop()
+                await interaction.response.defer(thinking=True)
                 await self.music_cog.GUI_HANDLER(self.guildID)
+                await interaction.delete_original_response()
                 return
-
+            
     class ShuffleButton(Button):
         def __init__(self,music_cog, data:Guild_Music_Properties,guildID):
             if data.get_shuffle(guildID) is True:
