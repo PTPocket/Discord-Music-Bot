@@ -1,5 +1,5 @@
 import discord, os, random
-
+from datetime import datetime
 from discord               import app_commands, FFmpegPCMAudio
 from discord.ext           import commands, tasks
 from discord.ui            import View, Select, Button
@@ -74,8 +74,10 @@ class Music_Cog(commands.Cog):
 
         self.data.queue_to_current(guildID)
         song = self.data.get_current_song(guildID)
-        if song['author'] is None:
-            song = SearchYoutube(song['title'])
+        if 'url' in song.keys():
+            url = song['url']
+            song = SearchYoutube(url)
+            song['url'] = url
             self.data.set_current_song(guildID, song)
         else:
             full_title = f'{song['title']} by {song['author']}'
@@ -96,7 +98,7 @@ class Music_Cog(commands.Cog):
         player = discord.PCMVolumeTransformer(player, volume=0.16)
         voice_client = interaction.client.get_guild(guildID).voice_client
         self.data.set_idle_timestamp(guildID)
-        log(guildName, "now playing", f'\"{song["title"]}\"')
+        log(guildName, "now playing", f'\"{song["title"]} by {song['author']}\"')
         voice_client.play(player, after= lambda x=None: self.music_player(interaction, recall=True))
         return True
     
@@ -240,7 +242,7 @@ class Music_Cog(commands.Cog):
                 return
             
             #title_or_link is not a link
-            song = {'title': title_or_link, 'author': None}
+            song = {'title': None, 'author': None, 'url':title_or_link}
             self.data.queue_song(guildID, song)
             msg = embed.queue_prompt(self.bot, title_or_link)
             await interaction.followup.send(embed = msg)

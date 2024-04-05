@@ -1,7 +1,18 @@
 import os, json
-from cog.helper.functions import log
+from datetime import datetime
 
 SETTING_PATH    = os.getcwd()+'/Music Bot Setting.json'
+def log(guild_name, action:str, description = '', error = ''):
+    time= str(datetime.now())
+    action = str(action).upper()
+    description = str(description).lower()
+    if description == '' and error == '':
+        print(f"{time} | GUILD: {guild_name} | {action}")
+    if description != '':
+        print(f"{time} | GUILD: {guild_name} | {action} -> {description}")
+    if error != '':
+        print('Error Prompt: ', error)
+
 
 def get_timeout():
     with open(SETTING_PATH, 'r') as file:

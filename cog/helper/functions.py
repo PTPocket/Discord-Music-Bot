@@ -183,13 +183,12 @@ def SearchYoutube(query):
             return {'source': result['url'], 'title': result['title'], 'author':result['uploader']}
     except Exception as e:
         print(e)
-        return None
+        return {'source': None, 'title': None, 'author':None}
 
 def GetYTSong(link):
-
     link = link.replace(' ','').replace('\n','')
     link = link.split('&list=')[0]
-    song = {'title': link, 'author':None}
+    song = {'title': link, 'author':None, 'url':link}
     return song
 
 def GetYTPlaylist(link):
@@ -209,9 +208,13 @@ def GetYTPlaylist(link):
             for item in result['entries']:
                 if item['title']=='[Private video]' and item['title'] == '[Deleted video]':
                     continue
+                print(item)
+                print()
+                print()
                 title = item['title']
                 author = item['uploader']
-                playlist.append({'title':title, 'author':author})
+                url = item['url']
+                playlist.append({'title':title, 'author':author, 'url': url})
             return playlist
     except Exception as e:
         print(e)

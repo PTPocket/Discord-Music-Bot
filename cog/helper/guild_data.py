@@ -1,15 +1,6 @@
 import discord
 from datetime import datetime
-def log(guild_name, action:str, description = '', error = ''):
-    time= str(datetime.now())
-    action = str(action).upper()
-    description = str(description).lower()
-    if description == '' and error == '':
-        print(f"{time} | GUILD: {guild_name} | {action}")
-    if description != '':
-        print(f"{time} | GUILD: {guild_name} | {action} -> {description}")
-    if error != '':
-        print('Error Prompt: ', error)
+
 
 class Guild_Music_Properties():
     def __init__(self):
@@ -48,7 +39,6 @@ class Guild_Music_Properties():
             self.last_shuffle[guild_id] = None
             self.channel[guild_id] = None
             self.message[guild_id] = None
-            log(guildName, 'initialized', 'data')
     
     #RETRIEVE VALUES FUNCTIONS
     def get_last_played(self, guild_id):
