@@ -63,38 +63,32 @@ class Music_Cog(commands.Cog):
         guildID = interaction.user.guild.id
         if recall is True:
             self.data.current_to_history(guildID)
-
         check_features(self.data, guildID)
-
         if self.data.empty_queue(guildID):
             self.data.set_idle_timestamp(guildID)
             self.gui_print.add(guildID)
             log(guildName, 'music player', 'finished')
             return
-
+        #Moves song from queue to current
         self.data.queue_to_current(guildID)
         song = self.data.get_current_song(guildID)
-        if 'url' in song.keys():
-            url = song['url']
-            song = SearchYoutube(url)
-            song['url'] = url
-            self.data.set_current_song(guildID, song)
-        else:
-            full_title = f'{song['title']} by {song['author']}'
-            song = SearchYoutube(full_title)
-        
         if recall is True:
             self.gui_print.add(guildID)
         
-        if LOCAL_MUSIC_PATH in song['source']:
+        if song['source'] == 'local':
             player = FFmpegPCMAudio(
-                song['source'],
+                song['url'],
                 executable=FFMPEG_LOC)
-        else:
+        elif song['source'] == 'query':
+            query = song['query']
+            song = SearchYoutube(query)
+            self.data.set_current_song(guildID, song)
             player = FFmpegPCMAudio(
-                song['source'],
+                song['url'],
                 **FFMPEG_OPTIONS,
                 executable= FFMPEG_LOC)
+
+        
         player = discord.PCMVolumeTransformer(player, volume=0.16)
         voice_client = interaction.client.get_guild(guildID).voice_client
         self.data.set_idle_timestamp(guildID)
@@ -104,7 +98,6 @@ class Music_Cog(commands.Cog):
     
     #CHECKS IF MUSIC_PLAYER LOOP SHOULD START
     async def music_player_start(self, interaction:discord.Interaction, reprint=False):
-
         guildName = interaction.user.guild.name
         guildID = interaction.user.guild.id
         await voice_connect(interaction)
@@ -118,7 +111,6 @@ class Music_Cog(commands.Cog):
             except Exception as e:
                 connect_only = True
                 log(guildName, 'error', 'music_player_start', e)
-        
         await self.GUI_HANDLER(guildID, connect = connect_only,reprint=reprint)
         
 #######PLAY FUNCTIONS######################################################
@@ -242,7 +234,11 @@ class Music_Cog(commands.Cog):
                 return
             
             #title_or_link is not a link
-            song = {'title': None, 'author': None, 'url':title_or_link}
+            song = {
+                'title' : title_or_link, 
+                'author': None,
+                'query' : title_or_link,
+                'source': 'query'} 
             self.data.queue_song(guildID, song)
             msg = embed.queue_prompt(self.bot, title_or_link)
             await interaction.followup.send(embed = msg)

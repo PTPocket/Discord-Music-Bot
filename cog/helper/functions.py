@@ -129,8 +129,13 @@ def check_features(data:Guild_Music_Properties, guild_id):
         song = random.choice(flac_song_list)
         path = LOCAL_MUSIC_PATH + '\\'+ song
         song_metadata = TinyTag.get(path)
-        title = f"{song_metadata.title} - {song_metadata.artist}"
-        song = {'title': title, 'source': f'{LOCAL_MUSIC_PATH}\\{song}'}
+        title = song_metadata.title
+        author = song_metadata.artist
+        song = {
+            'title' : title, 
+            'author':author, 
+            'url'   : f'{LOCAL_MUSIC_PATH}\\{song}',
+            'source': 'local'}
         data.queue_song(guild_id, song)
         return
 
@@ -139,8 +144,13 @@ def add_random_song(data, guild_id):
     song = random.choice(flac_song_list)
     path = LOCAL_MUSIC_PATH + '\\'+ song
     song_metadata = TinyTag.get(path)
-    title = f"{song_metadata.title} - {song_metadata.artist}"
-    song = {'title': title, 'source': f'{LOCAL_MUSIC_PATH}\\{song}'}
+    title = song_metadata.title
+    author = song_metadata.artist
+    song = {
+        'title' : title, 
+        'author':author, 
+        'url'   : f'{LOCAL_MUSIC_PATH}\\{song}',
+        'source': 'local'}
     data.prepend_to_queue(guild_id, song)
 
 
@@ -180,15 +190,29 @@ def SearchYoutube(query):
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             # Search for videos matching the query
             result = ydl.extract_info(f"ytsearch1:{query}", download=False)['entries'][0]
-            return {'source': result['url'], 'title': result['title'], 'author':result['uploader']}
+            return {
+                'title' : result['title'], 
+                'author': result['uploader'],
+                'url'   : result['url'],
+                'query' : query,
+                'source': 'query',}
     except Exception as e:
         print(e)
-        return {'source': None, 'title': None, 'author':None}
+        return {'title' : None, 
+                'author': None, 
+                'url'   : None, 
+                'query' : None,
+                'source': None}
 
 def GetYTSong(link):
     link = link.replace(' ','').replace('\n','')
     link = link.split('&list=')[0]
-    song = {'title': link, 'author':None, 'url':link}
+    song = {
+        'title' : link, 
+        'author':None, 
+        'source':'query', 
+        'query':link
+        }
     return song
 
 def GetYTPlaylist(link):
@@ -208,13 +232,14 @@ def GetYTPlaylist(link):
             for item in result['entries']:
                 if item['title']=='[Private video]' and item['title'] == '[Deleted video]':
                     continue
-                print(item)
-                print()
-                print()
                 title = item['title']
                 author = item['uploader']
                 url = item['url']
-                playlist.append({'title':title, 'author':author, 'url': url})
+                playlist.append({
+                    'title':title, 
+                    'author':author, 
+                    'query' : url,
+                    'source':'query'})
             return playlist
     except Exception as e:
         print(e)
@@ -229,7 +254,11 @@ def GetYTMSong(link:str):
         song = ytmusic.get_song(songID)
         title = song['videoDetails']['title']
         author = song['videoDetails']['author']
-        return {'title':title, 'author':author}
+        return {
+            'title' :title, 
+            'author':author, 
+            'query' : f'{title} by {author}',
+            'source': 'query'}
     except Exception as e:
         print(e)
         return None
@@ -251,7 +280,11 @@ def GetYTMPlaylist(link:str):
             for artist in song['artists']:
                 author += artist['name'] +', '
             author = author[:-2]
-            formatted_playlist.append({'title':title, 'author':author})
+            formatted_playlist.append({
+                'title':title, 
+                'author':author,
+                'query' : f'{title} by {author}',
+                'source': 'query'})
         return formatted_playlist
     except Exception as e:
         print(e)
@@ -275,7 +308,11 @@ def GetSpotify(link, client_id, client_secret):
                     for artist in track['artists']:
                         author+=artist['name']+', '
                     author = author[:-2]
-                    playlist.append({'title':title, 'author':author})
+                    playlist.append({
+                        'title':title, 
+                        'author':author,
+                        'query' : f'{title} by {author}',
+                        'source': 'query'})
                 return playlist
         elif 'open.spotify.com/track' in link:
                 # Retrieve track information
@@ -286,7 +323,11 @@ def GetSpotify(link, client_id, client_secret):
                 for artist in track_info['artists']:
                     author += artist['name'] +', '
                 author = author[:-2]
-                return {'title': title, 'author':author}
+                return {
+                    'title' : title, 
+                    'author': author,
+                    'query' : f'{title} by {author}',
+                    'source':'query'}
         else:
             return None
     except Exception as e:
