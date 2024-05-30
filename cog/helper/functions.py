@@ -202,7 +202,7 @@ def SearchYoutube(query):
                 'author': None, 
                 'url'   : None, 
                 'query' : None,
-                'source': None}
+                'source': 'query'}
 
 def GetYTSong(link):
     link = link.replace(' ','').replace('\n','')
@@ -210,9 +210,8 @@ def GetYTSong(link):
     song = {
         'title' : link, 
         'author':None, 
-        'source':'query', 
-        'query':link
-        }
+        'query':link,
+        'source':'query'}
     return song
 
 def GetYTPlaylist(link):

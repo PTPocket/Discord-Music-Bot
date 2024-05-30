@@ -18,6 +18,7 @@ LOCAL_MUSIC_PATH = "C:\\Users\\p\\Documents\\SERVER\\music\\Formatted"
 
 class Music_Cog(commands.Cog):
     def __init__(self, bot:commands.Bot, client_id, client_secret):
+        Setting.initialize_settings()
         self.bot = bot
         self.client_id = client_id
         self.client_secret = client_secret
@@ -72,9 +73,7 @@ class Music_Cog(commands.Cog):
         #Moves song from queue to current
         self.data.queue_to_current(guildID)
         song = self.data.get_current_song(guildID)
-        if recall is True:
-            self.gui_print.add(guildID)
-        
+
         if song['source'] == 'local':
             player = FFmpegPCMAudio(
                 song['url'],
@@ -87,8 +86,11 @@ class Music_Cog(commands.Cog):
                 song['url'],
                 **FFMPEG_OPTIONS,
                 executable= FFMPEG_LOC)
+        #Queues New Print Statement for GUI
+        #Put here cause it will change entered query title to the video title in GUI
+        if recall is True:
+            self.gui_print.add(guildID)
 
-        
         player = discord.PCMVolumeTransformer(player, volume=0.16)
         voice_client = interaction.client.get_guild(guildID).voice_client
         self.data.set_idle_timestamp(guildID)
@@ -142,7 +144,6 @@ class Music_Cog(commands.Cog):
                 if '/watch?v=' in title_or_link:
                     song = GetYTMSong(title_or_link)
                     if song is None:
-                        
                         msg = embed.invalid_link(self.bot, title_or_link, 'YTMusic Song')
                         await interaction.followup.send(embed= msg, ephemeral=True)
                         await self.GUI_HANDLER(guildID)
@@ -155,8 +156,6 @@ class Music_Cog(commands.Cog):
                     log(guildName, "queued", f"{prompt} (ytmusic)" )
                     await self.music_player_start(interaction,reprint=True)
                     return
-
-                
                 msg = embed.invalid_link(self.bot, title_or_link, 'YTMusic Song')
                 await interaction.followup.send(embed= msg, ephemeral=True)
                 log(guildName, 'error', 'ytmusic link')
@@ -445,7 +444,7 @@ class MusicFunctions(View):
         self.add_item(self.NextButton      (music_cog, data, guildID))
         self.add_item(self.ShuffleButton      (music_cog, data, guildID))
         self.add_item(self.LoopButton      (music_cog, data, guildID))
-        #self.add_item(self.RandomButton    (music_cog, data, guildID))
+        self.add_item(self.RandomButton    (music_cog, data, guildID))
         #self.add_item(self.RandomSongButton(music_cog, data, guildID))
         #self.add_item(self.AddPlaylistButton(music_cog, data, guildID))
         self.add_item(self.ResetButton(music_cog, data, guildID))
@@ -554,7 +553,7 @@ class MusicFunctions(View):
                 style= discord.ButtonStyle.blurple
             else:
                 style= discord.ButtonStyle.grey
-            super().__init__(emoji='♾', label='Forever', style= style)
+            super().__init__(emoji='♾', label='Random', style= style)
             self.data = data
             self.music_cog = music_cog
             self.guildID = guildID

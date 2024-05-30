@@ -4,7 +4,6 @@ from discord.ext import commands
 #Cog import
 from cog.cog import Music_Cog
 from cog.helper.functions import log
-import cog.helper.setting  as Setting
 
 #SECRET KEYS
 from config import TOKEN, SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET
@@ -22,7 +21,6 @@ async def on_ready():
 async def main():
     async with client:
         try:
-            Setting.initialize_settings()
             await client.add_cog(Music_Cog(client, SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET))
             await client.start(TOKEN)
         except Exception as e:

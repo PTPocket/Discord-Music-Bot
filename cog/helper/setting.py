@@ -1,7 +1,7 @@
 import os, json
 from datetime import datetime
 
-SETTING_PATH    = os.getcwd()+'/Music Bot Setting.json'
+SETTING_PATH    = os.getcwd()+'\\Music Bot Setting.json'
 def log(guild_name, action:str, description = '', error = ''):
     time= str(datetime.now())
     action = str(action).upper()
@@ -72,3 +72,6 @@ def initialize_settings():
         with open(SETTING_PATH, 'w') as file:
             json.dump(default_setting, file, indent=4)
     log(None, 'initialized', 'bot setting')
+
+if __name__ == '__main__':
+    print(get_timeout())

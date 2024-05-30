@@ -104,7 +104,11 @@ def MainGuiPrompt(bot, data:Guild_Music_Properties, guild_id, connect = False):
         features += 'On '
     else: 
         features += 'Off'
-
+    features += '          Random: '
+    if data.get_random(guild_id) is True:
+        features +='On '
+    else:
+        features +='Off'
 
     embed.set_footer(text = features, icon_url=bot_avatar)
     
