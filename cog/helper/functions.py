@@ -203,33 +203,28 @@ def SearchYoutube(query):
                 'preferredquality': '192',
             }],
         }
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        # Search for videos matching the query
+        result = ydl.extract_info(f"ytsearch1:{query}", download=False)
+    
     try:
-        # Create yt-dlp instance
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            # Search for videos matching the query
-            result = ydl.extract_info(f"ytsearch1:{query}", download=False)['entries'][0]
+        song = result['entries'][0]
+        return {
+            'title' : song['title'], 
+            'author': song['uploader'],
+            'url'   : song['url'],
+            'query' : query,
+            'source': 'query',}
+    except:
+        try:
+            song = result
             return {
-                'title' : result['title'], 
-                'author': result['uploader'],
-                'url'   : result['url'],
+                'title' : song['title'], 
+                'author': song['uploader'],
+                'url'   : song['url'],
                 'query' : query,
                 'source': 'query',}
-    except Exception as e:
-        print(e)
-        try: 
-            # Create yt-dlp instance
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                # Search for videos matching the query
-                result = ydl.extract_info(f"ytsearch1:{query}", download=False)
-                ['entries'][0]
-                return {
-                    'title' : result['title'], 
-                    'author': result['uploader'],
-                    'url'   : result['url'],
-                    'query' : query,
-                    'source': 'query',}
-        except Exception as e:
-            print(e)
+        except:
             return {'title' : None, 
                     'author': None, 
                     'url'   : None, 
