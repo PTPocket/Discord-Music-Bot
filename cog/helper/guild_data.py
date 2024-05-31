@@ -23,9 +23,7 @@ class Guild_Music_Properties():
         self.time   = {}
 
 
-    def initialize(self, interaction:discord.Interaction):
-        guildName = interaction.user.guild.name
-        guild_id = interaction.user.guild.id
+    def initialize(self, guild_id):
         if guild_id not in self.queue:
             self.queue  [guild_id] = []
             self.history[guild_id] = []

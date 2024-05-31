@@ -29,6 +29,7 @@ async def valid_play_command(interaction:discord.Interaction):
     guild_id = interaction.user.guild.id
 
     voice_client = interaction.client.get_guild(guild_id).voice_client
+    print(voice_client)
     authorized = None
     if user.voice is None:
         authorized = False
@@ -45,6 +46,30 @@ async def valid_play_command(interaction:discord.Interaction):
         await interaction.response.send_message(embed= msg, ephemeral=True)
     else:
         log(guild_name, 'ACCESS GRANTED', user)
+    return authorized
+
+async def valid_play_command2(bot, ctx):
+    user = ctx.author
+    guildName = str(ctx.guild)
+    guildID = ctx.guild.id
+
+    voice_client = bot.get_guild(guildID).voice_client
+    authorized = None
+    if user.voice is None:
+        authorized = False
+    elif voice_client is None or not voice_client.is_connected():
+        authorized = True
+    elif user.voice.channel.id == voice_client.channel.id:
+        authorized = True
+    else:
+        authorized = False
+
+    if not authorized:
+        log(guildName, 'ACCESS DENIED', user)
+        msg = embed.unauthorized_prompt(bot)
+        await ctx.send(embed= msg, ephemeral=True)
+    else:
+        log(guildName, 'ACCESS GRANTED', user)
     return authorized
 
 async def valid_user_REGULAR_FUNC(interaction:discord.Interaction):
@@ -70,20 +95,13 @@ async def valid_user_REGULAR_FUNC(interaction:discord.Interaction):
     else: log(guild_name, 'ACCESS GRANTED', user) 
     return authorized
 
-async def voice_connect(interaction:discord.Interaction):
-    user = interaction.user
-    guild_name = interaction.user.guild.name
-    guild_id = interaction.user.guild.id
-    voice_client = interaction.client.get_guild(guild_id).voice_client
-
+async def voice_connect(user, guild_name, guild_id, voice_client):
     if voice_client is None:
         voice_client = await user.voice.channel.connect(reconnect=True)
         log(guild_name, 'Voice Connected', voice_client.channel.name)
     else:
         if voice_client.is_connected() is False:
             await voice_client.move_to(user.voice.channel)
-            voice_client = interaction.client.get_guild(guild_id).voice_client
-            voice_client = interaction.client.get_guild(guild_id).voice_client
             log(guild_name, 'Voice Reconnected', voice_client.channel.name)
 
     return voice_client
@@ -176,8 +194,7 @@ def queuePlaylist(guildName, guildID, playlist, playlistType:str, data:Guild_Mus
 
 
 def SearchYoutube(query):
-    try:
-        ydl_opts = {
+    ydl_opts = {
             'quiet': True,
             'format': 'bestaudio/best',
             'postprocessors': [{
@@ -186,6 +203,7 @@ def SearchYoutube(query):
                 'preferredquality': '192',
             }],
         }
+    try:
         # Create yt-dlp instance
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             # Search for videos matching the query
@@ -198,11 +216,25 @@ def SearchYoutube(query):
                 'source': 'query',}
     except Exception as e:
         print(e)
-        return {'title' : None, 
-                'author': None, 
-                'url'   : None, 
-                'query' : None,
-                'source': 'query'}
+        try: 
+            # Create yt-dlp instance
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                # Search for videos matching the query
+                result = ydl.extract_info(f"ytsearch1:{query}", download=False)
+                ['entries'][0]
+                return {
+                    'title' : result['title'], 
+                    'author': result['uploader'],
+                    'url'   : result['url'],
+                    'query' : query,
+                    'source': 'query',}
+        except Exception as e:
+            print(e)
+            return {'title' : None, 
+                    'author': None, 
+                    'url'   : None, 
+                    'query' : None,
+                    'source': 'query'}
 
 def GetYTSong(link):
     link = link.replace(' ','').replace('\n','')
