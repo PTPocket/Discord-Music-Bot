@@ -8,19 +8,24 @@ from cog.helper.guild_data import Guild_Music_Properties
 
 BLANK = '\u200b'
 LOCAL_MUSIC_PATH = "C:\\Users\\p\\Documents\\SERVER\\music\\Formatted"
-def log(guild_name, action:str, description = '', error = ''):
-    try:
-        time= str(datetime.now())
-        action = str(action).upper()
-        description = str(description).lower()
-        if description == '' and error == '':
-            print(f"{time} | GUILD: {guild_name} | {action}")
-        if description != '':
-            print(f"{time} | GUILD: {guild_name} | {action} -> {description}")
-        if error != '':
-            print('Error Prompt: ', error)
-    except Exception as e:
-        print(e)
+def log(guild_name, action:str, description = ''):
+    time= str(datetime.now())
+    action = str(action).upper()
+    description = str(description).lower()
+    if description != '':
+        print(f"{time} | GUILD: {guild_name} | {action} -> {description}")
+    else:
+        print(f"{time} | GUILD: {guild_name} | {action}")
+
+def error_log(location:str, description:str, item:str = None):
+    time = str(datetime.now())
+    location = location.upper()
+    description = description.lower()
+    if item is None:
+        print(f'{time} | ERROR: {location} | {description}')
+    else:
+        print(f'{time} | ERROR: {location} | {description} | {item}')
+
 
 
 async def valid_play_command(interaction:discord.Interaction):
@@ -29,7 +34,6 @@ async def valid_play_command(interaction:discord.Interaction):
     guild_id = interaction.user.guild.id
 
     voice_client = interaction.client.get_guild(guild_id).voice_client
-    print(voice_client)
     authorized = None
     if user.voice is None:
         authorized = False
@@ -215,7 +219,8 @@ def SearchYoutube(query):
             'url'   : song['url'],
             'query' : query,
             'source': 'query',}
-    except:
+    except Exception as e:
+        error_log('SearchYoutube', e, query)
         try:
             song = result
             return {
@@ -224,7 +229,8 @@ def SearchYoutube(query):
                 'url'   : song['url'],
                 'query' : query,
                 'source': 'query',}
-        except:
+        except Exception as e:
+            error_log('SearchYoutube', e, query)
             return {'title' : None, 
                     'author': None, 
                     'url'   : None, 
@@ -232,14 +238,18 @@ def SearchYoutube(query):
                     'source': 'query'}
 
 def GetYTSong(link):
-    link = link.replace(' ','').replace('\n','')
-    link = link.split('&list=')[0]
-    song = {
-        'title' : link, 
-        'author':None, 
-        'query':link,
-        'source':'query'}
-    return song
+    try:
+        link = link.replace(' ','').replace('\n','')
+        link = link.split('&')[0]
+        song = {
+            'title' : link, 
+            'author':None, 
+            'query':link,
+            'source':'query'}
+        return song
+    except Exception as e:
+        error_log('GetYTSong', e, link)
+        return None
 
 def GetYTPlaylist(link):
     try:
@@ -268,7 +278,7 @@ def GetYTPlaylist(link):
                     'source':'query'})
             return playlist
     except Exception as e:
-        print(e)
+        error_log('GetYTPlaylist', e, link)
         return None
 
 def GetYTMSong(link:str):
@@ -286,7 +296,7 @@ def GetYTMSong(link:str):
             'query' : f'{title} by {author}',
             'source': 'query'}
     except Exception as e:
-        print(e)
+        error_log('GetYTMSong', e, link)
         return None
 
 def GetYTMPlaylist(link:str):
@@ -313,7 +323,7 @@ def GetYTMPlaylist(link:str):
                 'source': 'query'})
         return formatted_playlist
     except Exception as e:
-        print(e)
+        error_log('GetYTMPlaylist', e, link)
         return None
 
 def GetSpotify(link, client_id, client_secret):
@@ -357,6 +367,6 @@ def GetSpotify(link, client_id, client_secret):
         else:
             return None
     except Exception as e:
-        print(e)
+        error_log('GetSpotify', e, link)
         return None
     
