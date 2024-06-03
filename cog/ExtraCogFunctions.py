@@ -8,7 +8,7 @@ from cog.helper.MusicSearch import *
 from cog.helper.Log     import *
 
 
-SHORT_COMMANDS = ['p', 'h', 's', 'r']
+SHORT_COMMANDS = ['p', 'h', 's', 'r', 'prev', 'previous']
 PREFIXS = ['!','/', '?']
 
 class ExtraCogFunctions(commands.Cog):
@@ -58,7 +58,6 @@ class ExtraCogFunctions(commands.Cog):
                 await voice_client.disconnect()
             log(guildName, 'disconnected (empty)', before.channel.name)
             await GUI_HANDLER(self, guildID)
-
             return
 
 ######## LOOP TO AUTO CHANGE GUI ##############################################################

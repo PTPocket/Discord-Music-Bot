@@ -11,6 +11,7 @@ LOCAL_MUSIC_PATH = "C:\\Users\\p\\Documents\\SERVER\\music\\Formatted"
 
 async def GUI_HANDLER(Music_Cog, guildID, edit = True, error = False):
     try:
+        guildName = Music_Cog.bot.get_guild(guildID).name
         player_embed = embed.MainGuiPrompt(Music_Cog.bot, Music_Cog.data, guildID, connect = error)
         view = MusicFunctions(Music_Cog, Music_Cog.data, guildID)
         channel = Music_Cog.data.get_channel(guildID)
@@ -27,7 +28,7 @@ async def GUI_HANDLER(Music_Cog, guildID, edit = True, error = False):
         await last_message.delete()
         Music_Cog.data.set_message(guildID, message)
     except Exception as e:
-        error_log('Gui_handler', e)
+        error_log('Gui_handler', e, guildName= guildName)
 
 async def valid_play_command(interaction:discord.Interaction):
     user = interaction.user
@@ -198,7 +199,6 @@ def queuePlaylist(guildName, guildID, playlist, playlistType:str, data:Guild_Mus
 
 
 
-
 class MusicFunctions(View):
     def __init__(self, music_cog, data:Guild_Music_Properties, guildID):
         super().__init__(timeout=None)
@@ -261,7 +261,7 @@ class MusicFunctions(View):
                     return
                 await interaction.response.defer()
             except Exception as e:
-                error_log('PlayPause', e)
+                error_log('PlayPause', e, guildName= guildName)
             
     class RandomButton(Button):
         def __init__(self, music_cog, data:Guild_Music_Properties, guildID):
@@ -290,7 +290,7 @@ class MusicFunctions(View):
                     await GUI_HANDLER(self.music_cog, guildID)
                 await interaction.response.defer()
             except Exception as e:
-                error_log('RandomButton', e)
+                error_log('RandomButton', e, guildName= guildName)
     
     class PreviousButton(Button):
         def __init__(self,music_cog, data:Guild_Music_Properties):
@@ -330,7 +330,7 @@ class MusicFunctions(View):
                 await interaction.delete_original_response()
                 return
             except Exception as e:
-                error_log('PreviousButton', e)
+                error_log('PreviousButton', e, guildName= guildName)
     
     class NextButton(Button):
         def __init__(self,music_cog, data:Guild_Music_Properties):
@@ -355,7 +355,7 @@ class MusicFunctions(View):
                     await interaction.delete_original_response()
                     return
             except Exception as e:
-                error_log('NextButton', e)
+                error_log('NextButton', e, guildName= guildName)
             
     class ShuffleButton(Button):
         def __init__(self,music_cog, data:Guild_Music_Properties, guildID):
@@ -391,7 +391,7 @@ class MusicFunctions(View):
                         log(guildName, 'Shuffle', 'off')
                     await GUI_HANDLER(self.music_cog, guildID)
             except Exception as e:
-                error_log('ShuffleButton', e)
+                error_log('ShuffleButton', e, guildName= guildName)
     
     class LoopButton(Button):
         def __init__(self,music_cog, data:Guild_Music_Properties, guildID):
@@ -422,7 +422,7 @@ class MusicFunctions(View):
                     await GUI_HANDLER(self.music_cog, guildID)
                     return
             except Exception as e:
-                error_log('LoopButton', e)
+                error_log('LoopButton', e, guildName= guildName)
     
     class DisconnectButton(Button):
         def __init__(self,music_cog, data:Guild_Music_Properties):
@@ -445,7 +445,7 @@ class MusicFunctions(View):
                 await interaction.response.defer()
                 await GUI_HANDLER(self.music_cog, guildID)
             except Exception as e:
-                error_log('DisconnectButton', e)
+                error_log('DisconnectButton', e, guildName= guildName)
     
     class ResetButton(Button):
         def __init__(self,music_cog, data:Guild_Music_Properties):
@@ -468,4 +468,4 @@ class MusicFunctions(View):
                 #await interaction.response.send_message(embed=embed.flush_prompt(self.music_cog.bot),ephemeral=True)
                 await GUI_HANDLER(self.music_cog, guildID)
             except Exception as e:
-                error_log('ResetButton', e)
+                error_log('ResetButton', e, guildName= guildName)

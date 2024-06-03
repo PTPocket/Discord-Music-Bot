@@ -85,6 +85,7 @@ def HelpPrompt(bot):
         inline=False)
     command_list = '- /play        /p        /p query\n'
     command_list+= '- /skip        /s        /s\n'
+    command_list+= '- /previous    /prev     /prev'
     command_list+= '- /help        /h        /p\n'
     command_list+= '- /play_random /r        /r'
     embed.add_field(

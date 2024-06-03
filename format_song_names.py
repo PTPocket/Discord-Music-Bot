@@ -7,14 +7,12 @@ def format_song_names():
     for name in name_list:
 
         if name[0].isalpha() is True:
-            print('here')
             if os.path.isfile(f'{LIBRARY_PATH}\\{name}'):
                 os.rename(f'{LIBRARY_PATH}\\{name}', f'{LIBRARY_PATH}\\Formated\\{name}')
             continue
         if ('.jpg' in name) or ('.png' in name):
             os.remove(f'{LIBRARY_PATH}\\{name}')
             continue
-        print('here')
         copy = name
         while copy[0].isalpha() is False:
             copy = copy[1::]
