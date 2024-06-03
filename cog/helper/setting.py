@@ -1,5 +1,5 @@
 import os, json
-from cog.helper.log import *
+from cog.helper.Log import *
 
 SETTING_PATH    = os.getcwd()+'\\Music Bot Setting.json'
 

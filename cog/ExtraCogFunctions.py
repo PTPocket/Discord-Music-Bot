@@ -1,11 +1,11 @@
 import discord
-import cog.helper.setting   as     Setting
+import cog.helper.Setting   as     Setting
 from datetime               import datetime
 from discord.ext            import commands, tasks
 from datetime               import datetime
-from cog.helper.functions   import *
+from cog.helper.Functions   import *
 from cog.helper.MusicSearch import *
-from cog.helper.log     import *
+from cog.helper.Log     import *
 
 
 SHORT_COMMANDS = ['p', 'h', 's', 'r']

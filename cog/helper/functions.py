@@ -1,10 +1,10 @@
 import discord, os, random
 from tinytag               import TinyTag
 from cog.helper            import embed
-from cog.helper.guild_data import Guild_Music_Properties
+from cog.helper.GuildData import Guild_Music_Properties
 from discord.ui            import View, Select, Button
-from cog.helper.guild_data import Guild_Music_Properties
-from cog.helper.log    import *
+from cog.helper.GuildData import Guild_Music_Properties
+from cog.helper.Log    import *
 
 BLANK = '\u200b'
 LOCAL_MUSIC_PATH = "C:\\Users\\p\\Documents\\SERVER\\music\\Formatted"

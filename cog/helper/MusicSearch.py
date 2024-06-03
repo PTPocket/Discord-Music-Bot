@@ -1,18 +1,19 @@
 import yt_dlp, spotipy
 from ytmusicapi     import YTMusic
 from spotipy.oauth2 import SpotifyClientCredentials
-from cog.helper.log import *
+from cog.helper.Log import *
+
 
 def SearchYoutube(query):
     ydl_opts = {
-            'quiet': True,
-            'format': 'bestaudio/best',
-            'postprocessors': [{
-                'key': 'FFmpegExtractAudio',
-                'preferredcodec': 'mp3',
-                'preferredquality': '192',
-            }],
-        }
+        'quiet': True,
+        'format': 'bestaudio/best',
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+            'preferredquality': '192',
+        }],
+    }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         # Search for videos matching the query
         result = ydl.extract_info(f"ytsearch1:{query}", download=False)
@@ -37,10 +38,10 @@ def SearchYoutube(query):
                 'source': 'query',}
         except Exception as e:
             error_log('SearchYoutube', e, query)
-            return {'title' : None, 
-                    'author': None, 
-                    'url'   : None, 
-                    'query' : None,
+            return {'title' : '', 
+                    'author': '', 
+                    'url'   : '', 
+                    'query' : query,
                     'source': 'query'}
 
 def GetYT(link):
@@ -81,15 +82,31 @@ def GetYTSong(link):
         error_log('GetYTSong', e, link)
     return None
 def GetYTPlaylist(link):
+    ydl_opts = {
+        'quiet': True,
+        'extract_flat': True,
+        'force_generic_extractor': True,
+    }
     try:
         link = link.replace(' ','').replace('\n','')
-        link = link.split('&')[0]
-        song = {
-            'title' : link, 
-            'author':None, 
-            'query':link,
-            'source':'query'}
-        return song
+        playlistID = link.split('list=')[1]
+        link = 'https://www.youtube.com/playlist?list='+playlistID
+
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            result = ydl.extract_info(link,download=False)
+            playlist = []
+            for item in result['entries']:
+                if item['title']=='[Private video]' and item['title'] == '[Deleted video]':
+                    continue
+                title = item['title']
+                author = item['uploader']
+                url = item['url']
+                playlist.append({
+                    'title':title, 
+                    'author':author, 
+                    'query' : url,
+                    'source':'query'})
+            return playlist
     except Exception as e:
         error_log('GetYTPlaylist', e, link)
     return None

@@ -2,8 +2,8 @@ import discord, time
 from discord                import app_commands, FFmpegPCMAudio
 from discord.ext            import commands
 from cog.helper             import embed
-from cog.helper.log     import *
-from cog.helper.functions   import *
+from cog.helper.Log         import *
+from cog.helper.Functions   import *
 from cog.helper.MusicSearch import *
 
 FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}

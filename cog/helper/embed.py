@@ -1,6 +1,6 @@
 import discord
-from   cog.helper.guild_data import Guild_Music_Properties
-import cog.helper.setting  as Setting
+from   cog.helper.GuildData import Guild_Music_Properties
+import cog.helper.Setting  as Setting
 
 MUSIC_ICON = "https://cdn1.iconfinder.com/data/icons/music-audio-9/24/vinyl_player_retro_dj_disk_music_mix_2-512.png"
 COG_NAME = "Pocket Muse"   

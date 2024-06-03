@@ -4,9 +4,9 @@ from discord.ext import commands
 from cog.MusicCog          import MusicCog
 from cog.ExtraCogFunctions import ExtraCogFunctions
 #Extra Functions
-from cog.helper.guild_data import Guild_Music_Properties
-from cog.helper.log    import *
-import cog.helper.setting  as     Setting
+from cog.helper.GuildData import Guild_Music_Properties
+from cog.helper.Log        import *
+import cog.helper.Setting  as     Setting
 #SECRET KEYS
 from config import TOKEN, SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET
 
