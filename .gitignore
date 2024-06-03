@@ -36,3 +36,7 @@ setting.json
 Music Bot Setting.json
 BotFunctionTests.ipynb
 test1.py
+cog/__pycache__/ExtraCogFunctions.cpython-312.pyc
+cog/__pycache__/MusicCog.cpython-312.pyc
+cog/helper/__pycache__/log.cpython-312.pyc
+cog/helper/__pycache__/MusicSearch.cpython-312.pyc

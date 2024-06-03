@@ -1,32 +1,33 @@
-import discord, os, random, yt_dlp, spotipy
-from ytmusicapi            import YTMusic
+import discord, os, random
 from tinytag               import TinyTag
-from datetime              import datetime
-from spotipy.oauth2        import SpotifyClientCredentials
 from cog.helper            import embed
 from cog.helper.guild_data import Guild_Music_Properties
+from discord.ui            import View, Select, Button
+from cog.helper.guild_data import Guild_Music_Properties
+from cog.helper.log    import *
 
 BLANK = '\u200b'
 LOCAL_MUSIC_PATH = "C:\\Users\\p\\Documents\\SERVER\\music\\Formatted"
-def log(guild_name, action:str, description = ''):
-    time= str(datetime.now())
-    action = str(action).upper()
-    description = str(description).lower()
-    if description != '':
-        print(f"{time} | GUILD: {guild_name} | {action} -> {description}")
-    else:
-        print(f"{time} | GUILD: {guild_name} | {action}")
 
-def error_log(location, description, item = None):
-    time = str(datetime.now())
-    location = str(location).upper()
-    description = str(description).lower()
-    if item is None:
-        print(f'{time} | ERROR: {location} | {description}')
-    else:
-        print(f'{time} | ERROR: {location} | {description} | {str(item)}')
-
-
+async def GUI_HANDLER(Music_Cog, guildID, edit = True, error = False):
+    try:
+        player_embed = embed.MainGuiPrompt(Music_Cog.bot, Music_Cog.data, guildID, connect = error)
+        view = MusicFunctions(Music_Cog, Music_Cog.data, guildID)
+        channel = Music_Cog.data.get_channel(guildID)
+        last_message = Music_Cog.data.get_message(guildID)
+        if last_message is None:
+            message = await channel.send(embed = player_embed, view = view)
+            Music_Cog.data.set_message(guildID, message)
+            return
+        if edit is True:
+            message = await last_message.edit(embed = player_embed, view = view)
+            Music_Cog.data.set_message(guildID, message)
+            return
+        message = await channel.send(embed = player_embed, view = view)
+        await last_message.delete()
+        Music_Cog.data.set_message(guildID, message)
+    except Exception as e:
+        error_log('Gui_handler', e)
 
 async def valid_play_command(interaction:discord.Interaction):
     user = interaction.user
@@ -175,7 +176,6 @@ def add_random_song(data, guild_id):
         'source': 'local'}
     data.prepend_to_queue(guild_id, song)
 
-
 def queuePlaylist(guildName, guildID, playlist, playlistType:str, data:Guild_Music_Properties):
         playlistType = playlistType.lower()
         song_names_list = []
@@ -196,234 +196,276 @@ def queuePlaylist(guildName, guildID, playlist, playlistType:str, data:Guild_Mus
         log(guildName, "QUEUED", f"{len(playlist)} songs ({playlistType})")
         return song_names_list
 
-def SearchYoutube(query):
-    ydl_opts = {
-            'quiet': True,
-            'format': 'bestaudio/best',
-            'postprocessors': [{
-                'key': 'FFmpegExtractAudio',
-                'preferredcodec': 'mp3',
-                'preferredquality': '192',
-            }],
-        }
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        # Search for videos matching the query
-        result = ydl.extract_info(f"ytsearch1:{query}", download=False)
+
+
+
+class MusicFunctions(View):
+    def __init__(self, music_cog, data:Guild_Music_Properties, guildID):
+        super().__init__(timeout=None)
+        self.add_item(self.PreviousButton  (music_cog, data))
+        self.add_item(self.PlayPause       (data))
+        self.add_item(self.NextButton      (music_cog, data))
+        self.add_item(self.ShuffleButton   (music_cog, data, guildID))
+        self.add_item(self.LoopButton      (music_cog, data, guildID))
+        self.add_item(self.RandomButton    (music_cog, data, guildID))
+        self.add_item(self.ResetButton(music_cog, data))
+        self.add_item(self.DisconnectButton(music_cog, data))
+        
+    async def interaction_check(self, interaction: discord.Interaction):
+        user = interaction.user
+        guildName = interaction.user.guild.name
+        guildID = interaction.user.guild.id
+        voice_client = interaction.client.get_guild(guildID).voice_client
+        access = False
+        if user.voice is None:
+            access = False
+        elif voice_client is None:
+            access = True
+        elif voice_client.channel.id == user.voice.channel.id:
+            access = True
+        
+        if access is True:
+            log(guildName, 'ACCESS GRANTED', user) 
+            return True
+        else:
+            log(guildName, 'ACCESS DENIED', user)
+            await interaction.response.defer()
+            return False
+
+    class PlayPause(Button):
+        def __init__(self, data:Guild_Music_Properties):
+            super().__init__(emoji = '⏯', style= discord.ButtonStyle.blurple)
+            self.data = data
+        async def callback(self, interaction: discord.Interaction):
+            try:
+                guildName = interaction.user.guild.name
+                guildID = interaction.user.guild.id
+                voice_client = interaction.client.get_guild(guildID).voice_client
+                log(guildName, 'BUTTON', 'play/pause')
+                song = self.data.get_current_song(guildID)
+                if voice_client is None:
+                    self.style = discord.ButtonStyle.grey
+                    await interaction.response.edit_message(view=self.view)
+                    return
+                if voice_client.is_playing() and not voice_client.is_paused():
+                    log(guildName, 'PAUSED',song['title'])
+                    voice_client.pause()
+                    self.style = discord.ButtonStyle.grey
+                    await interaction.response.edit_message(view=self.view)
+                    return
+                if not voice_client.is_playing() and voice_client.is_paused():
+                    log(guildName, 'RESUMED',song['title'])
+                    self.style = discord.ButtonStyle.blurple
+                    await interaction.response.edit_message(view=self.view)
+                    voice_client.resume()
+                    return
+                await interaction.response.defer()
+            except Exception as e:
+                error_log('PlayPause', e)
+            
+    class RandomButton(Button):
+        def __init__(self, music_cog, data:Guild_Music_Properties, guildID):
+            if data.get_random(guildID) == True:
+                style= discord.ButtonStyle.blurple
+            else:
+                style= discord.ButtonStyle.grey
+            super().__init__(emoji='♾', label='Random', style= style)
+            self.data = data
+            self.music_cog = music_cog
+
+        async def callback(self, interaction: discord.Interaction):
+            try:
+                user = interaction.user
+                guildName = interaction.user.guild.name
+                guildID = interaction.user.guild.id
+                voice_client = interaction.client.get_guild(guildID).voice_client
+                channel = interaction.channel
+                log(guildName, 'BUTTON', 'random')
+                if self.data.flip_random(guildID) is True:
+                    log(guildName, 'RANDOM', 'On')
+                    self.data.set_loop(guildID, False)
+                    await self.music_cog.music_player_start(user, guildName, guildID, voice_client, channel, edit = True)
+                else: 
+                    log(guildName, 'RANDOM', 'Off')
+                    await GUI_HANDLER(self.music_cog, guildID)
+                await interaction.response.defer()
+            except Exception as e:
+                error_log('RandomButton', e)
     
-    try:
-        song = result['entries'][0]
-        return {
-            'title' : song['title'], 
-            'author': song['uploader'],
-            'url'   : song['url'],
-            'query' : query,
-            'source': 'query',}
-    except Exception as e:
-        error_log('SearchYoutube', e, query)
-        try:
-            song = result
-            return {
-                'title' : song['title'], 
-                'author': song['uploader'],
-                'url'   : song['url'],
-                'query' : query,
-                'source': 'query',}
-        except Exception as e:
-            error_log('SearchYoutube', e, query)
-            return {'title' : None, 
-                    'author': None, 
-                    'url'   : None, 
-                    'query' : None,
-                    'source': 'query'}
+    class PreviousButton(Button):
+        def __init__(self,music_cog, data:Guild_Music_Properties):
+            super().__init__(emoji = "⏮", style= discord.ButtonStyle.blurple)
+            self.data = data
+            self.music_cog = music_cog
 
+        async def callback(self, interaction: discord.Interaction):
+            try:
+                user = interaction.user
+                guildName = interaction.user.guild.name
+                guildID = interaction.user.guild.id
+                voice_client = interaction.client.get_guild(guildID).voice_client
+                channel = interaction.channel
+                log(guildName, 'BUTTON', 'previous')
 
-
-def GetYT(link):
-    if 'watch?v=' in link:
-        return GetYTSong(link)
-    if '/playlist' in link: 
-        return GetYTPlaylist(link)
-    return None
-def GetYTMusic(link):
-    if '/watch?v=' in link:
-        return GetYTMSong(link)
-    if '/playlist?list=' in link:
-        return GetYTMPlaylist(link)
-    return
-def GetSpotify(link, client_id, client_secret):
-    if 'open.spotify.com/playlist' in link:
-        return GetSpotifyPlaylist(link, client_id, client_secret)
-    if 'open.spotify.com/album' in link:
-        return GetSpotifyAlbum(link, client_id, client_secret)
-    if 'open.spotify.com/artist' in link:
-        return GetSpotifyArtist10(link, client_id, client_secret)
-    if 'open.spotify.com/track' in link:
-        return GetSpotifyTrack(link, client_id, client_secret)
-    return None
-
-def GetYTSong(link):
-    try:
-        link = link.replace(' ','').replace('\n','')
-        link = link.split('&')[0]
-        song = {
-            'title' : link, 
-            'author':None, 
-            'query':link,
-            'source':'query'}
-        return song
-    except Exception as e:
-        error_log('GetYTSong', e, link)
-    return None
-def GetYTPlaylist(link):
-    try:
-        link = link.replace(' ','').replace('\n','')
-        link = link.split('&')[0]
-        song = {
-            'title' : link, 
-            'author':None, 
-            'query':link,
-            'source':'query'}
-        return song
-    except Exception as e:
-        error_log('GetYTPlaylist', e, link)
-    return None
-
-def GetYTMSong(link:str):
-    try:
-        link = link.replace(' ','').replace('\n','')
-        ytmusic = YTMusic()
-        splitURL = link.split('/watch?v=')[1]
-        songID = splitURL.split('&')[0]
-        song = ytmusic.get_song(songID)
-        title = song['videoDetails']['title']
-        author = song['videoDetails']['author']
-        return {
-            'title' :title, 
-            'author':author, 
-            'query' : f'{title} by {author}',
-            'source': 'query'}
-    except Exception as e:
-        error_log('GetYTMSong', e, link)
-    return None
-def GetYTMPlaylist(link:str):
-    try:
-        link = link.replace(' ','').replace('\n','')
-        ytmusic = YTMusic()
-        # Extract playlistId from the URL
-        playlist_id = link.split('list=')[1]
-        # Get playlist details
-        playlist = ytmusic.get_playlist(playlist_id)
-        # Extract playlist items
-        playlist = playlist['tracks']
-        formatted_playlist = []
-        for song in playlist:
-            title = song['title']
-            author = ''
-            for artist in song['artists']:
-                author += artist['name'] +', '
-            author = author[:-2]
-            formatted_playlist.append({
-                'title':title, 
-                'author':author,
-                'query' : f'{title} by {author}',
-                'source': 'query'})
-        return formatted_playlist
-    except Exception as e:
-        error_log('GetYTMPlaylist', e, link)
-    return None
-
-def GetSpotifyTrack(link, client_id, client_secret):
-    try:
-        client_credentials_manager = SpotifyClientCredentials(client_id=client_id, client_secret=client_secret)
-        spotify = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
-        link = link.replace(' ','').replace('\n','')
-        # Retrieve track information
-        track_info = spotify.track(link)
-        # Extract title and artist from track information
-        title = track_info['name']
-        author = ''
-        for artist in track_info['artists']:
-            author += artist['name'] +', '
-        author = author[:-2]
-        return {
-            'title' : title, 
-            'author': author,
-            'query' : f'{title} by {author}',
-            'source':'query'}
-    except Exception as e:
-        error_log('GetSpotifyTrack', e, link)
-    return None
-def GetSpotifyPlaylist(link, client_id, client_secret):
-    try:
-        client_credentials_manager = SpotifyClientCredentials(client_id=client_id, client_secret=client_secret)
-        spotify = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
-        link = link.replace(' ','').replace('\n','')
-        # Initialize Spotipy with your credentials
-        # Get playlist tracks
-        results = spotify.playlist_tracks(link)
-        # Extract track names
-        playlist = []
-        for item in results['items']:
-            track = item['track']
-            title = track['name']
-            author = ''
-            for artist in track['artists']:
-                author+=artist['name']+', '
-            author = author[:-2]
-            playlist.append({
-                'title':title, 
-                'author':author,
-                'query' : f'{title} by {author}',
-                'source': 'query'})
-        return playlist
-    except Exception as e:
-        error_log('GetSpotifyPlaylist', e, link)
-    return None
-def GetSpotifyAlbum(link, client_id, client_secret):
-    try:
-        client_credentials_manager = SpotifyClientCredentials(client_id=client_id, client_secret=client_secret)
-        spotify = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
-        link = link.replace(' ','').replace('\n','')
-        results = spotify.album_tracks(link)
-        playlist = []
-        for item in results['items']:
-            title = item['name']
-            author = ''
-            for artist in item['artists']:
-                author+=artist['name']+', '
-            author = author[:-2]
-            playlist.append({
-                'title':title, 
-                'author':author,
-                'query' : f'{title} by {author}',
-                'source': 'query'})
-        return playlist
-    except Exception as e:
-        error_log('GetSpotifyAlbum', e, link)
-    return None
-def GetSpotifyArtist10(link, client_id, client_secret):
-    try:
-        client_credentials_manager = SpotifyClientCredentials(client_id=client_id, client_secret=client_secret)
-        spotify = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
-        link = link.replace(' ','').replace('\n','')
-        results = spotify.artist_top_tracks(link)
-        playlist = []
-        for item in results['tracks']:
-            title = item['name']
-            author = ''
-            for artist in item['artists']:
-                author+=artist['name']+', '
-            author = author[:-2]
-            playlist.append({
-                'title':title, 
-                'author':author,
-                'query' : f'{title} by {author}',
-                'source': 'query'})
-        return playlist
-    except Exception as e:
-        error_log('GetSpotifyArtist10', e, link)
-    return None
-
-
-
+                #IF VOICE RUNNING
+                if voice_client is None:
+                    self.data.set_loop(guildID, False)
+                    self.data.history_to_queue(guildID)
+                    await interaction.response.defer(thinking=True)
+                    await self.music_cog.music_player_start(user, guildName, guildID, voice_client, channel, edit = True)
+                    await interaction.delete_original_response()
+                    return
+                if voice_client.is_playing() or voice_client.is_paused():
+                    self.data.set_loop(guildID, False)
+                    self.data.flip_back(guildID)
+                    voice_client.stop()
+                    await interaction.response.defer(thinking=True)
+                    await self.music_cog.music_player_start(user, guildName, guildID, voice_client, channel, edit = True)
+                    await interaction.delete_original_response()
+                    return
+                self.data.set_loop(guildID, False)
+                self.data.history_to_queue(guildID)
+                await interaction.response.defer(thinking=True)
+                await self.music_cog.music_player_start(user, guildName, guildID, voice_client, channel, edit = True)
+                await interaction.delete_original_response()
+                return
+            except Exception as e:
+                error_log('PreviousButton', e)
     
+    class NextButton(Button):
+        def __init__(self,music_cog, data:Guild_Music_Properties):
+            super().__init__(emoji = "⏭", style= discord.ButtonStyle.blurple)
+            self.data = data
+            self.music_cog = music_cog
+
+        async def callback(self, interaction: discord.Interaction):
+            try:
+                guildName = interaction.user.guild.name
+                guildID = interaction.user.guild.id
+                voice_client = interaction.client.get_guild(guildID).voice_client
+                log(guildName, 'BUTTON', 'next')
+                if voice_client is None:
+                    await interaction.response.defer()
+                    return
+                if (voice_client.is_playing() or voice_client.is_paused()):
+                    self.data.set_loop(guildID, False)
+                    voice_client.stop()
+                    await interaction.response.defer(thinking=True)
+                    await GUI_HANDLER(self.music_cog, guildID)
+                    await interaction.delete_original_response()
+                    return
+            except Exception as e:
+                error_log('NextButton', e)
+            
+    class ShuffleButton(Button):
+        def __init__(self,music_cog, data:Guild_Music_Properties, guildID):
+            if data.get_shuffle(guildID) is True:
+                style= discord.ButtonStyle.blurple
+            else:
+                style= discord.ButtonStyle.grey
+            super().__init__(emoji = "🔀", style= style)
+            self.data = data
+            self.music_cog = music_cog
+
+        async def callback(self, interaction: discord.Interaction):
+            try:
+                user = interaction.user
+                guildName = interaction.user.guild.name
+                guildID = interaction.user.guild.id
+                voice_client = interaction.client.get_guild(guildID).voice_client
+                channel = interaction.channel
+                log(guildName, 'BUTTON', 'shuffle')
+                await interaction.response.defer()
+                if voice_client is None:
+                    return
+                queue = self.data.get_queue(guildID)
+                history = self.data.get_history(guildID)
+                num_songs = len(queue)+len(history)
+                if num_songs > 0 or voice_client.is_playing() or voice_client.is_paused():
+                    self.data.set_random(guildID, False)
+                    self.data.flip_shuffle(guildID)
+                    if self.data.get_shuffle(guildID) is True:
+                        log(guildName, 'Shuffle', 'on')
+                        await self.music_cog.music_player_start(user, guildName, guildID, voice_client, channel, edit = True)
+                    else:
+                        log(guildName, 'Shuffle', 'off')
+                    await GUI_HANDLER(self.music_cog, guildID)
+            except Exception as e:
+                error_log('ShuffleButton', e)
+    
+    class LoopButton(Button):
+        def __init__(self,music_cog, data:Guild_Music_Properties, guildID):
+            if data.get_loop(guildID) is True:
+                style= discord.ButtonStyle.blurple
+            else:
+                style= discord.ButtonStyle.grey
+            super().__init__(emoji = "🔁", style=style)
+            self.music_cog = music_cog
+            self.data = data
+        async def callback(self, interaction: discord.Interaction):
+            try:
+                guildName = interaction.user.guild.name
+                guildID = interaction.user.guild.id
+                log(guildName, 'BUTTON', 'loop')
+                voice_client = interaction.client.get_guild(guildID).voice_client
+                await interaction.response.defer()
+                if voice_client is None:
+                    return
+                if voice_client.is_playing() or voice_client.is_paused():
+                    song = self.data.get_current_song(guildID)
+                    self.data.flip_loop(guildID)
+                    self.data.set_random(guildID, False)
+                    if self.data.get_loop(guildID) is True:
+                        log(guildName, 'looping', "on")
+                    else:
+                        log(guildName, 'looping', "off")
+                    await GUI_HANDLER(self.music_cog, guildID)
+                    return
+            except Exception as e:
+                error_log('LoopButton', e)
+    
+    class DisconnectButton(Button):
+        def __init__(self,music_cog, data:Guild_Music_Properties):
+            super().__init__(label = 'Disconnect', style=discord.ButtonStyle.grey)
+            self.music_cog = music_cog
+            self.data = data
+        async def callback(self, interaction: discord.Interaction):
+            try:
+                guildName = interaction.user.guild.name
+                guildID = interaction.user.guild.id
+                voice_client = interaction.client.get_guild(guildID).voice_client
+                log(guildName, 'button', 'disconnect')
+                self.data.full_reset(guildID)
+                if voice_client is not None:
+                    channel_name = voice_client.channel.name
+                    if voice_client.is_playing() or voice_client.is_paused():
+                        voice_client.stop()
+                    await voice_client.disconnect()
+                    log(guildName, 'DISCONNECTED (force)', channel_name)
+                await interaction.response.defer()
+                await GUI_HANDLER(self.music_cog, guildID)
+            except Exception as e:
+                error_log('DisconnectButton', e)
+    
+    class ResetButton(Button):
+        def __init__(self,music_cog, data:Guild_Music_Properties):
+            super().__init__(emoji='🚽',label = 'Flush', style=discord.ButtonStyle.grey)
+            self.music_cog = music_cog
+            self.data = data
+        async def callback(self, interaction: discord.Interaction):
+            try:
+                guildName = interaction.user.guild.name
+                guildID = interaction.user.guild.id
+                voice_client = interaction.client.get_guild(guildID).voice_client
+                log(guildName, 'button', 'flush')
+                await interaction.response.defer(ephemeral=True)
+                
+                self.data.reset(guildID)
+                if voice_client is not None:
+                    if voice_client.is_playing() or voice_client.is_paused():
+                        voice_client.stop()
+                self.data.full_reset(guildID)
+                #await interaction.response.send_message(embed=embed.flush_prompt(self.music_cog.bot),ephemeral=True)
+                await GUI_HANDLER(self.music_cog, guildID)
+            except Exception as e:
+                error_log('ResetButton', e)
