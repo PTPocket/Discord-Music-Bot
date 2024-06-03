@@ -1,24 +1,30 @@
 import discord, time
 from discord                import app_commands, FFmpegPCMAudio
-from discord.ext            import commands
+from discord.ext            import commands, tasks
 from cog.helper             import embed
 from cog.helper.GuildData   import Guild_Music_Properties
+
 from cog.helper.Log         import *
 from cog.helper.Functions   import *
 from cog.helper.MusicSearch import *
+import cog.helper.Setting   as     Setting
 
 FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
 FFMPEG_LOC = "C:\\Users\\p\\Downloads\\ffmpeg\\bin\\ffmpeg.exe"
 LOCAL_MUSIC_PATH = "C:\\Users\\p\\Documents\\SERVER\\music\\Formatted"
 
+SHORT_COMMANDS = ['p', 'h', 's', 'r', 'prev']
+PREFIXS = ['!','/', '?']
 
 class MusicCog(commands.Cog):
-    def __init__(self, bot:commands.Bot, client_id, client_secret, data:Guild_Music_Properties, gui_print):
+    def __init__(self, bot:commands.Bot, data:Guild_Music_Properties, gui_print:set, client_id, client_secret):
         self.bot = bot
         self.client_id = client_id
         self.client_secret = client_secret
         self.data = data
         self.gui_print = gui_print
+        self.gui_loop.start()
+        self.disconnect_check.start()
 
     #MUSIC PLAYER LOOP (not recursive)
     def music_player(self, guildName, guildID, voice_client, recall = False):
@@ -277,7 +283,8 @@ class MusicCog(commands.Cog):
         log(guildName, 'command', 'help')
         msg = embed.HelpPrompt(self.bot)
         await interaction.response.send_message(embed= msg)
-        await GUI_HANDLER(self, guildID, edit=False)
+        if self.data.get_message(guildID) is not None:
+            await GUI_HANDLER(self, guildID, edit=False)
 
 
 
@@ -449,13 +456,13 @@ class MusicCog(commands.Cog):
             if voice_client is None and self.data.get_history(guildID) != []:
                 self.data.set_loop(guildID, False)
                 self.data.history_to_queue(guildID)
-                await self.music_player_start(user, guildName, guildID, voice_client, channel, edit = True)
+                await self.music_player_start(user, guildName, guildID, voice_client, channel)
                 return
             if voice_client.is_playing() or voice_client.is_paused():
                 self.data.set_loop(guildID, False)
                 self.data.flip_back(guildID)
                 voice_client.stop()
-                await self.music_player_start(user, guildName, guildID, voice_client, channel, edit = True)
+                await self.music_player_start(user, guildName, guildID, voice_client, channel)
                 return
             if voice_client is None:
                 msg = embed.unauthorized_prompt(self.bot)
@@ -463,7 +470,7 @@ class MusicCog(commands.Cog):
                 return
             self.data.set_loop(guildID, False)
             self.data.history_to_queue(guildID)
-            await self.music_player_start(user, guildName, guildID, voice_client, channel, edit = True)
+            await self.music_player_start(user, guildName, guildID, voice_client, channel )
             return
         except Exception as e:
             error_log('previous', e, guildName= guildName)
@@ -504,3 +511,67 @@ class MusicCog(commands.Cog):
         except Exception as e:
             print(e)
 
+############# LISTENERS ########################################################################
+    # Keep music player at bottom of channel
+    @commands.Cog.listener() 
+    async def on_message(self, message):
+        guildName = message.guild.name
+        guildID = message.guild.id
+        command = str(message.content).split(' ')[0]
+        prefix = command[:1]
+        com = command[1:].lower()
+        if message.author.id != self.bot.user.id \
+            and message.channel.id == self.data.get_message(guildID).channel.id\
+            and prefix not in PREFIXS\
+            and com not in SHORT_COMMANDS:
+            await GUI_HANDLER(self, guildID, edit=False)
+
+    # RESET BOT FOR GUILD IF DISCONNECTED FROM VOICE CHANNEL
+    @commands.Cog.listener()
+    async def on_voice_state_update(self, member:discord.member.Member, before, after):
+        if after.channel is not None:return
+        users = self.bot.get_channel(before.channel.id).members
+        if users == []: return
+        guildName = member.guild.name
+        guildID= member.guild.id
+        connected_user_ids = [user.id for user in users]
+
+        #Disconnects if bot is only one is channel
+        if (len(connected_user_ids) == 1 and self.bot.user.id in connected_user_ids) or \
+           (len(connected_user_ids) == 2 and self.bot.user.id in connected_user_ids and 990490227401453618 in connected_user_ids):
+            voice_client = self.bot.get_guild(guildID).voice_client
+            self.data.reset(guildID)
+            if voice_client is not None:
+                if voice_client.is_playing() or voice_client.is_paused():
+                    self.gui_print.add(guildID)
+                    voice_client.stop()
+                await voice_client.disconnect()
+            log(guildName, 'disconnected (empty)', before.channel.name)
+            await GUI_HANDLER(self, guildID)
+            return
+
+######## LOOP TO AUTO CHANGE GUI ##############################################################
+    @tasks.loop(seconds = 5)
+    async def gui_loop(self):
+        while self.gui_print:
+            guildID = self.gui_print.pop()
+            await GUI_HANDLER(self, guildID)
+
+####### Auto Disconnect Bot After X Seconds idle
+    @tasks.loop(minutes=3)
+    async def disconnect_check(self):
+        all_voice_connections = self.bot.voice_clients
+        for voice in all_voice_connections:    
+            guildID = voice.guild.id
+            last_idle = self.data.get_time(guildID)
+            if last_idle is None or voice.is_playing():
+                self.data.set_idle_timestamp(guildID)
+                continue
+            time_passed = (datetime.today()-last_idle).seconds
+            timeout = Setting.get_timeout()
+            if  time_passed > timeout:
+                self.data.full_reset(guildID)
+                channelName = voice.channel.name
+                await voice.disconnect()
+                await GUI_HANDLER(self, guildID)
+                log(voice.guild.name, 'disconnected (timeout)', channelName)

@@ -12,8 +12,6 @@ class Guild_Music_Properties():
         self.random  = {}
         self.back    = {}
         self.mystery = {}
-        self.shuffle = {}
-        self.last_shuffle = {}
         #FOR GUI
         self.channel = {}
         self.message = {}
@@ -32,8 +30,6 @@ class Guild_Music_Properties():
             self.back   [guild_id] = False
             self.random [guild_id] = False
             self.mystery[guild_id] = False
-            self.shuffle[guild_id] = False
-            self.last_shuffle[guild_id] = None
             self.channel[guild_id] = None
             self.message[guild_id] = None
     
@@ -63,10 +59,6 @@ class Guild_Music_Properties():
         return self.loop[guild_id]
     def get_random(self,guild_id):
         return self.random[guild_id]
-    def get_shuffle(self,guild_id):
-        return self.shuffle[guild_id]
-    def get_last_shuffle(self,guild_id):
-        return self.last_shuffle[guild_id]
     def get_channel(self,guild_id):
         return self.channel[guild_id]
     def get_message(self,guild_id):
@@ -94,10 +86,6 @@ class Guild_Music_Properties():
         self.loop[guild_id] = value
     def set_random(self, guild_id, value):
         self.random[guild_id] = value
-    def set_shuffle(self, guild_id, value):
-        self.shuffle[guild_id] = value
-    def set_last_shuffle(self,guild_id, value):
-        self.last_shuffle[guild_id] = value
     def set_channel(self, guild_id, channel):
         self.channel[guild_id] = channel
     def set_message(self,guild_id, message):
@@ -183,17 +171,10 @@ class Guild_Music_Properties():
         else:
             self.set_back(guild_id, True)
 
-    def flip_shuffle(self,guild_id):
-        if self.get_shuffle(guild_id) is True:
-            self.set_shuffle(guild_id, False)
-        else:
-            self.set_shuffle(guild_id, True)
-
     def reset_features(self, guild_id):
         self.loop   [guild_id] = False
         self.random [guild_id] = False
         self.mystery[guild_id] = False
-        self.shuffle[guild_id] = False
         
     def reset(self, guild_id):
         self.current_to_history(guild_id)
@@ -202,7 +183,6 @@ class Guild_Music_Properties():
         self.back   [guild_id] = False
         self.random [guild_id] = False
         self.mystery[guild_id] = False
-        self.shuffle[guild_id] = False
     
     def full_reset(self, guild_id):
         self.queue  [guild_id] = []
@@ -212,4 +192,3 @@ class Guild_Music_Properties():
         self.back   [guild_id] = False
         self.random [guild_id] = False
         self.mystery[guild_id] = False
-        self.shuffle[guild_id] = False

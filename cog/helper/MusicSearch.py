@@ -80,7 +80,7 @@ def GetYTSong(link):
         return song
     except Exception as e:
         error_log('GetYTSong', e, link)
-    return None
+        return None
 def GetYTPlaylist(link):
     ydl_opts = {
         'quiet': True,
@@ -109,7 +109,7 @@ def GetYTPlaylist(link):
             return playlist
     except Exception as e:
         error_log('GetYTPlaylist', e, link)
-    return None
+        return None
 
 def GetYTMSong(link:str):
     try:
@@ -127,7 +127,7 @@ def GetYTMSong(link:str):
             'source': 'query'}
     except Exception as e:
         error_log('GetYTMSong', e, link)
-    return None
+        return None
 def GetYTMPlaylist(link:str):
     try:
         link = link.replace(' ','').replace('\n','')
@@ -153,7 +153,7 @@ def GetYTMPlaylist(link:str):
         return formatted_playlist
     except Exception as e:
         error_log('GetYTMPlaylist', e, link)
-    return None
+        return None
 
 def GetSpotifyTrack(link, client_id, client_secret):
     try:
@@ -175,7 +175,7 @@ def GetSpotifyTrack(link, client_id, client_secret):
             'source':'query'}
     except Exception as e:
         error_log('GetSpotifyTrack', e, link)
-    return None
+        return None
 def GetSpotifyPlaylist(link, client_id, client_secret):
     try:
         client_credentials_manager = SpotifyClientCredentials(client_id=client_id, client_secret=client_secret)
@@ -201,7 +201,7 @@ def GetSpotifyPlaylist(link, client_id, client_secret):
         return playlist
     except Exception as e:
         error_log('GetSpotifyPlaylist', e, link)
-    return None
+        return None
 def GetSpotifyAlbum(link, client_id, client_secret):
     try:
         client_credentials_manager = SpotifyClientCredentials(client_id=client_id, client_secret=client_secret)
@@ -223,7 +223,7 @@ def GetSpotifyAlbum(link, client_id, client_secret):
         return playlist
     except Exception as e:
         error_log('GetSpotifyAlbum', e, link)
-    return None
+        return None
 def GetSpotifyArtist10(link, client_id, client_secret):
     try:
         client_credentials_manager = SpotifyClientCredentials(client_id=client_id, client_secret=client_secret)
@@ -245,5 +245,5 @@ def GetSpotifyArtist10(link, client_id, client_secret):
         return playlist
     except Exception as e:
         error_log('GetSpotifyArtist10', e, link)
-    return None
+        return None
 

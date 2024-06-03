@@ -2,7 +2,6 @@ import discord, asyncio
 from discord.ext import commands
 #Cog import
 from cog.MusicCog          import MusicCog
-from cog.ExtraCogFunctions import ExtraCogFunctions
 #Extra Functions
 from cog.helper.GuildData import Guild_Music_Properties
 from cog.helper.Log        import *
@@ -27,7 +26,6 @@ if __name__ == '__main__':
         async with client:
             try:
                 await client.add_cog(MusicCog(client, SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, data, gui_print))
-                await client.add_cog(ExtraCogFunctions(client, SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, data, gui_print))
                 await client.start(TOKEN)
             except Exception as e:
                 print(e)

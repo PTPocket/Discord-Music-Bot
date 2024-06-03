@@ -1,5 +1,6 @@
 import discord
 from   cog.helper.GuildData import Guild_Music_Properties
+from cog.helper.Log  import *
 import cog.helper.Setting  as Setting
 
 MUSIC_ICON = "https://cdn1.iconfinder.com/data/icons/music-audio-9/24/vinyl_player_retro_dj_disk_music_mix_2-512.png"
@@ -31,7 +32,29 @@ def HelpPrompt(bot):
         name=':information_source:  **Quick Info**', 
         value = f"*```{info_text}```*",
         inline=False)
+    embed.add_field(
+        name='', 
+        value = "",
+        inline=False)
+    embed.add_field(
+        name='', 
+        value = "",
+        inline=False)
     
+    ui_text = '\n:track_previous: - `Previous song`\n\n'
+    ui_text+= ':play_pause: - `Play/Pause`\n\n'
+    ui_text+= ':track_next: - `Next Song`\n\n'
+    ui_text+= ':twisted_rightwards_arrows: - `Shuffle all songs`\n\n'
+    ui_text+= ':arrows_counterclockwise: - `Loop current song`\n\n'
+    ui_text+= ':infinity: Random - `Plays random songs forever`\n\n'
+    ui_text+= ':toilet: Flush - `Erases all data/Stops music player`\n\n'
+    ui_text+= 'Reset - `Erases all data/Disconnects`'
+
+    embed.add_field(
+        name='**:musical_note:  Music Player (user interface)**', 
+        value = f"**{ui_text}**",
+        inline=False)
+
     embed.add_field(
         name='', 
         value = "",
@@ -54,7 +77,6 @@ def HelpPrompt(bot):
         name='**:tools:  How to Use**', 
         value = f"*```{howto_text}```*",
         inline=False)
-    
     embed.add_field(
         name='', 
         value = "",
@@ -85,7 +107,7 @@ def HelpPrompt(bot):
         inline=False)
     command_list = '- /play        /p        /p query\n'
     command_list+= '- /skip        /s        /s\n'
-    command_list+= '- /previous    /prev     /prev'
+    command_list+= '- /previous    /prev     /prev\n'
     command_list+= '- /help        /h        /p\n'
     command_list+= '- /play_random /r        /r'
     embed.add_field(
@@ -99,106 +121,101 @@ def HelpPrompt(bot):
     return embed
 ##### Not From Setting ######
 def MainGuiPrompt(bot, data:Guild_Music_Properties, guild_id, connect = False):
-    bot_avatar = bot.user.display_avatar
-    embed = discord.Embed(
-        title=f":musical_note:   **MUSIC PLAYER**   :musical_note:",
-        #description=f"***```{song}```***",
-        color=discord.Color.blurple()) 
-    embed.set_thumbnail(url=MUSIC_ICON)
+    try:
+        bot_avatar = bot.user.display_avatar
+        embed = discord.Embed(
+            title=f":musical_note:   **MUSIC PLAYER**   :musical_note:",
+            #description=f"***```{song}```***",
+            color=discord.Color.blurple()) 
+        embed.set_thumbnail(url=MUSIC_ICON)
 
-    next_song = None
-    queue_msg = ''
-    queue = data.get_queue(guild_id)
-    for ind, song in enumerate(queue):
-        if ind == 0:
-            next_song = title(song['title'],17)
-        else: 
-            song_title = title(f"{ind}. {song['title']}")
-            queue_msg = song_title +"\n" + queue_msg
+        next_song = None
+        queue_msg = ''
+        queue = data.get_queue(guild_id)
+        for ind, song in enumerate(queue):
+            if ind == 0:
+                next_song = title(song['title'],17)
+            else: 
+                song_title = title(f"{ind}. {song['title']}")
+                queue_msg = song_title +"\n" + queue_msg
+            
+
+            if ind > 3 and ind < len(queue)-1:
+                if ind < len(queue)-2:
+                    queue_msg = f'-  ...\n' + queue_msg
+                song_title = title(f"{len(queue)-1}. {queue[len(queue)-1]['title']}")
+                queue_msg = song_title +'\n'+queue_msg
+                break
+
+        if queue_msg == '': queue_msg = '...'
+        if connect is True:
+            queue_msg = 'Connected!'
+        embed.add_field(
+            name='**Queue**', 
+            value = f"*```{queue_msg}```*",
+            inline=False)
+        if next_song is None:
+            next_song = '...'
+        line = ''
+        embed.add_field(
+            name='', 
+            value=line,
+            inline=False)
+        #NEXT AND PREVIOUS SONG #####
+        last_song = data.get_last_played(guild_id)
+        if last_song is None:last_song = '...'
+        else:last_song= title(last_song['title'],17)
+        if len(next_song) > len(last_song):
+            length_diff = len(next_song)-len(last_song)
+            last_song = last_song + (' '*length_diff)
+        elif len(last_song) > len(next_song):
+            length_diff = len(last_song)-len(next_song)
+            next_song = next_song + (' '*length_diff)
+        embed.add_field(
+            name='**Next**', 
+            value = f"*```{next_song}```*",
+            inline=True)
+        embed.add_field(
+            name='**Previous**', 
+            value = f"*```{last_song}```*",
+            inline=True)
         
-
-        if ind > 3 and ind < len(queue)-1:
-            if ind < len(queue)-2:
-                queue_msg = f'-  ...\n' + queue_msg
-            song_title = title(f"{len(queue)-1}. {queue[len(queue)-1]['title']}")
-            queue_msg = song_title +'\n'+queue_msg
-            break
-
-
-
-    if queue_msg == '': queue_msg = '...'
-    if connect is True:
-        queue_msg = 'Connected!'
-    embed.add_field(
-        name='**Queue**', 
-        value = f"*```{queue_msg}```*",
-        inline=False)
-    if next_song is None:
-        next_song = '...'
-    line = ''
-    embed.add_field(
-        name='', 
-        value=line,
-        inline=False)
-    #NEXT AND PREVIOUS SONG #####
-    last_song = data.get_last_played(guild_id)
-    if last_song is None:last_song = '...'
-    else:last_song= title(last_song['title'],17)
-    if len(next_song) > len(last_song):
-        length_diff = len(next_song)-len(last_song)
-        last_song = last_song + (' '*length_diff)
-    elif len(last_song) > len(next_song):
-        length_diff = len(last_song)-len(next_song)
-        next_song = next_song + (' '*length_diff)
-    embed.add_field(
-        name='**Next**', 
-        value = f"*```{next_song}```*",
-        inline=True)
-    embed.add_field(
-        name='**Previous**', 
-        value = f"*```{last_song}```*",
-        inline=True)
-    
-    current = data.get_current_song(guild_id)
-    if current is None:
-        current = '...'
-    else:
-        if current['author'] is None:
-            current = current['title']
+        current = data.get_current_song(guild_id)
+        if current is None:
+            current = '...'
         else:
-            current = current['title'] + ' by ' + current['author']
+            if current['author'] is None:
+                current = current['title']
+            else:
+                current = current['title'] + ' by ' + current['author']
 
-    embed.add_field(
-        name='', 
-        value = line,
-        inline=False)
+        embed.add_field(
+            name='', 
+            value = line,
+            inline=False)
 
 
-    embed.add_field(
-        name='Now Playing', 
-        value = f'*```{current}```*',
-        inline=False)
+        embed.add_field(
+            name='Now Playing', 
+            value = f'*```{current}```*',
+            inline=False)
 
-    features = 'Shuffle: '
-    if data.get_shuffle(guild_id) is True:
-        features += 'On '
-    else: 
-        features += 'Off'
-    features += '          Loop: '
-    if data.get_loop(guild_id) is True:
-        features += 'On '
-    else: 
-        features += 'Off'
-    features += '          Random: '
-    if data.get_random(guild_id) is True:
-        features +='On '
-    else:
-        features +='Off'
+        features = 'Loop: '
+        if data.get_loop(guild_id) is True:
+            features += 'On '
+        else: 
+            features += 'Off'
+        features += '          Random: '
+        if data.get_random(guild_id) is True:
+            features +='On '
+        else:
+            features +='Off'
 
-    embed.set_footer(text = features, icon_url=bot_avatar)
-    
-    return embed
-
+        embed.set_footer(text = features, icon_url=bot_avatar)
+        
+        return embed
+    except Exception as e:
+        error_log('mainguiprompt', e)
 def queued_playlist_prompt(bot, song_names_list, num_of_songs, url, type):
     bot_avatar = bot.user.display_avatar
     embed = discord.Embed(
