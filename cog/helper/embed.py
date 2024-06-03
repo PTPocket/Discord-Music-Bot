@@ -12,6 +12,89 @@ def title(title, length = 37):
         title = title[0:length]+'...'
     return title
 
+def HelpPrompt(bot):
+    bot_avatar = bot.user.display_avatar
+    embed = discord.Embed(
+        title=f"**Help Menu**",
+        color=discord.Color.blurple()) 
+    
+    embed.add_field(
+        name='', 
+        value = "",
+        inline=False)
+    
+    info_text = '- Uses SLASH and TEXT commands\n'
+    info_text+= '- UI generated in the text channel\n'
+    info_text+= '- Searches youtube to play songs\n'
+    embed.add_field(
+        name=':information_source:  **Quick Info**', 
+        value = f"*```{info_text}```*",
+        inline=False)
+    
+    embed.add_field(
+        name='', 
+        value = "",
+        inline=False)
+    embed.add_field(
+        name='', 
+        value = "",
+        inline=False)
+    howto_text = 'Slash Command\n'
+    howto_text+= '1. Type slash command prefix /\n'
+    howto_text+= '2. Select command\n'
+    howto_text+= '3. Type query\n'
+    howto_text+= '4. Enter\n\n'
+    howto_text+= 'Text Command (Short Commands)\n'
+    howto_text+= '1. Type text command prefix / ! or ?\n'
+    howto_text+= '2. Type a command\n'
+    howto_text+= '3. Add space then type query\n'
+    howto_text+= '4. Enter'
+    embed.add_field(
+        name='**:tools:  How to Use**', 
+        value = f"*```{howto_text}```*",
+        inline=False)
+    
+    embed.add_field(
+        name='', 
+        value = "",
+        inline=False)
+    embed.add_field(
+        name='', 
+        value = "",
+        inline=False)
+    valid_text = '- Any Song Title\n'
+    valid_text+= '- Youtube Video Link\n'
+    valid_text+= '- Youtube Playlist Link\n'
+    valid_text+= '- Youtube Music Track Link\n'
+    valid_text+= '- Youtube Music Playlist Link\n'
+    valid_text+= '- Spotify Track Link'
+    valid_text+= '- Playlist Link'
+    embed.add_field(
+        name='\n:ballot_box_with_check:  **Valid Query**', 
+        value = f"*```{valid_text}```*",
+        inline=False)
+    
+    embed.add_field(
+        name='', 
+        value = "",
+        inline=False)
+    embed.add_field(
+        name='', 
+        value = "",
+        inline=False)
+    command_list = '- /play        /p        /p query\n'
+    command_list+= '- /skip        /s        /s\n'
+    command_list+= '- /help        /h        /p\n'
+    command_list+= '- /play_random /r        /r'
+    embed.add_field(
+        name=':notepad_spiral:  **Command List**', 
+        value = f"*```  Command      Short      Example\n{command_list}```*",
+        inline=False)
+    embed.set_footer(text = 'Note:   /  !  ?   can be used interchangeably for text commands', icon_url=bot_avatar)
+    embed.set_thumbnail(url=MUSIC_ICON)
+    embed.set_author(name=COG_NAME, icon_url=bot_avatar)     
+    
+    return embed
 ##### Not From Setting ######
 def MainGuiPrompt(bot, data:Guild_Music_Properties, guild_id, connect = False):
     bot_avatar = bot.user.display_avatar
@@ -164,6 +247,9 @@ def invalid_link(bot, song, platform=''):
     return embed
 
 ###### From Setting ######
+
+
+
 def unauthorized_prompt(bot):
     bot_avatar = bot.user.display_avatar
     text = Setting.get_unauthorizedText()

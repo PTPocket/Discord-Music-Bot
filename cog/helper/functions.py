@@ -17,14 +17,14 @@ def log(guild_name, action:str, description = ''):
     else:
         print(f"{time} | GUILD: {guild_name} | {action}")
 
-def error_log(location:str, description:str, item:str = None):
+def error_log(location, description, item = None):
     time = str(datetime.now())
-    location = location.upper()
-    description = description.lower()
+    location = str(location).upper()
+    description = str(description).lower()
     if item is None:
         print(f'{time} | ERROR: {location} | {description}')
     else:
-        print(f'{time} | ERROR: {location} | {description} | {item}')
+        print(f'{time} | ERROR: {location} | {description} | {str(item)}')
 
 
 
@@ -196,7 +196,6 @@ def queuePlaylist(guildName, guildID, playlist, playlistType:str, data:Guild_Mus
         log(guildName, "QUEUED", f"{len(playlist)} songs ({playlistType})")
         return song_names_list
 
-
 def SearchYoutube(query):
     ydl_opts = {
             'quiet': True,
@@ -237,6 +236,31 @@ def SearchYoutube(query):
                     'query' : None,
                     'source': 'query'}
 
+
+
+def GetYT(link):
+    if 'watch?v=' in link:
+        return GetYTSong(link)
+    if '/playlist' in link: 
+        return GetYTPlaylist(link)
+    return None
+def GetYTMusic(link):
+    if '/watch?v=' in link:
+        return GetYTMSong(link)
+    if '/playlist?list=' in link:
+        return GetYTMPlaylist(link)
+    return
+def GetSpotify(link, client_id, client_secret):
+    if 'open.spotify.com/playlist' in link:
+        return GetSpotifyPlaylist(link, client_id, client_secret)
+    if 'open.spotify.com/album' in link:
+        return GetSpotifyAlbum(link, client_id, client_secret)
+    if 'open.spotify.com/artist' in link:
+        return GetSpotifyArtist10(link, client_id, client_secret)
+    if 'open.spotify.com/track' in link:
+        return GetSpotifyTrack(link, client_id, client_secret)
+    return None
+
 def GetYTSong(link):
     try:
         link = link.replace(' ','').replace('\n','')
@@ -249,37 +273,20 @@ def GetYTSong(link):
         return song
     except Exception as e:
         error_log('GetYTSong', e, link)
-        return None
-
+    return None
 def GetYTPlaylist(link):
     try:
         link = link.replace(' ','').replace('\n','')
-        playlistID = link.split('list=')[1]
-        link = 'https://www.youtube.com/playlist?list='+playlistID
-        # Create a yt_dlp object
-        ydl_opts = {
-            'quiet': True,
-            'extract_flat': True,
-            'force_generic_extractor': True,
-        }
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            result = ydl.extract_info(link,download=False)
-            playlist = []
-            for item in result['entries']:
-                if item['title']=='[Private video]' and item['title'] == '[Deleted video]':
-                    continue
-                title = item['title']
-                author = item['uploader']
-                url = item['url']
-                playlist.append({
-                    'title':title, 
-                    'author':author, 
-                    'query' : url,
-                    'source':'query'})
-            return playlist
+        link = link.split('&')[0]
+        song = {
+            'title' : link, 
+            'author':None, 
+            'query':link,
+            'source':'query'}
+        return song
     except Exception as e:
         error_log('GetYTPlaylist', e, link)
-        return None
+    return None
 
 def GetYTMSong(link:str):
     try:
@@ -297,8 +304,7 @@ def GetYTMSong(link:str):
             'source': 'query'}
     except Exception as e:
         error_log('GetYTMSong', e, link)
-        return None
-
+    return None
 def GetYTMPlaylist(link:str):
     try:
         link = link.replace(' ','').replace('\n','')
@@ -324,49 +330,100 @@ def GetYTMPlaylist(link:str):
         return formatted_playlist
     except Exception as e:
         error_log('GetYTMPlaylist', e, link)
-        return None
+    return None
 
-def GetSpotify(link, client_id, client_secret):
+def GetSpotifyTrack(link, client_id, client_secret):
     try:
         client_credentials_manager = SpotifyClientCredentials(client_id=client_id, client_secret=client_secret)
         spotify = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
         link = link.replace(' ','').replace('\n','')
-        if 'open.spotify.com/playlist' in link:
-                # Initialize Spotipy with your credentials
-                # Get playlist tracks
-                results = spotify.playlist_tracks(link)
-                # Extract track names
-                playlist = []
-                for item in results['items']:
-                    track = item['track']
-                    title = track['name']
-                    author = ''
-                    for artist in track['artists']:
-                        author+=artist['name']+', '
-                    author = author[:-2]
-                    playlist.append({
-                        'title':title, 
-                        'author':author,
-                        'query' : f'{title} by {author}',
-                        'source': 'query'})
-                return playlist
-        elif 'open.spotify.com/track' in link:
-                # Retrieve track information
-                track_info = spotify.track(link)
-                # Extract title and artist from track information
-                title = track_info['name']
-                author = ''
-                for artist in track_info['artists']:
-                    author += artist['name'] +', '
-                author = author[:-2]
-                return {
-                    'title' : title, 
-                    'author': author,
-                    'query' : f'{title} by {author}',
-                    'source':'query'}
-        else:
-            return None
+        # Retrieve track information
+        track_info = spotify.track(link)
+        # Extract title and artist from track information
+        title = track_info['name']
+        author = ''
+        for artist in track_info['artists']:
+            author += artist['name'] +', '
+        author = author[:-2]
+        return {
+            'title' : title, 
+            'author': author,
+            'query' : f'{title} by {author}',
+            'source':'query'}
     except Exception as e:
-        error_log('GetSpotify', e, link)
-        return None
+        error_log('GetSpotifyTrack', e, link)
+    return None
+def GetSpotifyPlaylist(link, client_id, client_secret):
+    try:
+        client_credentials_manager = SpotifyClientCredentials(client_id=client_id, client_secret=client_secret)
+        spotify = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
+        link = link.replace(' ','').replace('\n','')
+        # Initialize Spotipy with your credentials
+        # Get playlist tracks
+        results = spotify.playlist_tracks(link)
+        # Extract track names
+        playlist = []
+        for item in results['items']:
+            track = item['track']
+            title = track['name']
+            author = ''
+            for artist in track['artists']:
+                author+=artist['name']+', '
+            author = author[:-2]
+            playlist.append({
+                'title':title, 
+                'author':author,
+                'query' : f'{title} by {author}',
+                'source': 'query'})
+        return playlist
+    except Exception as e:
+        error_log('GetSpotifyPlaylist', e, link)
+    return None
+def GetSpotifyAlbum(link, client_id, client_secret):
+    try:
+        client_credentials_manager = SpotifyClientCredentials(client_id=client_id, client_secret=client_secret)
+        spotify = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
+        link = link.replace(' ','').replace('\n','')
+        results = spotify.album_tracks(link)
+        playlist = []
+        for item in results['items']:
+            title = item['name']
+            author = ''
+            for artist in item['artists']:
+                author+=artist['name']+', '
+            author = author[:-2]
+            playlist.append({
+                'title':title, 
+                'author':author,
+                'query' : f'{title} by {author}',
+                'source': 'query'})
+        return playlist
+    except Exception as e:
+        error_log('GetSpotifyAlbum', e, link)
+    return None
+def GetSpotifyArtist10(link, client_id, client_secret):
+    try:
+        client_credentials_manager = SpotifyClientCredentials(client_id=client_id, client_secret=client_secret)
+        spotify = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
+        link = link.replace(' ','').replace('\n','')
+        results = spotify.artist_top_tracks(link)
+        playlist = []
+        for item in results['tracks']:
+            title = item['name']
+            author = ''
+            for artist in item['artists']:
+                author+=artist['name']+', '
+            author = author[:-2]
+            playlist.append({
+                'title':title, 
+                'author':author,
+                'query' : f'{title} by {author}',
+                'source': 'query'})
+        return playlist
+    except Exception as e:
+        error_log('GetSpotifyArtist10', e, link)
+    return None
+
+
+
     

@@ -1,4 +1,4 @@
-import discord, os, random
+import discord, os, random, time
 from datetime import datetime
 from discord               import app_commands, FFmpegPCMAudio
 from discord.ext           import commands, tasks
@@ -14,7 +14,8 @@ FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconne
 FFMPEG_LOC = "C:\\Users\\p\\Downloads\\ffmpeg\\bin\\ffmpeg.exe"
 LOCAL_MUSIC_PATH = "C:\\Users\\p\\Documents\\SERVER\\music\\Formatted"
 
-
+SHORT_COMMANDS = ['p', 'h', 's', 'r']
+PREFIXS = ['!','/', '?']
 
 class Music_Cog(commands.Cog):
     def __init__(self, bot:commands.Bot, client_id, client_secret):
@@ -34,12 +35,10 @@ class Music_Cog(commands.Cog):
             view = MusicFunctions(self, self.data, guildID)
             channel = self.data.get_channel(guildID)
             last_message = self.data.get_message(guildID)
-
             if last_message is None:
                 message = await channel.send(embed = player_embed, view = view)
                 self.data.set_message(guildID, message)
                 return
-
             if edit is True:
                 message = await last_message.edit(embed = player_embed, view = view)
                 self.data.set_message(guildID, message)
@@ -49,9 +48,6 @@ class Music_Cog(commands.Cog):
             self.data.set_message(guildID, message)
         except Exception as e:
             error_log('Gui_handler', e)
-
-
-
 
     #MUSIC PLAYER LOOP (not recursive)
     def music_player(self, guildName, guildID, voice_client, recall = False):
@@ -83,7 +79,6 @@ class Music_Cog(commands.Cog):
         #Put here cause it will change entered query title to the video title in GUI
         if recall is True:
             self.gui_print.add(guildID)
-
         player = discord.PCMVolumeTransformer(player, volume=0.16)
         self.data.set_idle_timestamp(guildID)
         log(guildName, "now playing", f'\"{song["title"]} by {song['author']}\"')
@@ -101,43 +96,43 @@ class Music_Cog(commands.Cog):
                 self.music_player(guildName, guildID, voice_client)
             except Exception as e:
                 play_error = True
-                log(guildName, 'error', 'music_player_start', e)
+                error_log('music_player', e)
         await self.GUI_HANDLER(guildID, edit= edit, error= play_error)
         
 #######PLAY FUNCTIONS######################################################
     @app_commands.check(valid_play_command)
     @app_commands.command(name= "play", description="Play Song or Playlist with the Title or Link (Spotify, YouTube, YTMusic)")
-    async def play(self, interaction:discord.Interaction, title_or_link:str):
+    async def play_sc(self, interaction:discord.Interaction, title_or_link:str):
         user = interaction.user
         guildName = interaction.user.guild.name
         guildID = interaction.user.guild.id
         voice_client = interaction.client.get_guild(guildID).voice_client
         channel = interaction.channel
         log(guildName, 'command', 'play')
+        self.data.initialize(guildID)
+        await interaction.response.defer()
         try:
-            self.data.initialize(guildID)
-            await interaction.response.defer()
             if 'music.youtube.com' in title_or_link:
-                if '/playlist' in title_or_link:
-                    playlist = GetYTMPlaylist(title_or_link)
-                    if playlist is None:
+                song_data = GetYTMusic(title_or_link)
+                if type(song_data) == list:
+                    song_data = GetYTMPlaylist(title_or_link)
+                    if song_data is None:
                         msg = embed.invalid_link(self.bot, title_or_link, 'YTMusic Playlist')
                         await interaction.followup.send(embed= msg, ephemeral=True)
                         return
                     playlistType = 'YTMusic'
-                    playlist_emb = queuePlaylist(guildName,guildID,playlist,playlistType,self.data)
-                    msg = embed.queued_playlist_prompt(self.bot, playlist_emb, len(playlist), title_or_link, 'YTMusic')
+                    playlist_emb = queuePlaylist(guildName,guildID,song_data, playlistType,self.data)
+                    msg = embed.queued_playlist_prompt(self.bot, playlist_emb, len(song_data), title_or_link, 'YTMusic')
                     await interaction.channel.send(embed=msg)
                     await self.music_player_start(user, guildName, guildID, voice_client, channel)
                     return
-                if '/watch?v=' in title_or_link:
-                    song = GetYTMSong(title_or_link)
-                    if song is None:
+                if type(song_data) == dict:
+                    if song_data is None:
                         msg = embed.invalid_link(self.bot, title_or_link, 'YTMusic Song')
                         await interaction.followup.send(embed= msg, ephemeral=True)
                         return
-                    self.data.queue_song(guildID, song)
-                    prompt = song['title'] + ' by ' + song['author']
+                    self.data.queue_song(guildID, song_data)
+                    prompt = song_data['title'] + ' by ' + song_data['author']
                     log(guildName, "queued", f"{prompt} (ytmusic)" )
                     msg = embed.queue_prompt(self.bot, prompt)
                     await interaction.followup.send(embed= msg)
@@ -148,28 +143,27 @@ class Music_Cog(commands.Cog):
                 error_log('play', 'invalid ytmusic link', title_or_link)
                 return
             
-            if 'youtube.com/' in title_or_link:
-                if 'watch?v=' in title_or_link:
-                    song = GetYTSong(title_or_link)
-                    if song is None:
+            if 'youtube.com' in title_or_link:
+                song_data = GetYT(title_or_link)
+                if type(song_data) == dict:
+                    if song_data is None:
                         msg = embed.invalid_link(self.bot, title_or_link, 'Youtube Song')
                         await interaction.followup.send(embed= msg, ephemeral=True)
                         return
-                    self.data.queue_song(guildID, song)
-                    log(guildName, "QUEUED", f"{song['title']} (youtube)" )
-                    msg = embed.queue_prompt(self.bot, song['title'])
+                    self.data.queue_song(guildID, song_data)
+                    log(guildName, "QUEUED", f"{song_data['title']} (youtube)" )
+                    msg = embed.queue_prompt(self.bot, song_data['title'])
                     await interaction.followup.send(embed= msg)
                     await self.music_player_start(user, guildName, guildID, voice_client, channel)
                     return
-                if '/playlist' in title_or_link:
-                    playlist = GetYTPlaylist(title_or_link)
-                    if playlist is None:
+                if type(song_data) == list:
+                    if song_data is None:
                         msg = embed.invalid_link(self.bot, title_or_link, 'YT Playlist')
                         await interaction.followup.send(embed= msg, ephemeral=True)
                         return
                     playlistType = 'Youtube'
-                    playlist_emb = queuePlaylist(guildName,guildID,playlist,playlistType,self.data)      
-                    msg = embed.queued_playlist_prompt(self.bot, playlist_emb, len(playlist), title_or_link, 'Youtube')
+                    playlist_emb = queuePlaylist(guildName, guildID, song_data, playlistType, self.data)      
+                    msg = embed.queued_playlist_prompt(self.bot, playlist_emb, len(song_data), title_or_link, 'Youtube')
                     await interaction.followup.send(embed = msg)              
                     await self.music_player_start(user, guildName, guildID, voice_client, channel)
                     return
@@ -177,6 +171,7 @@ class Music_Cog(commands.Cog):
                 await interaction.followup.send(embed= msg, ephemeral=True)
                 error_log('play', 'invalid youtube link', title_or_link)
                 return
+            
             if 'open.spotify.com' in title_or_link:
                 song_data = GetSpotify(title_or_link, self.client_id, self.client_secret)
                 if song_data is None:
@@ -225,89 +220,9 @@ class Music_Cog(commands.Cog):
         except Exception as e:
             error_log('play', e)
 
-    @app_commands.check(valid_play_command)
-    @app_commands.command(name= "playlist", description="Queue a Playlist with a Link (Spotify, YouTube, YTMusic)")
-    async def playlist(self, interaction:discord.Interaction, link:str):
-        user = interaction.user
-        guildName = interaction.user.guild.name
-        guildID = interaction.user.guild.id
-        voice_client = interaction.client.get_guild(guildID).voice_client
-        channel = interaction.channel
-        log(guildName, 'command', 'playlist')
-        try:
-            self.data.initialize(guildID)
-            await interaction.response.defer(ephemeral=True)
-            if 'music.youtube.com' in link and 'list=' in link:
-                playlistType = 'YTMusic'
-                playlist = GetYTMPlaylist(link)
-            elif 'youtube.com' in link and 'list=' in link:
-                playlistType = 'Youtube'
-                playlist = GetYTPlaylist(link)
-            elif 'open.spotify.com/playlist' in link:
-                playlistType = 'Spotify'
-                playlist = GetSpotify(link, self.client_id, self.client_secret)
-            else:
-                msg = embed.invalid_link(self.bot, link)
-                await interaction.followup.send(embed= msg, ephemeral=True)
-                error_log('playlist', 'Invalid Playlist Link')
-                return
-            if playlist is None:
-                msg = embed.invalid_link(self.bot, link, f'{playlistType} Playlist')
-                await interaction.followup.send(embed= msg, ephemeral=True)
-                return 
-            playlist_emb = queuePlaylist(guildName,guildID,playlist,playlistType,self.data)
-            msg = embed.queued_playlist_prompt(self.bot, playlist_emb, len(playlist), link, playlistType)
-            await interaction.channel.send(embed=msg)
-            await self.music_player_start(user, guildName, guildID, voice_client, channel)
-        except Exception as e:
-            error_log('playlist', e)
-            return
-
-    @app_commands.check(valid_play_command)
-    @app_commands.command(name= "play_random", description="Play random songs from pocket bot library forever")
-    async def play_random(self, interaction:discord.Interaction): 
-        user = interaction.user
-        guildName = interaction.user.guild.name
-        guildID = interaction.user.guild.id
-        voice_client = interaction.client.get_guild(guildID).voice_client
-        channel = interaction.channel
-        log(guildName, 'command', 'play_random')
-        await interaction.response.defer()
-        self.data.initialize(guildID)
-        if self.data.flip_random(guildID) is True:
-            log(guildName, 'RANDOM', 'On')
-        else: 
-            log(guildName, 'RANDOM', 'Off')
-        await self.music_player_start(user, guildName, guildID, voice_client, channel)
-        await interaction.delete_original_response()
-
-    @app_commands.check(valid_play_command)
-    @app_commands.command(name= "skip", description="Skips song")
-    async def skip(self, interaction:discord.Interaction):
-        guildName = interaction.user.guild.name
-        guildID = interaction.user.guild.id
-        voice_client = interaction.client.get_guild(guildID).voice_client
-        log(guildName, 'command', 'skip')
-        await interaction.response.defer(ephemeral=True)
-        self.data.initialize(guildID)
-
-        if voice_client is None:
-            msg = embed.skip_error_prompt(self.bot)
-            await interaction.followup.send(embed= msg, ephemeral=True)
-            return
-        if (voice_client.is_playing() or voice_client.is_paused()):
-            self.data.set_loop(guildID, False)
-            #current_song = self.data.get_current_song(guildID)
-            voice_client.stop()
-            await interaction.delete_original_response()
-            await self.GUI_HANDLER(guildID)
-            return
-        msg = embed.skip_error_prompt(self.bot)
-        await interaction.followup.send(embed= msg, ephemeral=True)
-
     #@commands.check(valid_play_command2)
-    @commands.command(name = 'p', aliases = ['P'])
-    async def play2(self, ctx:commands.context.Context):
+    @commands.command(aliases = ['p','P'])
+    async def play_tc(self, ctx:commands.context.Context):
         title_or_link = ctx.message.content.strip()[3:]
         user = ctx.author
         guildName = str(ctx.guild)
@@ -316,30 +231,32 @@ class Music_Cog(commands.Cog):
         channel = ctx.message.channel
         log(guildName, 'command', 'play')
         if await valid_play_command2(self.bot, ctx) is False:
+            msg = embed.unauthorized_prompt(self.bot)
+            await ctx.send(msg)
             return
+        self.data.initialize(guildID)
         try:
-            self.data.initialize(guildID)
+            song_data = GetYTMusic(title_or_link)
             if 'music.youtube.com' in title_or_link:
-                if '/playlist' in title_or_link:
-                    playlist = GetYTMPlaylist(title_or_link)
-                    if playlist is None:
+                if type(song_data) == list:
+                    if song_data is None:
                         msg = embed.invalid_link(self.bot, title_or_link, 'YTMusic Playlist')
                         await ctx.send(embed= msg, ephemeral=True)
                         return
                     playlistType = 'YTMusic'
-                    playlist_emb = queuePlaylist(guildName,guildID,playlist,playlistType,self.data)
-                    msg = embed.queued_playlist_prompt(self.bot, playlist_emb, len(playlist), title_or_link, 'YTMusic')
+                    playlist_emb = queuePlaylist(guildName,guildID,song_data,playlistType,self.data)
+                    msg = embed.queued_playlist_prompt(self.bot, playlist_emb, len(song_data), title_or_link, 'YTMusic')
                     await ctx.send(embed=msg)
                     await self.music_player_start(user, guildName, guildID, voice_client, channel)
                     return
                 if '/watch?v=' in title_or_link:
-                    song = GetYTMSong(title_or_link)
-                    if song is None:
+                    song_data = GetYTMSong(title_or_link)
+                    if song_data is None:
                         msg = embed.invalid_link(self.bot, title_or_link, 'YTMusic Song')
                         await ctx.send(embed= msg, ephemeral=True)
                         return
-                    self.data.queue_song(guildID, song)
-                    prompt = song['title'] + ' by ' + song['author']
+                    self.data.queue_song(guildID, song_data)
+                    prompt = song_data['title'] + ' by ' + song_data['author']
                     log(guildName, "queued", f"{prompt} (ytmusic)" )
                     msg = embed.queue_prompt(self.bot, prompt)
                     await ctx.send(embed= msg)
@@ -351,27 +268,26 @@ class Music_Cog(commands.Cog):
                 return
             
             if 'youtube.com/' in title_or_link:
-                if 'watch?v=' in title_or_link:
-                    song = GetYTSong(title_or_link)
-                    if song is None:
+                song_data = GetYT(title_or_link)
+                if type(song_data) == dict:
+                    if song_data is None:
                         msg = embed.invalid_link(self.bot, title_or_link, 'Youtube Song')
                         await ctx.send(embed= msg, ephemeral=True)
                         return
-                    self.data.queue_song(guildID, song)
-                    log(guildName, "QUEUED", f"{song['title']} (youtube)" )
-                    msg = embed.queue_prompt(self.bot, song['title'])
+                    self.data.queue_song(guildID, song_data)
+                    log(guildName, "QUEUED", f"{song_data['title']} (youtube)" )
+                    msg = embed.queue_prompt(self.bot, song_data['title'])
                     await ctx.send(embed= msg)
                     await self.music_player_start(user, guildName, guildID, voice_client, channel)
                     return
-                if '/playlist' in title_or_link:
-                    playlist = GetYTPlaylist(title_or_link)
-                    if playlist is None:
+                if type(song_data) == list:
+                    if song_data is None:
                         msg = embed.invalid_link(self.bot, title_or_link, 'YT Playlist')
                         await ctx.send(embed= msg, ephemeral=True)
                         return
                     playlistType = 'Youtube'
-                    playlist_emb = queuePlaylist(guildName,guildID,playlist, playlistType, self.data)                    
-                    msg = embed.queued_playlist_prompt(self.bot, playlist_emb, len(playlist), title_or_link, 'Youtube')
+                    playlist_emb = queuePlaylist(guildName,guildID, song_data, playlistType, self.data)                    
+                    msg = embed.queued_playlist_prompt(self.bot, playlist_emb, len(song_data), title_or_link, 'Youtube')
                     await ctx.send(embed = msg)
                     await self.music_player_start(user, guildName, guildID, voice_client, channel)
                     return
@@ -430,6 +346,112 @@ class Music_Cog(commands.Cog):
             error_log('play2', e)
         
 
+    @app_commands.check(valid_play_command)
+    @app_commands.command(name= "play_random", description="Play random songs from pocket bot library forever")
+    async def play_random_sc(self, interaction:discord.Interaction): 
+        user = interaction.user
+        guildName = interaction.user.guild.name
+        guildID = interaction.user.guild.id
+        voice_client = interaction.client.get_guild(guildID).voice_client
+        channel = interaction.channel
+        log(guildName, 'command', 'play_random_sc')
+        await interaction.response.defer()
+        self.data.initialize(guildID)
+        if self.data.flip_random(guildID) is True:
+            log(guildName, 'RANDOM', 'On')
+        else: 
+            log(guildName, 'RANDOM', 'Off')
+        await self.music_player_start(user, guildName, guildID, voice_client, channel)
+        await interaction.delete_original_response()
+
+    @commands.command(aliases = ['r','R'])
+    async def play_random_tc(self, ctx:commands.context.Context):
+
+        user = ctx.author
+        guildName = str(ctx.guild)
+        guildID = ctx.guild.id
+        voice_client = self.bot.get_guild(guildID).voice_client
+        channel = ctx.message.channel
+        log(guildName, 'command', 'play_random_tc')
+        if await valid_play_command2(self.bot, ctx) is False:
+            msg = embed.unauthorized_prompt(self.bot)
+            await ctx.send(msg)
+            return
+        self.data.initialize(guildID)
+        if self.data.flip_random(guildID) is True:
+            log(guildName, 'RANDOM', 'On')
+        else: 
+            log(guildName, 'RANDOM', 'Off')
+        await self.music_player_start(user, guildName, guildID, voice_client, channel)
+
+
+    @app_commands.check(valid_play_command)
+    @app_commands.command(name= "skip", description="Skips song")
+    async def skip_sc(self, interaction:discord.Interaction):
+        guildName = interaction.user.guild.name
+        log(guildName, 'command', 'skip')
+        guildName = interaction.user.guild.name
+        guildID = interaction.user.guild.id
+        voice_client = interaction.client.get_guild(guildID).voice_client
+        await interaction.response.defer(ephemeral=True)
+        self.data.initialize(guildID)
+        if voice_client is None:
+            msg = embed.skip_error_prompt(self.bot)
+            await interaction.followup.send(embed= msg, ephemeral=True)
+            return
+        if (voice_client.is_playing() or voice_client.is_paused()):
+            self.data.set_loop(guildID, False)
+            #current_song = self.data.get_current_song(guildID)
+            voice_client.stop()
+            await interaction.delete_original_response()
+            await self.GUI_HANDLER(guildID)
+            return
+        msg = embed.skip_error_prompt(self.bot)
+        await interaction.followup.send(embed= msg, ephemeral=True)
+
+    @commands.command(aliases = ['s','S'])
+    async def skip_tc(self, ctx:commands.context.Context):
+        guildName = str(ctx.guild)
+        guildID = ctx.guild.id
+        voice_client = self.bot.get_guild(guildID).voice_client
+        log(guildName, 'command', 'skip')
+        if await valid_play_command2(self.bot, ctx) is False:
+            msg = embed.unauthorized_prompt(self.bot)
+            await ctx.send(msg)
+            return
+        self.data.initialize(guildID)
+        if voice_client is None:
+            msg = embed.skip_error_prompt(self.bot)
+            await ctx.send(embed= msg, ephemeral=True)
+            return
+        if (voice_client.is_playing() or voice_client.is_paused()):
+            self.data.set_loop(guildID, False)
+            #current_song = self.data.get_current_song(guildID)
+            voice_client.stop()
+            time.sleep(.3)
+            await self.GUI_HANDLER(guildID, edit=False)
+            return
+        msg = embed.skip_error_prompt(self.bot)
+        await ctx.send(embed= msg, ephemeral=True)
+
+
+    @app_commands.command(name= "help", description="Shows bot use information")
+    async def help_sc(self, interaction:discord.Interaction):
+        guildName = interaction.user.guild.name
+        guildID = ctx.guild.id
+        log(guildName, 'command', 'help')
+        msg = embed.HelpPrompt(self.bot)
+        await interaction.response.send_message(embed= msg)
+        await self.GUI_HANDLER(guildID, edit=False)
+    @commands.command(aliases = ['h','H'])
+    async def help_tc(self, ctx:commands.context.Context):
+        guildName = str(ctx.guild)
+        guildID = ctx.guild.id
+        log(guildName, 'command', 'help')
+        msg = embed.HelpPrompt(self.bot)
+        await ctx.send(embed= msg)
+        await self.GUI_HANDLER(guildID, edit=False)
+
 ######## LOOP TO AUTO CHANGE GUI ##############################################################
     @tasks.loop(seconds = 5)
     async def gui_loop(self):
@@ -463,10 +485,13 @@ class Music_Cog(commands.Cog):
     async def on_message(self, message):
         guildName = message.guild.name
         guildID = message.guild.id
-        command = message.content[:3].lower()
+        command = str(message.content).split(' ')[0]
+        prefix = command[:1]
+        com = command[1:].lower()
         if message.author.id != self.bot.user.id \
             and message.channel.id == self.data.get_message(guildID).channel.id\
-            and command not in ['/p ']:
+            and prefix not in PREFIXS\
+            and com not in SHORT_COMMANDS:
             await self.GUI_HANDLER(guildID, edit=False)
 
     # RESET BOT FOR GUILD IF DISCONNECTED FROM VOICE CHANNEL
@@ -840,3 +865,43 @@ class MusicFunctions(View):
             self.data.set_loop(guildID, False)
             await interaction.response.defer()
             await self.music_cog.music_player_start(user, guildName, guildID, voice_client, channel, edit = True)
+
+
+
+    # @app_commands.check(valid_play_command)
+    # @app_commands.command(name= "playlist", description="Queue a Playlist with a Link (Spotify, YouTube, YTMusic)")
+    # async def playlist(self, interaction:discord.Interaction, link:str):
+    #     user = interaction.user
+    #     guildName = interaction.user.guild.name
+    #     guildID = interaction.user.guild.id
+    #     voice_client = interaction.client.get_guild(guildID).voice_client
+    #     channel = interaction.channel
+    #     log(guildName, 'command', 'playlist')
+    #     try:
+    #         self.data.initialize(guildID)
+    #         await interaction.response.defer(ephemeral=True)
+    #         if 'music.youtube.com' in link and 'list=' in link:
+    #             playlistType = 'YTMusic'
+    #             playlist = GetYTMPlaylist(link)
+    #         elif 'youtube.com' in link and 'list=' in link:
+    #             playlistType = 'Youtube'
+    #             playlist = GetYTPlaylist(link)
+    #         elif 'open.spotify.com/playlist' in link:
+    #             playlistType = 'Spotify'
+    #             playlist = GetSpotify(link, self.client_id, self.client_secret)
+    #         else:
+    #             msg = embed.invalid_link(self.bot, link)
+    #             await interaction.followup.send(embed= msg, ephemeral=True)
+    #             error_log('playlist', 'Invalid Playlist Link')
+    #             return
+    #         if playlist is None:
+    #             msg = embed.invalid_link(self.bot, link, f'{playlistType} Playlist')
+    #             await interaction.followup.send(embed= msg, ephemeral=True)
+    #             return 
+    #         playlist_emb = queuePlaylist(guildName,guildID,playlist,playlistType,self.data)
+    #         msg = embed.queued_playlist_prompt(self.bot, playlist_emb, len(playlist), link, playlistType)
+    #         await interaction.channel.send(embed=msg)
+    #         await self.music_player_start(user, guildName, guildID, voice_client, channel)
+    #     except Exception as e:
+    #         error_log('playlist', e)
+    #         return

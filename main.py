@@ -9,21 +9,22 @@ from cog.helper.functions import log
 from config import TOKEN, SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET
 
 
-#Discord Bot Setup##################################################
-intents = discord.Intents.default()
-intents.message_content = True
-client = commands.Bot(command_prefix="/", intents = intents)
+if __name__ == '__main__':
+    #Discord Bot Setup##################################################
+    intents = discord.Intents.default()
+    intents.message_content = True
+    client = commands.Bot(command_prefix=['/','!', '?'], intents = intents)
 
-@client.event
-async def on_ready():
-    log(None, client.user, 'Connected to Discord')
+    @client.event
+    async def on_ready():
+        log(None, client.user, 'Connected to Discord')
 
-async def main():
-    async with client:
-        try:
-            await client.add_cog(Music_Cog(client, SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET))
-            await client.start(TOKEN)
-        except Exception as e:
-            print(e)
+    async def main():
+        async with client:
+            try:
+                await client.add_cog(Music_Cog(client, SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET))
+                await client.start(TOKEN)
+            except Exception as e:
+                print(e)
 
-asyncio.run(main())
+    asyncio.run(main())
