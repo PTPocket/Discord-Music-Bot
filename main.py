@@ -25,7 +25,7 @@ if __name__ == '__main__':
     async def main():
         async with client:
             try:
-                await client.add_cog(MusicCog(client, SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, data, gui_print))
+                await client.add_cog(MusicCog(client, data, gui_print, SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET))
                 await client.start(TOKEN)
             except Exception as e:
                 print(e)

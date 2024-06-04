@@ -32,28 +32,6 @@ def HelpPrompt(bot):
         name=':information_source:  **Quick Info**', 
         value = f"*```{info_text}```*",
         inline=False)
-    embed.add_field(
-        name='', 
-        value = "",
-        inline=False)
-    embed.add_field(
-        name='', 
-        value = "",
-        inline=False)
-    
-    ui_text = '\n:track_previous: - `Previous song`\n\n'
-    ui_text+= ':play_pause: - `Play/Pause`\n\n'
-    ui_text+= ':track_next: - `Next Song`\n\n'
-    ui_text+= ':twisted_rightwards_arrows: - `Shuffle all songs`\n\n'
-    ui_text+= ':arrows_counterclockwise: - `Loop current song`\n\n'
-    ui_text+= ':infinity: Random - `Plays random songs forever`\n\n'
-    ui_text+= ':toilet: Flush - `Erases all data/Stops music player`\n\n'
-    ui_text+= 'Reset - `Erases all data/Disconnects`'
-
-    embed.add_field(
-        name='**:musical_note:  Music Player (user interface)**', 
-        value = f"**{ui_text}**",
-        inline=False)
 
     embed.add_field(
         name='', 
@@ -90,8 +68,8 @@ def HelpPrompt(bot):
     valid_text+= '- Youtube Playlist Link\n'
     valid_text+= '- Youtube Music Track Link\n'
     valid_text+= '- Youtube Music Playlist Link\n'
-    valid_text+= '- Spotify Track Link'
-    valid_text+= '- Playlist Link'
+    valid_text+= '- Spotify Track Link\n'
+    valid_text+= '- Spotify Playlist Link'
     embed.add_field(
         name='\n:ballot_box_with_check:  **Valid Query**', 
         value = f"*```{valid_text}```*",
@@ -105,22 +83,67 @@ def HelpPrompt(bot):
         name='', 
         value = "",
         inline=False)
-    command_list = '- /play        /p        /p query\n'
-    command_list+= '- /skip        /s        /s\n'
-    command_list+= '- /previous    /prev     /prev\n'
-    command_list+= '- /help        /h        /p\n'
-    command_list+= '- /play_random /r        /r'
+    
+
+    command_list = '- /play        /p       (play query)\n'
+    command_list+= '- /skip        /s       (skip song)\n'
+    command_list+= '- /pause       /pause   (pause song)\n'
+    command_list+= '- /resume      /resume  (resume song)\n'
+    command_list+= '- /previous    /prev    (previous song)\n'
+    command_list+= '- /shuffle     /shuffle (shuffle songs)\n'
+    command_list+= '- /play_random /pr      (random songs)\n'
+    command_list+= '- /flush       /f       (empty all songs)\n'
+    command_list+= '- /help        /h       (open help menu)'
     embed.add_field(
         name=':notepad_spiral:  **Command List**', 
-        value = f"*```  Command      Short      Example\n{command_list}```*",
+        value = f"*```  Slash        Text     Description\n{command_list}```*",
         inline=False)
+    embed.add_field(
+        name='', 
+        value = "",
+        inline=False)
+    embed.add_field(
+        name='', 
+        value = "",
+        inline=False)
+    ex_text = ' - /play i like to move it move it\n'
+    ex_text+= ' - /skip\n'
+    ex_text+= ' - /p youtube.com/watch?v=cpKolP6mMec\n'
+    ex_text+= ' - /flush'
+    embed.add_field(
+        name='**:mag_right:  Example Commands**', 
+        value = f"*```{ex_text}```*",
+        inline=False)
+
+    embed.add_field(
+        name='', 
+        value = "",
+        inline=False)
+    embed.add_field(
+        name='', 
+        value = "",
+        inline=False)
+    
+    ui_text = '\n:track_previous:  -  `Previous song`\n\n'
+    ui_text+= ':play_pause:  -  `Play/Pause`\n\n'
+    ui_text+= ':track_next:  -  `Next Song`\n\n'
+    ui_text+= ':twisted_rightwards_arrows:  -  `Shuffle all songs`\n\n'
+    ui_text+= ':arrows_counterclockwise:  -  `Loop current song`\n\n'
+    ui_text+= ':infinity: Random  -  `Plays random songs forever`\n\n'
+    ui_text+= ':toilet: Flush  -  `Erases all data/Stops music player`\n\n'
+    ui_text+= 'Reset  -  `Erases all data/Disconnects`'
+    embed.add_field(
+        name='**:musical_note:  Music Player (User Interface)**', 
+        value = f"**{ui_text}**",
+        inline=False)
+
     embed.set_footer(text = 'Note:   /  !  ?   can be used interchangeably for text commands', icon_url=bot_avatar)
     embed.set_thumbnail(url=MUSIC_ICON)
     embed.set_author(name=COG_NAME, icon_url=bot_avatar)     
     
     return embed
 ##### Not From Setting ######
-def MainGuiPrompt(bot, data:Guild_Music_Properties, guild_id, connect = False):
+def MainGuiPrompt(bot, data:Guild_Music_Properties, guild_id, error = False):
     try:
         bot_avatar = bot.user.display_avatar
         embed = discord.Embed(
@@ -148,8 +171,6 @@ def MainGuiPrompt(bot, data:Guild_Music_Properties, guild_id, connect = False):
                 break
 
         if queue_msg == '': queue_msg = '...'
-        if connect is True:
-            queue_msg = 'Connected!'
         embed.add_field(
             name='**Queue**', 
             value = f"*```{queue_msg}```*",
@@ -193,8 +214,8 @@ def MainGuiPrompt(bot, data:Guild_Music_Properties, guild_id, connect = False):
             name='', 
             value = line,
             inline=False)
-
-
+        if error is True:
+            current = 'Error'
         embed.add_field(
             name='Now Playing', 
             value = f'*```{current}```*',
