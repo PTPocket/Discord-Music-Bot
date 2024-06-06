@@ -160,7 +160,7 @@ def check_features(data:Guild_Music_Properties, guild_id):
         author = song_metadata.artist
         song = {
             'title' : title, 
-            'author':author, 
+            'author': author, 
             'url'   : f'{LOCAL_MUSIC_PATH}\\{song}',
             'source': 'local'}
         data.queue_song(guild_id, song)

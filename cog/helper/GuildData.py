@@ -39,16 +39,6 @@ class Guild_Music_Properties():
             return None
         else:
             return self.history[guild_id][0]
-    # def get_all_songs(self, guild_id):
-    #     past_songs = self.history[guild_id]
-    #     next_songs =  self.queue[guild_id]
-    #     if self.current[guild_id] is None:
-    #         all_songs = past_songs+next_songs
-    #         return all_songs
-    #     else:
-    #         next_songs.insert(0,self.current[guild_id])
-    #         all_songs = past_songs+next_songs
-    #         return all_songs
     def get_queue(self, guild_id):
         return self.queue[guild_id]
     def get_history(self, guild_id):

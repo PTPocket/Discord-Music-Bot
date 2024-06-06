@@ -4,10 +4,14 @@ from cog.helper.Log  import *
 import cog.helper.Setting  as Setting
 
 MUSIC_ICON = "https://cdn1.iconfinder.com/data/icons/music-audio-9/24/vinyl_player_retro_dj_disk_music_mix_2-512.png"
+ICON_PATH = 'C:/Users/Pocket/Documents/GitHub/Discord-Music-Bot/4105542_audio_melody_music_sound_icon.png'
 COG_NAME = "Pocket Muse"   
 
 BLANK = '\u200b'
-
+#ICON_PATH = 'C:/Users/Pocket/Documents/GitHub/Discord-Music-Bot/4105542_audio_melody_music_sound_icon.png'
+#file = discord.File(ICON_PATH, filename="thumbnail.png")
+#embed.set_thumbnail(url=thumbnail.png)
+#ctx.send(file=file, embed = emb)
 #####USING########
 def title(title, length = 37):
     if len(title) > length:
@@ -88,10 +92,11 @@ def HelpPrompt(bot):
     command_list = '- /play        /p       (play query)\n'
     command_list+= '- /skip        /s       (skip song)\n'
     command_list+= '- /pause       /pause   (pause song)\n'
-    command_list+= '- /resume      /resume  (resume song)\n'
     command_list+= '- /previous    /prev    (previous song)\n'
-    command_list+= '- /shuffle     /shuffle (shuffle songs)\n'
     command_list+= '- /play_random /pr      (random songs)\n'
+    command_list+= '- /resume      /resume  (resume song)\n'
+    command_list+= '- /shuffle     /shuffle (shuffle songs)\n'
+    command_list+= '- /reset       /r       (reset bot)\n'
     command_list+= '- /flush       /f       (empty all songs)\n'
     command_list+= '- /help        /h       (open help menu)'
     embed.add_field(
@@ -130,7 +135,7 @@ def HelpPrompt(bot):
     ui_text+= ':twisted_rightwards_arrows:  -  `Shuffle all songs`\n\n'
     ui_text+= ':arrows_counterclockwise:  -  `Loop current song`\n\n'
     ui_text+= ':infinity: Random  -  `Plays random songs forever`\n\n'
-    ui_text+= ':toilet: Flush  -  `Erases all data/Stops music player`\n\n'
+    ui_text+= ':toilet: Flush  -  `Empty all songs`\n\n'
     ui_text+= 'Reset  -  `Erases all data/Disconnects`'
     embed.add_field(
         name='**:musical_note:  Music Player (User Interface)**', 
@@ -138,7 +143,7 @@ def HelpPrompt(bot):
         inline=False)
 
     embed.set_footer(text = 'Note:   /  !  ?   can be used interchangeably for text commands', icon_url=bot_avatar)
-    embed.set_thumbnail(url=MUSIC_ICON)
+    #embed.set_thumbnail(url=MUSIC_ICON)
     embed.set_author(name=COG_NAME, icon_url=bot_avatar)     
     
     return embed
@@ -150,7 +155,7 @@ def MainGuiPrompt(bot, data:Guild_Music_Properties, guild_id, error = False):
             title=f":musical_note:   **MUSIC PLAYER**   :musical_note:",
             #description=f"***```{song}```***",
             color=discord.Color.blurple()) 
-        embed.set_thumbnail(url=MUSIC_ICON)
+        #embed.set_thumbnail(url=MUSIC_ICON)
 
         next_song = None
         queue_msg = ''
@@ -237,6 +242,7 @@ def MainGuiPrompt(bot, data:Guild_Music_Properties, guild_id, error = False):
         return embed
     except Exception as e:
         error_log('mainguiprompt', e)
+
 def queued_playlist_prompt(bot, song_names_list, num_of_songs, url, type):
     bot_avatar = bot.user.display_avatar
     embed = discord.Embed(
@@ -272,7 +278,7 @@ def queued_playlist_prompt(bot, song_names_list, num_of_songs, url, type):
         name=f'**Queued**  __**{num_of_songs}**__  **Songs!**', 
         value = '',
         inline=False)
-    embed.set_author(name=COG_NAME, icon_url=bot_avatar)  
+    #embed.set_author(name=COG_NAME, icon_url=bot_avatar)  
     embed.set_thumbnail(url=MUSIC_ICON)   
     return embed
 
@@ -282,13 +288,21 @@ def invalid_link(bot, song, platform=''):
         title=f"**Invalid {platform} Link**\nAllowed:  __Spotify__,  __Youtube__,  __YTMusic__\nPlaylist must be public!",
         description=f"***```Your Input: {song}```***",
         color=discord.Color.red()) 
-    embed.set_thumbnail(url=MUSIC_ICON)
+    #embed.set_thumbnail(url=MUSIC_ICON)
     embed.set_author(name=COG_NAME, icon_url=bot_avatar)     
     return embed
 
 ###### From Setting ######
 
-
+def no_query_prompt(bot):
+    bot_avatar = bot.user.display_avatar
+    embed = discord.Embed(
+        title=f":no_entry_sign: **Missing Query** :no_entry_sign:",
+        description=f'*```/p query```*',
+        color=discord.Color.red())  
+    embed.set_author(name=COG_NAME, icon_url=bot_avatar)  
+    #embed.set_thumbnail(url=MUSIC_ICON)   
+    return embed
 
 def unauthorized_prompt(bot):
     bot_avatar = bot.user.display_avatar
@@ -297,7 +311,7 @@ def unauthorized_prompt(bot):
         title=f":no_entry_sign: **{text}** :no_entry_sign:",
         color=discord.Color.red())  
     embed.set_author(name=COG_NAME, icon_url=bot_avatar)  
-    embed.set_thumbnail(url=MUSIC_ICON)   
+    #embed.set_thumbnail(url=MUSIC_ICON)   
     return embed
 
 def skip_error_prompt(bot):
@@ -307,46 +321,38 @@ def skip_error_prompt(bot):
         title=f":no_entry_sign: **{text}** :no_entry_sign:",
         color=discord.Color.red())  
     embed.set_author(name=COG_NAME, icon_url=bot_avatar)  
-    embed.set_thumbnail(url=MUSIC_ICON)   
+    #embed.set_thumbnail(url=MUSIC_ICON)   
     return embed
 
 def queue_prompt(bot, song_name):
     bot_avatar = bot.user.display_avatar
     text = Setting.get_queueText()
     embed = discord.Embed(
+        title = f'**{text}**',
+        description = f'*```{song_name}```*',
         color=discord.Color.green())  
-    embed.add_field(
-        name=f'**{text}**', 
-        value = f'*```{song_name}```*',
-        inline=False)
     embed.set_author(name=COG_NAME, icon_url=bot_avatar)  
-    embed.set_thumbnail(url=MUSIC_ICON)   
+    #embed.set_thumbnail(url=MUSIC_ICON)   
     return embed
 
 def flush_prompt(bot):
     bot_avatar = bot.user.display_avatar
     text = Setting.get_flushText()
     embed = discord.Embed(
+        title=f'**{text}**', 
         color=discord.Color.green())  
-    embed.add_field(
-        name=f'**{text}**', 
-        value = '',
-        inline=False)
     embed.set_author(name=COG_NAME, icon_url=bot_avatar)  
-    embed.set_thumbnail(url=MUSIC_ICON)   
+    #embed.set_thumbnail(url=MUSIC_ICON)   
     return embed
 
 def finished_prompt(bot):
     bot_avatar = bot.user.display_avatar
     text = Setting.get_finishedText()
     embed = discord.Embed(
+        title = f'**{text}**',
         color=discord.Color.green())  
-    embed.add_field(
-        name=f'**{text}**', 
-        value = '',
-        inline=False)
     embed.set_author(name=COG_NAME, icon_url=bot_avatar)  
-    embed.set_thumbnail(url=MUSIC_ICON)   
+    #embed.set_thumbnail(url=MUSIC_ICON)   
     return embed
 
 
@@ -360,7 +366,7 @@ def skip_prompt(bot, song_name):
         value = f'*```{song_name}```*',
         inline=False)
     embed.set_author(name=COG_NAME, icon_url=bot_avatar)  
-    embed.set_thumbnail(url=MUSIC_ICON)   
+    #embed.set_thumbnail(url=MUSIC_ICON)   
     return embed
 
 def search_list_prompt(bot):
@@ -368,7 +374,7 @@ def search_list_prompt(bot):
     embed = discord.Embed(
         title=f":arrow_down: **Select Song from List** :arrow_down:",
         color=discord.Color.blurple()) 
-    embed.set_thumbnail(url=MUSIC_ICON)
+    #embed.set_thumbnail(url=MUSIC_ICON)
     embed.set_author(name=COG_NAME, icon_url=bot_avatar)     
     return embed
 
@@ -378,6 +384,6 @@ def no_match(bot, query):
         title=f":no_entry_sign: **No search results** :no_entry_sign:",
         description=f"***```Query: {query}```***",
         color=discord.Color.red()) 
-    embed.set_thumbnail(url=MUSIC_ICON)
+    #embed.set_thumbnail(url=MUSIC_ICON)
     embed.set_author(name=COG_NAME, icon_url=bot_avatar)     
     return embed

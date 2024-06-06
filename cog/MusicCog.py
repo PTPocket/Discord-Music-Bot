@@ -409,7 +409,15 @@ class MusicCog(commands.Cog):
         log(guildName, 'command', 'play')
         if await valid_play_command2(self.bot, ctx) is False:
             msg = embed.unauthorized_prompt(self.bot)
-            await ctx.send(embed = msg)
+            await ctx.send(embed = msg, ephemeral = True)
+            time.sleep(3)
+            await GUI_HANDLER(self, guildID, edit=False)
+            return
+        if title_or_link == '' or title_or_link.count(' ') == len(title_or_link):
+            msg = embed.no_query_prompt(self.bot)
+            await ctx.send(embed = msg, ephemeral = True)
+            time.sleep(3)
+            await GUI_HANDLER(self, guildID, edit=False)
             return
         self.data.initialize(guildID)
         try:
@@ -691,6 +699,9 @@ class MusicCog(commands.Cog):
                 if voice_client.is_playing() or voice_client.is_paused():
                     voice_client.stop()
             self.data.full_reset(guildID)
+            msg = embed.flush_prompt(self.bot)
+            await ctx.send(embed=msg)
+            time.sleep(3)
             await GUI_HANDLER(self, guildID, edit=False)
         except Exception as e:
             error_log('ResetButton', e, guildName= guildName)
@@ -702,7 +713,8 @@ class MusicCog(commands.Cog):
         log(guildName, 'command', 'help')
         msg = embed.HelpPrompt(self.bot)
         await ctx.send(embed= msg)
-        await GUI_HANDLER(self, guildID, edit=False)
+        if self.data.get_message(guildID) is not None:
+            await GUI_HANDLER(self, guildID, edit=False)
 
 
     @commands.command(name= "sync")
