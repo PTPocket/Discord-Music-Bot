@@ -60,7 +60,7 @@ def initialize_settings():
     else:
         with open(SETTING_PATH, 'w') as file:
             json.dump(default_setting, file, indent=4)
-    log(None, 'initialized', 'bot setting')
+    log(None, 'initialized', 'settings file')
 
 if __name__ == '__main__':
     print(get_timeout())

@@ -378,6 +378,7 @@ class MusicFunctions(View):
             except Exception as e:
                 error_log('NextButton', e, guildName= guildName)
                 await interaction.response.edit_message(view=self.view)
+    
     class ShuffleButton(Button):
         def __init__(self,music_cog, data:Guild_Music_Properties, guildID):
             voice_client = music_cog.bot.get_guild(guildID).voice_client
@@ -427,8 +428,8 @@ class MusicFunctions(View):
                 guildID = interaction.user.guild.id
                 log(guildName, 'BUTTON', 'loop')
                 voice_client = interaction.client.get_guild(guildID).voice_client
-
                 if voice_client is None:
+                    await interaction.response.edit_message(view=self.view)
                     return
                 if voice_client.is_playing() or voice_client.is_paused():
                     song = self.data.get_current_song(guildID)

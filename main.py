@@ -7,8 +7,13 @@ from cog.helper.GuildData import Guild_Music_Properties
 from cog.helper.Log        import *
 import cog.helper.Setting  as     Setting
 #SECRET KEYS
-from config import TOKEN, SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET
+from dotenv import load_dotenv
 
+
+
+def configure():
+    load_dotenv()
+    log(None, 'Loaded', 'api keys')
 
 if __name__ == '__main__':
     #Discord Bot Setup##################################################
@@ -23,10 +28,14 @@ if __name__ == '__main__':
         log(None, client.user, 'Connected to Discord')
 
     async def main():
+        configure()
+        bot_api_key = os.getenv('TOKEN')
+        spotify_client_id = os.getenv('SPOTIFY_CLIENT_ID')
+        spotify_client_secret = os.getenv('SPOTIFY_CLIENT_SECRET')
         async with client:
             try:
-                await client.add_cog(MusicCog(client, data, gui_print, SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET))
-                await client.start(TOKEN)
+                await client.add_cog(MusicCog(client, data, gui_print, spotify_client_id, spotify_client_secret))
+                await client.start(bot_api_key)
             except Exception as e:
                 print(e)
 
