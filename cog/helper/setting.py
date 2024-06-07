@@ -38,9 +38,21 @@ def get_finishedText():
         setting = json.load(file)
     return setting['Finished Prompt Text']
 
+def get_promptDelay():
+    with open(SETTING_PATH, 'r') as file:
+        setting = json.load(file)
+    return setting['Prompt Delay']
+
+def get_helpPromptDelay():
+    with open(SETTING_PATH, 'r') as file:
+        setting = json.load(file)
+    return setting['Help Prompt Delay']
+
 def initialize_settings():
     default_setting = {
             'Timeout Minutes'          : 60,
+            'Prompt Delay'             : 3,
+            'Help Prompt_Delay'        : 60,
             'Unauthorized Prompt Text' : 'Unauthorized',
             'Skip Error Prompt Text'   : 'Nothing to Skip',
             'Queue Prompt Text'        : 'Queued Song',

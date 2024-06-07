@@ -10,18 +10,9 @@ def SearchYoutube(query):
         'format': 'bestaudio/best'
     }
     try:
-        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             # Search for videos matching the query
             result = ydl.extract_info(f"ytsearch1:{query}", download=False)
-    except Exception as e:
-        error_log('SearchYoutube/youtube_dl', e, query)
-        try:
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                # Search for videos matching the query
-                result = ydl.extract_info(f"ytsearch1:{query}", download=False)
-        except Exception as e:
-            error_log('SearchYoutube/yt_dlp', e, query)
-    try:
         song = result['entries'][0]
         return {
             'title' : song['title'], 
@@ -94,8 +85,18 @@ def GetYTPlaylist(link):
     playlistID = link.split('list=')[1]
     link = 'https://www.youtube.com/playlist?list='+playlistID
     
+def GetYTPlaylist(link):
+    ydl_opts = {
+        'quiet': True,
+        'extract_flat': True,
+        'skip_download': True
+    }
+    link = link.replace(' ','').replace('\n','')
+    playlistID = link.split('list=')[1]
+    link = 'https://www.youtube.com/playlist?list='+playlistID
+    
     try:
-        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             result = ydl.extract_info(link,download=False)
             playlist = []
             for item in result['entries']:
@@ -111,26 +112,8 @@ def GetYTPlaylist(link):
                     'source':'query'})
             return playlist
     except Exception as e:
-        error_log('GetYTPlaylist/youtube_dl', e, link)
-        try: 
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                result = ydl.extract_info(link,download=False)
-                playlist = []
-                for item in result['entries']:
-                    if item['title']=='[Private video]' and item['title'] == '[Deleted video]':
-                        continue
-                    title = item['title']
-                    author = item['uploader']
-                    url = item['url']
-                    playlist.append({
-                        'title':title, 
-                        'author':author, 
-                        'query' : url,
-                        'source':'query'})
-                return playlist
-        except Exception as e:
-            error_log('GetYTPlaylist/yt_dlp', e, link)
-            return None
+        error_log('GetYTPlaylist', e, link)
+        return None
 
 def GetYTMSong(link:str):
     try:

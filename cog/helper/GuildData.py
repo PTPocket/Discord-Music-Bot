@@ -4,181 +4,166 @@ from datetime import datetime
 class Guild_Music_Properties():
     def __init__(self):
         #SONG PLACEMENT
-        self.queue   = {}
-        self.history = {}
-        self.current = {}
+        self.library   = {}
+        self.pos = {}
         #MUSIC PLAYER FEATURES
         self.loop    = {}
         self.random  = {}
-        self.back    = {}
-        self.mystery = {}
         #FOR GUI
         self.channel = {}
         self.message = {}
-
         #AutoDisconnect
         self.time   = {}
+        self.playing = {}
+    def initialize(self, guildID):
+        if guildID not in self.library:
+            self.library [guildID] = []
+            self.pos     [guildID] = None
+            self.loop    [guildID] = False
+            self.random  [guildID] = False
+            self.channel [guildID] = None
+            self.message [guildID] = None
+            self.time    [guildID] = None
+            self.playing [guildID] = False
 
-
-    def initialize(self, guild_id):
-        if guild_id not in self.queue:
-            self.queue  [guild_id] = []
-            self.history[guild_id] = []
-            self.time   [guild_id] = None
-            self.current[guild_id] = None
-            self.loop   [guild_id] = False
-            self.back   [guild_id] = False
-            self.random [guild_id] = False
-            self.mystery[guild_id] = False
-            self.channel[guild_id] = None
-            self.message[guild_id] = None
-    
-    #RETRIEVE VALUES FUNCTIONS
-    def get_last_played(self, guild_id):
-        if self.history[guild_id] == []:
-            return None
-        else:
-            return self.history[guild_id][0]
-    def get_queue(self, guild_id):
-        return self.queue[guild_id]
-    def get_history(self, guild_id):
-        return self.history[guild_id]
-    def get_current_song(self,guild_id):
-        return self.current[guild_id]
-    def get_loop(self,guild_id):
-        return self.loop[guild_id]
-    def get_random(self,guild_id):
-        return self.random[guild_id]
-    def get_channel(self,guild_id):
-        return self.channel[guild_id]
-    def get_message(self,guild_id):
-        return self.message[guild_id]
-    def get_guild_ids(self):
-        return self.queue.keys()
-    def get_back(self, guild_id):
-        return self.back[guild_id]
-    def get_mystery(self, guild_id):
-        return self.mystery[guild_id]
-    def get_time(self, guild_id):
-        return self.time[guild_id]
-    
-    
     #SET VALUE FUNCTIONS
-    def set_queue_pos(self,guild_id, song, ind):
-        self.queue[guild_id][ind] = song
-    def set_queue(self,guild_id, queue):
-        self.queue[guild_id] = queue
-    def set_history(self,guild_id,history):
-        self.history[guild_id] = history
-    def set_current_song(self,guild_id, song):
-        self.current[guild_id] = song
-    def set_loop(self,guild_id, value):
-        self.loop[guild_id] = value
-    def set_random(self, guild_id, value):
-        self.random[guild_id] = value
-    def set_channel(self, guild_id, channel):
-        self.channel[guild_id] = channel
-    def set_message(self,guild_id, message):
-        self.message[guild_id] = message
-    def set_back(self,guild_id, value):
-        self.back[guild_id] = value
-    def set_idle_timestamp(self,guild_id):
-        self.time[guild_id] = datetime.today()
-
-    #SONG MOVE FUNCTIONS
-    def queue_song(self, guild_id, song):
-        self.queue[guild_id].append(song)
-
-    def prepend_to_queue(self, guild_id, song):
-        self.queue[guild_id].insert(0,song)
-
-    def queue_to_current(self, guild_id):
-        if self.queue[guild_id] != []:
-            self.current[guild_id] = self.queue[guild_id].pop(0)
-            return True
-        return False
-    
-    def current_to_queue(self, guild_id):
-        if self.current[guild_id] is not None:
-            self.queue[guild_id].insert(0,self.current[guild_id])
-            self.set_current_song(guild_id, None)
-            return True
-        return False
-
-    def current_to_history(self, guild_id):
-        current_song = self.get_current_song(guild_id)
-        if current_song is not None:
-            self.history[guild_id].insert(0,current_song)
-            self.set_current_song(guild_id, None)
-            return True
-        return False
-    
-    def history_to_queue(self,guild_id):
-        if self.empty_history(guild_id) is False:
-            recent = self.history[guild_id].pop(0)
-            self.prepend_to_queue(guild_id, recent)
-            return True
-        return False
-    
-    def empty_history(self, guild_id):
-        if self.history[guild_id] == []:
-            return True
-        else: return False
-
-    def empty_queue(self, guild_id):
-        if self.queue[guild_id] == []:
-            return True
-        else: return False
-    
-    def delete_queue(self,guild_id):
-        self.queue[guild_id] = []
-
-
-
-    #FEATURES FUNCTIONS
-    def flip_mystery(self, guild_id):
-        if self.mystery[guild_id] is True:
-            self.mystery[guild_id] = True
+    def set_new_library(self, guildID, new_library):
+        self.library[guildID] = new_library
+        self.pos[guildID] = 0
+    def set_pos(self,guildID, value):
+        self.pos[guildID] = value
+    def set_current(self, guildID, value):
+        if self.pos[guildID] is None and len(self.library[guildID]) > 0:
+            self.library[guildID][0] = value
+            return
+        if self.pos[guildID] is None:
+            return
+        self.library[guildID][self.pos[guildID]] = value
+    def set_loop(self,guildID, value):
+        self.loop[guildID] = value
+    def set_random(self, guildID, value):
+        self.random[guildID] = value
+    def set_channel(self, guildID, channel):
+        self.channel[guildID] = channel
+    def set_message(self,guildID, message):
+        self.message[guildID] = message
+    def set_idle_timestamp(self,guildID):
+        self.time[guildID] = datetime.today()
+    def set_playing(self, guildID, value):
+        self.playing[guildID] = value
+    #RETRIEVE VALUES FUNCTIONS
+    def get_library(self, guildID):
+        return self.library[guildID]
+    def get_pos(self, guildID):
+        return self.pos[guildID]
+    def get_loop(self,guildID):
+        return self.loop[guildID]
+    def get_random(self,guildID):
+        return self.random[guildID]
+    def get_channel(self,guildID):
+        return self.channel[guildID]
+    def get_message(self,guildID):
+        return self.message[guildID]
+    def get_guildIDs(self):
+        return self.library.keys()
+    def get_time(self, guildID):
+        return self.time[guildID]
+    def get_playing(self, guildID):
+        return self.playing[guildID]
+    def get_current(self, guildID):
+        if self.pos[guildID] is None and len(self.library[guildID]) > 0:
+            return self.library[guildID][0]
+        if self.pos[guildID] is None or self.pos[guildID] == len(self.library[guildID]):
+            return None
+        return self.library[guildID][self.pos[guildID]]
+    def get_queue(self, guildID):
+        if self.pos[guildID] is None and len(self.library[guildID]) > 0:
+            return self.library[guildID][1:]
+        if self.pos[guildID] is None:
+            return []
+        return self.library[guildID][self.pos[guildID]+1:]
+    def get_history(self, guildID):
+        if self.pos[guildID] is None:
+            return []
+        return self.library[guildID][:self.pos[guildID]]
+    def get_prev_song(self, guildID):
+        if self.pos[guildID] is None:
+            return None
+        if self.pos[guildID] > 0:
+            return self.library[guildID][self.pos[guildID]-1]
+        return None
+    def get_next(self, guildID):
+        if self.pos[guildID] is None and len(self.library[guildID]) > 1:
+            return self.library[1]
+        if self.pos[guildID] is None:
+            return None
+        if self.pos[guildID] < len(self.library)-2:
+            return self.library[guildID][self.pos[guildID]+1]
+        return None
+    #SWITCH FUNCTIONS
+    def switch_playing(self, guildID):
+        if self.playing[guildID] is True:
+            self.playing[guildID] = False
         else:
-            self.mystery[guild_id] = False
+            self.playing[guildID] = True
+
+    def flip_mystery(self, guildID):
+        if self.mystery[guildID] is True:
+            self.mystery[guildID] = False
+        else:
+            self.mystery[guildID] = True
     
-    def flip_loop(self,guild_id):  
-        if self.loop[guild_id] is True:
-            self.loop[guild_id] = False
+    def switch_loop(self,guildID):  
+        if self.loop[guildID] is True:
+            self.loop[guildID] = False
         else:
-            self.loop[guild_id] = True
+            self.loop[guildID] = True
+        return self.loop[guildID]
 
-    def flip_random(self,guild_id):
-        if self.random[guild_id] is True:
-            self.random[guild_id] = False
+    def switch_random(self,guildID):
+        if self.random[guildID] is True:
+            self.random[guildID] = False
         else:
-            self.random[guild_id] = True
-        return self.random[guild_id]
+            self.random[guildID] = True
+        return self.random[guildID]
 
-    def flip_back(self,guild_id):
-        if self.get_back(guild_id) is True:
-            self.set_back(guild_id, False)
+    def empty_queue(self, guildID):
+        if len(self.library[guildID]) == self.pos[guildID]:
+            return True
         else:
-            self.set_back(guild_id, True)
+            False
 
-    def reset_features(self, guild_id):
-        self.loop   [guild_id] = False
-        self.random [guild_id] = False
-        self.mystery[guild_id] = False
+
+    def pos_forward(self, guildID):
+        if self.pos[guildID] is None:
+            self.pos[guildID] = 0
+            return self.pos[guildID]
+        if self.pos[guildID] < len(self.library[guildID]):
+            self.pos[guildID]+=1
+            return self.pos[guildID]
+
+    def pos_backward(self, guildID):
+        if self.pos[guildID] is None:
+            return self.pos[guildID]
+        if self.pos[guildID] == 0:
+            self.pos[guildID] = None
+            return self.pos[guildID]
+        self.pos[guildID]-=1
+    
+    def add_song(self, guildID, song):
+        self.library[guildID].append(song)
         
-    def reset(self, guild_id):
-        self.current_to_history(guild_id)
-        self.queue[guild_id]  = []
-        self.loop   [guild_id] = False
-        self.back   [guild_id] = False
-        self.random [guild_id] = False
-        self.mystery[guild_id] = False
-    
-    def full_reset(self, guild_id):
-        self.queue  [guild_id] = []
-        self.history[guild_id] = []
-        self.current[guild_id] = None
-        self.loop   [guild_id] = False
-        self.back   [guild_id] = False
-        self.random [guild_id] = False
-        self.mystery[guild_id] = False
+
+
+    def reset(self, guildID):
+        self.library [guildID] = []
+        self.pos     [guildID] = None
+        self.loop    [guildID] = False
+        self.random  [guildID] = False
+
+    def full_reset(self, guildID):
+        self.library [guildID] = []
+        self.pos     [guildID] = None
+        self.loop    [guildID] = False
+        self.random  [guildID] = False
+        self.playing [guildID] = False
