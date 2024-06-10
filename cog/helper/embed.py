@@ -1,4 +1,4 @@
-import discord
+import discord, os
 from   cog.helper.GuildData import Guild_Music_Properties
 from cog.helper.Log  import *
 import cog.helper.Setting  as Setting
@@ -8,10 +8,6 @@ ICON_PATH = 'C:/Users/Pocket/Documents/GitHub/Discord-Music-Bot/4105542_audio_me
 COG_NAME = "Pocket Muse"   
 
 BLANK = '\u200b'
-#ICON_PATH = 'C:/Users/Pocket/Documents/GitHub/Discord-Music-Bot/4105542_audio_melody_music_sound_icon.png'
-#file = discord.File(ICON_PATH, filename="thumbnail.png")
-#embed.set_thumbnail(url=thumbnail.png)
-#ctx.send(file=file, embed = emb)
 #####USING########
 def title(title, length = 37):
     if len(title) > length:
@@ -26,18 +22,16 @@ def MainGuiPrompt(bot, data:Guild_Music_Properties, guild_id):
             title=f":musical_note:   **MUSIC PLAYER**   :musical_note:",
             #description=f"***```{song}```***",
             color=discord.Color.blurple()) 
-        #embed.set_thumbnail(url=MUSIC_ICON)
         next_song = None
         queue_msg = ''
         queue = data.get_queue(guild_id)
         for ind, song in enumerate(queue):
             if ind == 0:
-                next_song = title(song['title'],17)
+                next_song = title(f'{song['title']} by {song['title']}',17)
             else: 
-                song_title = title(f"{ind}. {song['title']}")
+                song_title = title(f"{ind}. {song['title']} by {song['title']}")
                 queue_msg = song_title +"\n" + queue_msg
             
-
             if ind > 3 and ind < len(queue)-1:
                 if ind < len(queue)-2:
                     queue_msg = f'-  ...\n' + queue_msg
@@ -59,7 +53,7 @@ def MainGuiPrompt(bot, data:Guild_Music_Properties, guild_id):
         #NEXT AND PREVIOUS SONG #####
         last_song = data.get_prev_song(guild_id)
         if last_song is None: last_song = '...'
-        else:last_song= title(last_song['title'],17)
+        else:last_song= title(f'{last_song['title']} by {last_song['title']}',17)
         if len(next_song) > len(last_song):
             length_diff = len(next_song)-len(last_song)
             last_song = last_song + (' '*length_diff)
@@ -117,9 +111,9 @@ def HelpPrompt(bot):
         value = "",
         inline=False)
     
-    info_text = '- Uses SLASH and TEXT commands\n'
-    info_text+= '- UI generated in the text channel\n'
-    info_text+= '- Searches youtube to play songs\n'
+    info_text = '- Plays Spotify, Youtube, and YTMusic\n'
+    info_text+= '- Displays user interface\n'
+    info_text+= '- Non-Link queries search youtube\n'
     embed.add_field(
         name=':information_source:  **Quick Info**', 
         value = f"*```{info_text}```*",
@@ -179,13 +173,16 @@ def HelpPrompt(bot):
 
     command_list = '- /play        /p       (play query)\n'
     command_list+= '- /skip        /s       (skip song)\n'
-    command_list+= '- /pause       /pause   (pause song)\n'
+    command_list+= '- /next        /n       (next song)\n'
     command_list+= '- /previous    /prev    (previous song)\n'
-    command_list+= '- /play_random /pr      (random songs)\n'
+    command_list+= '- /pause       /pause   (pause song)\n'
     command_list+= '- /resume      /resume  (resume song)\n'
+    command_list+= '- /loop        /l       (Loops song)\n'
     command_list+= '- /shuffle     /shuffle (shuffle songs)\n'
+    command_list+= '- /play_random /pr      (random songs)\n'
     command_list+= '- /reset       /r       (reset bot)\n'
     command_list+= '- /flush       /f       (empty all songs)\n'
+    command_list+= '- /generate    /g       (Create text channel for PocBot Interface)\n'
     command_list+= '- /help        /h       (open help menu)'
     embed.add_field(
         name=':notepad_spiral:  **Command List**', 
@@ -224,20 +221,19 @@ def HelpPrompt(bot):
     ui_text+= ':arrows_counterclockwise:  -  `Loop current song`\n\n'
     ui_text+= ':infinity: Random  -  `Plays random songs forever`\n\n'
     ui_text+= ':toilet: Flush  -  `Empty all songs`\n\n'
-    ui_text+= 'Reset  -  `Erases all data/Disconnects`'
+    ui_text+= ':information_source:  -  `Show help information`'
     embed.add_field(
         name='**:musical_note:  Music Player (User Interface)**', 
         value = f"**{ui_text}**",
         inline=False)
 
-    embed.set_footer(text = 'Note:   /  !  ?   can be used interchangeably for text commands', icon_url=bot_avatar)
-    #embed.set_thumbnail(url=MUSIC_ICON)
-    embed.set_author(name=COG_NAME, icon_url=bot_avatar)     
-    
+    embed.set_footer(icon_url=bot_avatar)
     return embed
 
+
+### GREEN EMBED ###
+
 def queued_playlist_prompt(bot, song_names_list, num_of_songs, url, type):
-    bot_avatar = bot.user.display_avatar
     embed = discord.Embed(
         color=discord.Color.green())  
     embed.add_field(
@@ -271,158 +267,146 @@ def queued_playlist_prompt(bot, song_names_list, num_of_songs, url, type):
         name=f'**Queued**  __**{num_of_songs}**__  **Songs!**', 
         value = '',
         inline=False)
-    #embed.set_author(name=COG_NAME, icon_url=bot_avatar)  
-    embed.set_thumbnail(url=MUSIC_ICON)   
-    return embed
-
-def invalid_link(bot, song, platform=''):
-    bot_avatar = bot.user.display_avatar
-    embed = discord.Embed(
-        title=f"**Invalid {platform} Link**\nAllowed:  __Spotify__,  __Youtube__,  __YTMusic__\nPlaylist must be public!",
-        description=f"***```Your Input: {song}```***",
-        color=discord.Color.red()) 
-    #embed.set_thumbnail(url=MUSIC_ICON)
-    embed.set_author(name=COG_NAME, icon_url=bot_avatar)     
-    return embed
-
-def no_query_prompt(bot):
-    bot_avatar = bot.user.display_avatar
-    embed = discord.Embed(
-        title=f":no_entry_sign: **Missing Query** :no_entry_sign:",
-        description=f'*```/p query```*',
-        color=discord.Color.red())  
-    embed.set_author(name=COG_NAME, icon_url=bot_avatar)  
-    #embed.set_thumbnail(url=MUSIC_ICON)   
     return embed
 
 def loop_prompt(bot, loop, song_name):
     bot_avatar = bot.user.display_avatar
     if loop:
-        title = 'Now Looping'
+        title = 'Now looping'
     else:
-        title = 'Stopped Looping'
+        title = 'Stopped looping'
     embed = discord.Embed(
-        title=f'**{title}**', 
-        description= f'*```{song_name}```*',
+        description= f'{title}: *`{song_name}`*',
         color=discord.Color.green())  
-    embed.set_author(name=COG_NAME, icon_url=bot_avatar)  
-    #embed.set_thumbnail(url=MUSIC_ICON)   
     return embed
 
 def reset_prompt(bot):
     bot_avatar = bot.user.display_avatar
-    text = 'Reset Pocket Music Bot'
+    text = Setting.get_resetText()
     embed = discord.Embed(
-        title=f'**{text}**', 
+        description=text, 
         color=discord.Color.green())  
-    embed.set_author(name=COG_NAME, icon_url=bot_avatar)  
-    #embed.set_thumbnail(url=MUSIC_ICON)   
     return embed
 
 def random_prompt(bot, random):
-    bot_avatar = bot.user.display_avatar
     if random:
-        text = 'Playing Random Songs'
+        text = 'Playing random songs'
     else:
-        text = 'Stopped Random Songs'
+        text = 'Stopped random songs'
     embed = discord.Embed(
-        title=f'**{text}**', 
+        description=text, 
         color=discord.Color.green())  
-    embed.set_author(name=COG_NAME, icon_url=bot_avatar)  
-    #embed.set_thumbnail(url=MUSIC_ICON)   
     return embed
 
 def resume_prompt(bot, song_name):
-    bot_avatar = bot.user.display_avatar
     embed = discord.Embed(
-        title=f'**Resumed**', 
-        description = f'*```{song_name}```*',
+        description = f'Resumed: *`{song_name}`*',
         color=discord.Color.green())  
-    embed.set_author(name=COG_NAME, icon_url=bot_avatar)  
     return embed
 
 def pause_prompt(bot, song_name):
-    bot_avatar = bot.user.display_avatar
     embed = discord.Embed(
-        title=f'**Paused**', 
-        description = f'*```{song_name}```*',
-        color=discord.Color.yellow())  
-    embed.set_author(name=COG_NAME, icon_url=bot_avatar)  
+        description = f'Paused: *`{song_name}`*',
+        color=discord.Color.green())  
     return embed
 
 def skip_prompt(bot, song_name):
-    bot_avatar = bot.user.display_avatar
     embed = discord.Embed(
-        title=f'**Skipped**', 
-        description = f'*```{song_name}```*',
+        description = f'Skipped: *`{song_name}`*',
         color=discord.Color.green())  
-    embed.set_author(name=COG_NAME, icon_url=bot_avatar)  
     return embed
 
 def previous_prompt(bot, song_name):
-    bot_avatar = bot.user.display_avatar
+    text = Setting.get_previousText()
     embed = discord.Embed(
-        title=f'**Skipped back to**', 
-        description = f'*```{song_name}```*',
+        description = f'{text}: *`{song_name}`*',
         color=discord.Color.green())  
-    embed.set_author(name=COG_NAME, icon_url=bot_avatar)  
     return embed
 
 def shuffle_prompt(bot):
-    bot_avatar = bot.user.display_avatar
+    text = Setting.get_shuffleText()
     embed = discord.Embed(
-        title=f'**Shuffled all songs**',
+        description=f'{text}',
         color=discord.Color.green())  
-    embed.set_author(name=COG_NAME, icon_url=bot_avatar)  
-    return embed
-
-def nothing_prompt(bot, text):
-    text = text.lower()
-    bot_avatar = bot.user.display_avatar
-    embed = discord.Embed(
-        title=f'**Nothing to {text}**', 
-        color=discord.Color.red())  
-    embed.set_author(name=COG_NAME, icon_url=bot_avatar)  
-    return embed
-###### From Setting ######
-
-def unauthorized_prompt(bot):
-    bot_avatar = bot.user.display_avatar
-    text = Setting.get_unauthorizedText()
-    embed = discord.Embed(
-        title=f":no_entry_sign: **{text}** :no_entry_sign:",
-        color=discord.Color.red())  
-    embed.set_author(name=COG_NAME, icon_url=bot_avatar)  
-    #embed.set_thumbnail(url=MUSIC_ICON)   
     return embed
 
 def queue_prompt(bot, song_name):
-    bot_avatar = bot.user.display_avatar
     text = Setting.get_queueText()
     embed = discord.Embed(
-        title = f'**{text}**',
-        description = f'*```{song_name}```*',
+        description = f'{text}: *`{song_name}`*',
         color=discord.Color.green())  
-    embed.set_author(name=COG_NAME, icon_url=bot_avatar)  
-    #embed.set_thumbnail(url=MUSIC_ICON)   
     return embed
 
 def flush_prompt(bot):
     bot_avatar = bot.user.display_avatar
     text = Setting.get_flushText()
     embed = discord.Embed(
-        title=f'**{text}**', 
+        description=text, 
         color=discord.Color.green())  
-    embed.set_author(name=COG_NAME, icon_url=bot_avatar)  
-    #embed.set_thumbnail(url=MUSIC_ICON)   
     return embed
 
 def finished_prompt(bot):
     bot_avatar = bot.user.display_avatar
     text = Setting.get_finishedText()
     embed = discord.Embed(
-        title = f'**{text}**',
+        description=text,
         color=discord.Color.green())  
-    embed.set_author(name=COG_NAME, icon_url=bot_avatar)  
-    #embed.set_thumbnail(url=MUSIC_ICON)   
+    return embed
+
+def generated_prompt(bot):
+    bot_avatar = bot.user.display_avatar
+    text = Setting.get_generatedText()
+    embed = discord.Embed(
+        description=text,
+        color=discord.Color.green())  
+    return embed
+
+#### RED EMBEDS ###
+def user_disconnected_prompt():
+    text = Setting.get_user_disconnectedText()
+    embed = discord.Embed(
+        description=text,
+        color=discord.Color.red())  
+    return embed
+
+def already_generated_prompt():
+    text = Setting.get_alreadygeneratedText()
+    embed = discord.Embed(
+        description=text,
+        color=discord.Color.red())  
+    return embed
+
+def bot_disconnected_prompt():
+    text = Setting.get_botdisconnectText()
+    embed = discord.Embed(
+        description=text,
+        color=discord.Color.red())  
+    return embed
+
+def invalid_link(bot, song, platform=''):
+    bot_avatar = bot.user.display_avatar
+    embed = discord.Embed(
+        description=f"Invalid {platform} Link*```{song}```*",
+        color=discord.Color.red()) 
+    return embed
+
+def no_query_prompt(bot):
+    bot_avatar = bot.user.display_avatar
+    embed = discord.Embed(
+        description=f'Missing Query: *`/p query`*',
+        color=discord.Color.red())  
+    return embed
+
+def nothing_prompt(bot, text):
+    text = text.lower()
+    embed = discord.Embed(
+        description=f'Nothing to {text}', 
+        color=discord.Color.red())  
+    return embed
+
+def invalid_channel_prompt(channelName):
+    text = Setting
+    embed = discord.Embed(
+        description = f'{text}: *`{channelName}`*',
+        color=discord.Color.red())  
     return embed

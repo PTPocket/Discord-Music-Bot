@@ -13,6 +13,15 @@ def SearchYoutube(query):
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             # Search for videos matching the query
             result = ydl.extract_info(f"ytsearch1:{query}", download=False)
+            
+    except Exception as e:
+        error_log('SearchYoutube', e, query)
+        return {'title' : '', 
+                'author': '', 
+                'url'   : '', 
+                'query' : query,
+                'source': 'query'}
+    try:
         song = result['entries'][0]
         return {
             'title' : song['title'], 
@@ -22,14 +31,14 @@ def SearchYoutube(query):
             'source': 'query',}
     except Exception as e:
         error_log('SearchYoutube', e, query)
+        song = result['entries']
         try:
-            song = result
             return {
-                'title' : song['title'], 
-                'author': song['uploader'],
-                'url'   : song['url'],
-                'query' : query,
-                'source': 'query',}
+            'title' : song['title'], 
+            'author': song['uploader'],
+            'url'   : song['url'],
+            'query' : query,
+            'source': 'query'}
         except Exception as e:
             error_log('SearchYoutube', e, query)
             return {'title' : '', 
