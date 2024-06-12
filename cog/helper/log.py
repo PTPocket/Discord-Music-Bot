@@ -1,6 +1,10 @@
 import os
 from datetime import datetime
 LOG_FOLDER    = os.getcwd()+'\\Music Bot Log Folder'
+def song_name(song):
+    title = str(song['title'])
+    author = str(song['author'])
+    return f'{title} - {author}'
 
 def LogFolderInitialize():
     if os.path.exists(LOG_FOLDER) is False:
@@ -19,6 +23,8 @@ def log(guild_name, action:str, description = ''):
     try:
         time= datetime.now()
         action = str(action).upper()
+        if type(description) is dict:
+            description = song_name(description)
         description = str(description).lower()
         if description != '':
             log_statement = f"{str(time)} | GUILD: {guild_name} | {action} -> {description}"

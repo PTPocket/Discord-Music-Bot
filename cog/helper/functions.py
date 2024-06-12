@@ -7,26 +7,31 @@ from tinytag              import TinyTag
 from cog.helper           import embed
 from cog.helper.GuildData import Guild_Music_Properties
 from discord.ui           import View, Select, Button
+from discord.ext          import commands
 from cog.helper.GuildData import Guild_Music_Properties
 from cog.helper.Log       import *
 from cog.helper           import Setting
-
 
 BLANK = '\u200b'
 LOCAL_MUSIC_PATH = "C:\\Users\\p\\Documents\\SERVER\\music\\Formatted"
 BLUE_GIF = 'blue.gif'
 ICON_PATH = os.getcwd()+'\\'+BLUE_GIF
-async def GUI_HANDLER(Music_Cog, guildID, user_channelID):
+async def GUI_HANDLER(Music_Cog, guildID, channel):
     async with Music_Cog.data.get_guiLock(guildID):
         try:
-            guildName = Music_Cog.bot.get_guild(guildID).name
+            guild = Music_Cog.bot.get_guild(guildID)
+            guildName = guild.name
+            channelID = Setting.get_channelID(guildID)
+            channels = [channel.id for channel in guild.channels]
+            if channelID not in channels:
+                return
             player_embed = embed.MainGuiPrompt(Music_Cog.bot, Music_Cog.data, guildID)
             try:
                 view = MusicFunctions(Music_Cog, Music_Cog.data, guildID)
             except Exception as e:
                 error_log('MusicFunctions', e)
                 return
-            channelID = Setting.get_channelID(guildID)
+            
             if channelID is None: # If channel has not been created
                 return
             channel = Music_Cog.bot.get_channel(channelID)
@@ -47,7 +52,7 @@ async def GUI_HANDLER(Music_Cog, guildID, user_channelID):
                 log(guildName, 'GUIPrint New', channel.name)
                 return
             try:
-                if channelID != user_channelID:
+                if channelID != channel.id:
                     await message.edit(embed = player_embed, view = view)
                     log(guildName, 'GUIPrint Edit', channel.name)
                     return
@@ -61,28 +66,26 @@ async def GUI_HANDLER(Music_Cog, guildID, user_channelID):
         except Exception as e:
             error_log('Gui_handler', e, guildName= guildName)
 
-
 async def create_bot_channel(data:Guild_Music_Properties, guild:discord.guild.Guild):
     try:
         guildID = guild.id
         data.initialize(guildID)
+
+        pocbot_channelID = Setting.get_channelID(guildID)
+        channelsIDS = [channel.id for channel in guild.channels]
+        if pocbot_channelID in channelsIDS:
+            return
         category = None
         for cat in guild.categories:
             if cat.name == 'Text Channels':
                 category = cat
                 break
-        pocbot_channel = Setting.get_channelID(guildID)
-        for channel in guild.channels:
-            if channel.id == pocbot_channel:
-                Setting.set_channelID(guildID, channel.id)
-                return None
-        pocbot_channel = await guild.create_text_channel(name='PocBot Music', category=category)
+        pocbot_channel = await guild.create_text_channel(name='PocBot Controller', category=category)
         Setting.set_channelID(guildID, pocbot_channel.id)
         return pocbot_channel
     except Exception as e:
         error_log('create_bot_channel', e)
         return 'error'
-    
 
 # Allows if user is in the same channel as bot
 # or if user is in voice channel and bot is not
@@ -90,7 +93,6 @@ async def valid_play_command_slash(interaction:discord.Interaction):
     user = interaction.user
     guildName = interaction.user.guild.name
     guildID = interaction.user.guild.id
-
     voice_client = interaction.client.get_guild(guildID).voice_client
     authorized = None
     if user.voice is None:
@@ -101,9 +103,8 @@ async def valid_play_command_slash(interaction:discord.Interaction):
     elif user.voice.channel.id == voice_client.channel.id:
         authorized = True
     else:
-        msg = embed.invalid_channel_prompt(voice_client.channel.name)
+        msg = embed.invalid_channel_prompt(voice_client.channel)
         authorized = False
-
     if not authorized:
         log(guildName, 'ACCESS DENIED', user)
         await interaction.response.send_message(embed= msg, ephemeral=True)
@@ -131,22 +132,22 @@ async def valid_command_slash(interaction:discord.Interaction):
     elif voice_client.channel.id == user.voice.channel.id:
         authorized =  True
     else: 
-        msg = embed.invalid_channel_prompt(user.voice.channel.name)
+        msg = embed.invalid_channel_prompt(voice_client.channel)
         authorized =  False
+
     if authorized is False:
         log(guildName, 'ACCESS DENIED', user)
         await interaction.response.send_message(embed= msg, ephemeral=True)
-        time.sleep(Setting.get_promptDelay())
     else: log(guildName, 'ACCESS GRANTED', user) 
     return authorized
 
 # Allows if user is in the same channel as bot
 # or if user is in voice channel and bot is not
-async def valid_play_command_ctx(bot, ctx):
-    user = ctx.author
-    guildName = str(ctx.guild)
-    guildID = ctx.guild.id
-
+async def valid_play_command_ctx(bot, message:discord.message.Message):
+    user = message.author
+    guildName = str(message.channel.guild.name)
+    guildID = message.channel.guild.id
+    channel = message.channel
     voice_client = bot.get_guild(guildID).voice_client
     authorized = None
     if user.voice is None:
@@ -158,18 +159,27 @@ async def valid_play_command_ctx(bot, ctx):
         authorized = True
     else:
         authorized = False
-        msg = embed.invalid_channel_prompt(voice_client.channel.name)
+        msg = embed.invalid_channel_prompt(voice_client.channel)
 
     if not authorized:
         log(guildName, 'ACCESS DENIED', user)
-        await ctx.send(embed= msg, ephemeral=True)
-        time.sleep(Setting.get_promptDelay())
+        await channel.send(embed= msg, ephemeral=True)
     else:
         log(guildName, 'ACCESS GRANTED', user)
     return authorized
 
+async def command_check(ctx:commands.context.Context):
+    guildID = ctx.guild.id
+    content = ctx.message.content
+    guildPrefix = Setting.get_guildPrefix(guildID)
+    prefix = content[:len(guildPrefix)]
+    if prefix.lower() == guildPrefix.lower():
+        return True
+    else: return False
+
 # Allows if user is in the same channel as bot
-async def valid_command_ctx(bot, ctx):
+async def valid_command_ctx(bot, ctx:commands.context.Context, command):
+    guildID = ctx.guild.id
     user = ctx.author
     guildName = str(ctx.guild)
     guildID = ctx.guild.id
@@ -186,15 +196,13 @@ async def valid_command_ctx(bot, ctx):
     elif voice_client.channel.id == user.voice.channel.id:
         authorized =  True
     else: 
-        msg = embed.invalid_channel_prompt(user.voice.channel.name)
+        msg = embed.invalid_channel_prompt(voice_client.channel)
         authorized =  False
     if authorized is False:
         log(guildName, 'ACCESS DENIED', user)
         await ctx.send(embed= msg, ephemeral=True)
-        time.sleep(Setting.get_promptDelay())
     else: log(guildName, 'ACCESS GRANTED', user) 
     return authorized
-
 
 async def voice_connect(user, guildName, guildID, voice_client):
     if voice_client is None:
@@ -204,8 +212,15 @@ async def voice_connect(user, guildName, guildID, voice_client):
         if voice_client.is_connected() is False:
             await voice_client.move_to(user.voice.channel)
             log(guildName, 'Voice Reconnected', voice_client.channel.name)
-
     return voice_client
+
+async def printHelpPrompt(ctx, bot, guildID):
+    if type(ctx) == discord.Interaction:
+        await ctx.response.defer()
+        await ctx.delete_original_response()
+        ctx = ctx.channel
+    await ctx.send(embed= embed.quickInfoPrompt(bot,guildID))
+    await ctx.send(embed= embed.all_commands_prompt(bot,guildID))
 
 def add_random_song(data, guildID):
     flac_song_list = os.listdir(LOCAL_MUSIC_PATH)
@@ -231,7 +246,7 @@ def queuePlaylist(guildName, guildID, playlist, playlistType:str, data:Guild_Mus
             title = song['title']
             author = song['author']
             last_ind = ind+1
-            row = embed.title(f"{last_ind}. {title} by {author}")
+            row = embed.title(f"{last_ind}. {title} - {author}")
             if len(name_list) + len(row) < 1000:
                 name_list += row+'\n'
             else:
@@ -253,7 +268,7 @@ class MusicFunctions(View):
         self.add_item(self.LoopButton      (music_cog, data, guildID))
         self.add_item(self.RandomButton    (music_cog, data, guildID))
         self.add_item(self.FlushButton     (music_cog, data, guildID))
-        #self.add_item(self.ResetButton     (music_cog, data, guildID))
+        self.add_item(self.ResetButton     (music_cog, data, guildID))
         self.add_item(self.HelpButton      (music_cog, data, guildID))
 
     async def interaction_check(self, interaction: discord.Interaction):
@@ -264,16 +279,20 @@ class MusicFunctions(View):
         access = False
         if user.voice is None:
             access = False
+            msg = embed.user_disconnected_prompt()
         elif voice_client is None:
             access = True
         elif voice_client.channel.id == user.voice.channel.id:
             access = True
-        
+        else:
+            access = False
+            msg = embed.invalid_channel_prompt(voice_client.channel)
         if access is True:
             log(guildName, 'ACCESS GRANTED', user) 
             return True
         else:
             log(guildName, 'ACCESS DENIED', user)
+            await interaction.response.send_message(embed=msg, delete_after=Setting.get_promptDelay())
             return False
 
     class PlayPause(Button):
@@ -294,7 +313,7 @@ class MusicFunctions(View):
                 guildName = interaction.user.guild.name
                 guildID = interaction.user.guild.id
                 voice_client = interaction.client.get_guild(guildID).voice_client
-                channelID = interaction.channel.id
+                channel = interaction.channel
                 log(guildName, 'BUTTON', 'play/pause')
                 song = self.data.get_current(guildID)
                 if voice_client is None:
@@ -327,18 +346,19 @@ class MusicFunctions(View):
             try:
                 guildName = interaction.user.guild.name
                 guildID = interaction.user.guild.id
-                channelID = interaction.channel.id
+                channel = interaction.channel
                 voice_client = interaction.client.get_guild(guildID).voice_client
                 log(guildName, 'button', 'skip')
                 self.data.initialize(guildID)
                 self.data.set_loop(guildID, False)
                 song= self.data.get_current(guildID)
                 if song is None:
+                    await interaction.response.send_message(embed= embed.no_songs_prompt())
+                    await GUI_HANDLER(self, guildID, channel)
                     return
                 self.data.pos_forward(guildID)
                 await interaction.response.defer()
-                await GUI_HANDLER(self.music_cog, guildID, channelID)
-                song_name = f'{song['title']} by {song['author']}'
+                await GUI_HANDLER(self.music_cog, guildID, channel)
                 if (voice_client.is_playing() or voice_client.is_paused()):
                     voice_client.stop()
                     return
@@ -361,19 +381,22 @@ class MusicFunctions(View):
                 guildName = interaction.user.guild.name
                 guildID = interaction.user.guild.id
                 voice_client = interaction.client.get_guild(guildID).voice_client
-                channelID = interaction.channel.id
+                channel = interaction.channel
                 log(guildName, 'button', 'previous')
                 self.data.initialize(guildID)
                 self.data.pos_backward(guildID)
-                self.data.set_loop(guildID, False)
                 song= self.data.get_current(guildID) 
-                song_name = f'{song['title']} by {song['author']}'
+                if song is None:
+                    await interaction.response.send_message(embed= embed.no_songs_prompt())
+                    await GUI_HANDLER(self, guildID, channel)
+                    return
+                self.data.set_loop(guildID, False)
                 await interaction.response.defer()
-                await GUI_HANDLER(self.music_cog, guildID, channelID)
+                await GUI_HANDLER(self.music_cog, guildID, channel)
                 if voice_client.is_playing() or voice_client.is_paused():
                     voice_client.stop()
                     return
-                await self.music_cog.music_player_start(user, guildName, guildID, voice_client)
+                await self.music_cog.music_player_start(user, guildName, guildID, voice_client, channel)
             except Exception as e:
                 error_log('PreviousButton', e, guildName= guildName)
     
@@ -394,21 +417,21 @@ class MusicFunctions(View):
                 guildName = interaction.user.guild.name
                 guildID = interaction.user.guild.id
                 voice_client = interaction.client.get_guild(guildID).voice_client
-                channelID = interaction.channel.id
+                channel = interaction.channel
                 log(guildName, 'button', 'shuffle')
                 self.data.initialize(guildID)
                 current_song = self.data.get_current(guildID)
                 library = self.data.get_queue(guildID)+self.data.get_history(guildID)
                 if library == [] and current_song is None:
-                    await interaction.response.send_message(embed= embed.nothing_prompt('shuffle'), delete_after=Setting.get_promptDelay())
+                    await interaction.response.send_message(embed= embed.no_songs_prompt(), delete_after=Setting.get_promptDelay())
                     return
                 random.shuffle(library)
                 if current_song is not None:
                     library.insert(0, current_song)
                 self.data.set_new_library(guildID, library)
-                await interaction.response.send_message(embed= embed.shuffle_prompt(interaction.client), delete_after=Setting.get_promptDelay())
+                await interaction.response.send_message(embed= embed.shuffle_prompt(), delete_after=Setting.get_promptDelay())
                 await GUI_HANDLER(self.music_cog, guildID, None)
-                await self.music_cog.music_player_start(user, guildName, guildID, voice_client)
+                await self.music_cog.music_player_start(user, guildName, guildID, voice_client, channel)
             except Exception as e:
                 error_log('ShuffleButton', e, guildName= guildName)
             
@@ -425,7 +448,7 @@ class MusicFunctions(View):
             try:
                 guildName = interaction.user.guild.name
                 guildID = interaction.user.guild.id
-                channelID = interaction.channel.id
+                channel = interaction.channel
                 log(guildName, 'button', 'loop')
                 self.data.initialize(guildID)
                 voice_client = interaction.client.get_guild(guildID).voice_client
@@ -438,14 +461,13 @@ class MusicFunctions(View):
                     self.data.set_random(guildID, False)
                     loop_var = self.data.get_loop(guildID)
                     if loop_var is True:
-                        log(guildName, 'now looping', f'{song['title']} by {song['author']}')
+                        log(guildName, 'now looping', song)
                     else:
-                        log(guildName, 'stopped looping', f'{song['title']} by {song['author']}')
+                        log(guildName, 'stopped looping', song)
                     await interaction.response.edit_message(view=self.view)
                     loop_var = self.data.get_loop(guildID)
                     song= self.data.get_current(guildID) 
-                    song_name = f'{song['title']} by {song['author']}'
-                    await interaction.channel.send(embed= embed.loop_prompt(interaction.client, loop_var, song_name), delete_after=Setting.get_promptDelay())
+                    await interaction.channel.send(embed= embed.loop_prompt(loop_var, song), delete_after=Setting.get_promptDelay())
                     await GUI_HANDLER(self.music_cog, guildID, None)
                     return
                 await interaction.response.defer()
@@ -468,15 +490,15 @@ class MusicFunctions(View):
                 guildName = interaction.user.guild.name
                 guildID = interaction.user.guild.id
                 voice_client = interaction.client.get_guild(guildID).voice_client
-                channelID = interaction.channel.id
+                channel = interaction.channel
                 log(guildName, 'button', 'play_random')
                 self.data.initialize(guildID)
                 if self.data.switch_random(guildID) is True:
                     log(guildName, 'RANDOM', 'On')
                 else: 
                     log(guildName, 'RANDOM', 'Off')
-                await interaction.response.send_message(embed= embed.random_prompt(interaction.client, self.data.get_random(guildID)), delete_after=Setting.get_promptDelay())
-                await self.music_cog.music_player_start(user, guildName, guildID, voice_client)
+                await interaction.response.send_message(embed= embed.random_prompt(self.data.get_random(guildID)), delete_after=Setting.get_promptDelay())
+                await self.music_cog.music_player_start(user, guildName, guildID, voice_client, channel)
                 await GUI_HANDLER(self.music_cog, guildID, None)
             except Exception as e:
                 error_log('RandomButton', e, guildName= guildName)
@@ -495,7 +517,7 @@ class MusicFunctions(View):
             try:
                 guildName = interaction.user.guild.name
                 guildID = interaction.user.guild.id
-                channelID = interaction.channel.id
+                channel = interaction.channel
                 voice_client = interaction.client.get_guild(guildID).voice_client
                 log(guildName, 'button', 'flush')
                 self.data.initialize(guildID)
@@ -503,7 +525,8 @@ class MusicFunctions(View):
                 if voice_client.is_playing() or voice_client.is_paused():
                     voice_client.stop()
                 self.data.full_reset(guildID)
-                await interaction.response.send_message(embed= embed.flush_prompt(interaction.client), delete_after=Setting.get_promptDelay())
+                await interaction.response.send_message(embed= embed.flush_prompt(), delete_after=Setting.get_promptDelay())
+                await GUI_HANDLER(self.music_cog, guildID, None)
             except Exception as e:
                 error_log('flushbutton', e, guildName= guildName)
     
@@ -521,7 +544,7 @@ class MusicFunctions(View):
             try:
                 guildName = interaction.user.guild.name
                 guildID = interaction.user.guild.id
-                channelID = interaction.channel.id
+                channel = interaction.channel
                 voice_client = interaction.client.get_guild(guildID).voice_client
                 log(guildName, 'button', 'reset')
                 self.data.initialize(guildID)
@@ -532,7 +555,7 @@ class MusicFunctions(View):
                         voice_client.stop()
                     await voice_client.disconnect()
                     log(guildName, 'DISCONNECTED (force)', channel_name)
-                await interaction.response.send_message(embed= embed.reset_prompt(interaction.client), delete_after=Setting.get_promptDelay())
+                await interaction.response.send_message(embed= embed.reset_prompt(), delete_after=Setting.get_promptDelay())
             except Exception as e:
                 error_log('resetbutton', e, guildName= guildName)
 
@@ -545,15 +568,50 @@ class MusicFunctions(View):
             try:
                 guildName = interaction.user.guild.name
                 guildID = interaction.user.guild.id
-                channelID = interaction.channel.id
+                channel = interaction.channel
                 log(guildName, 'command', 'help')
                 self.data.initialize(guildID)
-                msg = embed.HelpPrompt(interaction.client)
+                msg = embed.HelpPrompt(interaction.client, guildID)
                 await interaction.response.send_message(embed= msg)
                 await asyncio.sleep(Setting.get_helpPromptDelay())
-                await GUI_HANDLER(self.music_cog, guildID, channelID)
+                await GUI_HANDLER(self.music_cog, guildID, channel)
             except Exception as e:
                 error_log('HelpButton', e, guildName= guildName)
 
 
-                
+
+class SearchAlgorithmView(discord.ui.View):
+    def __init__(self, music_cog, user):
+        super().__init__()
+        self.add_item(SearchAlgorithmSelect(music_cog))
+        self.user = user
+    async def interaction_check(self, interaction: discord.Interaction):
+        clicked_user = interaction.user
+        guildName = interaction.user.guild.name
+        access = False
+        if self.user.id == clicked_user.id:
+            access = True
+        if access is True:
+            log(guildName, 'ACCESS GRANTED', clicked_user) 
+            return True
+        else:
+            log(guildName, 'ACCESS DENIED', clicked_user)
+            msg = embed.unauthorized_user_prompt()
+            await interaction.response.send_message(embed=msg, ephemeral=True, delete_after=Setting.get_promptDelay())
+            return False
+class SearchAlgorithmSelect(discord.ui.Select):
+    def __init__(self, music_cog):
+        self.music_cog = music_cog
+        options = [
+            discord.SelectOption(label="Spotify", description="Choose spotify search algorithm"),
+            discord.SelectOption(label="YouTube", description="Choose youtube search algorithm")
+        ]
+        super().__init__(placeholder="Choose a Search Algorithm", min_values=1, max_values=1, options=options)
+    
+    async def callback(self, interaction: discord.Interaction):
+        guildID = interaction.user.guild.id
+        selected_option = str(self.values[0]).lower()
+        Setting.set_searchAlgorithm(guildID, selected_option)
+        searchalgo = Setting.get_searchAlgorithm(guildID)
+        log('SearchAlgorithmselect','set search algorithm', searchalgo)
+        await interaction.response.send_message(embed=embed.search_algorithm_prompt(searchalgo))

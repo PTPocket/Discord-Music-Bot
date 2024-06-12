@@ -7,233 +7,240 @@ MUSIC_ICON = "https://cdn1.iconfinder.com/data/icons/music-audio-9/24/vinyl_play
 ICON_PATH = 'C:/Users/Pocket/Documents/GitHub/Discord-Music-Bot/4105542_audio_melody_music_sound_icon.png'
 COG_NAME = "Pocket Muse"   
 
-BLANK = '\u200b'
-#####USING########
+SPACE = '\u1CBC'
+NUM_SPACES = 1
+COMMAND_IDS = {
+    'slashcommand'   : 1250539068312260611,
+    'play'           : 1248888415630397563,
+    'playrandom'     : 1250444887112024185,
+    'skip'           : 1248888415630397565,
+    'previous'       : 1248888415630397566,
+    'help'           : 1248888415718736003,
+    'flush'          : 1248888415630397571,
+    'generate'       : 1249561601409810586,
+    'loop'           : 1248888415630397570,
+    'next'           : 1249561601409810585,
+    'pause'          : 1248888415630397567,
+    'resume'         : 1248888415630397568,
+    'shuffle'        : 1248888415630397569,
+    'reset'          : 1248888415630397572,
+    'join'           : 1249975660248829962,
+    'switch_algorithm': 1250546813769879634,
+    'prefix'      : 1250546813769879635
+}
 def title(title, length = 37):
     if len(title) > length:
         title = title[0:length]+'...'
     return title
 
-##### Not From Setting ######
-def MainGuiPrompt(bot, data:Guild_Music_Properties, guild_id):
+def channel_emb(channel):
+    return f'<#{channel.id}>'
+
+def get_commandText(key):
+    if key in COMMAND_IDS:
+        return f'</{key}:{COMMAND_IDS[key]}>'
+    return None
+def duration(dur):
+    if ':' not in str(dur):
+        minutes= int(dur/60)
+        seconds= int(dur%60)
+        if seconds < 10:
+            seconds = '0'+str(seconds)
+        return f'{minutes}:{seconds}'
+    return dur
+def format_song(song, length = 37, ind=None):
+    if song is None:
+        return 'None'
+    title = ''
+
+    if song['title'] is not None:
+        title+=song['title']
+    title+=' - '
+    if song['author'] is not None:
+        title+=song['author']
+    if len(title) > length:
+        title = title[:length]
+    index = ''
+    if ind is not None:
+        
+        if ind < 10:
+            index= f'{SPACE*(NUM_SPACES)}{ind}.  '
+        else:
+            index= f'{SPACE*(NUM_SPACES)}{ind}.  '
+    text= f'{index}[{title}]('
+
+
+    if song['url'] is not None:
+        text+=song['url']
+    text+=') '
+    if song['duration'] is not None:
+        text+= f'`{duration(song['duration'])}`'
+    return text
+
+
+def MainGuiPrompt(bot, data:Guild_Music_Properties, guildID):
     try:
         bot_avatar = bot.user.display_avatar
-        embed = discord.Embed(
-            title=f":musical_note:   **MUSIC PLAYER**   :musical_note:",
-            #description=f"***```{song}```***",
-            color=discord.Color.blurple()) 
-        next_song = None
+        line = ''
+        embed = discord.Embed(color=discord.Color.blurple()) 
+        next_text = None
         queue_msg = ''
-        queue = data.get_queue(guild_id)
+        queue_title = f'**__Queue__**'
+        queue = data.get_queue(guildID)
         for ind, song in enumerate(queue):
             if ind == 0:
-                next_song = title(f'{song['title']} by {song['title']}',17)
+                next_text = format_song(song, 20)
             else: 
-                song_title = title(f"{ind}. {song['title']} by {song['title']}")
+                song_title = format_song(song, 25, ind=ind)
                 queue_msg = song_title +"\n" + queue_msg
-            
-            if ind > 3 and ind < len(queue)-1:
-                if ind < len(queue)-2:
-                    queue_msg = f'-  ...\n' + queue_msg
-                song_title = title(f"{len(queue)-1}. {queue[len(queue)-1]['title']}")
+            if ind == len(queue)-2:
+                queue_msg = f'...\n' + queue_msg
+                song_title = format_song(queue[len(queue)-1],length=25, ind=len(queue)-1)
                 queue_msg = song_title +'\n'+queue_msg
                 break
-        if queue_msg == '': queue_msg = '...'
-        embed.add_field(
-            name='**Queue**', 
-            value = f"*```{queue_msg}```*",
-            inline=False)
-        if next_song is None:
-            next_song = '...'
-        line = ''
+            if ind > 4 and ind < len(queue)-2:
+                queue_msg = f'{SPACE*(NUM_SPACES)}...\n' + queue_msg
+                song_title = format_song(queue[len(queue)-1],length=25, ind=len(queue)-1)
+                queue_msg = song_title +'\n'+queue_msg
+                break
+        if queue_msg == '': 
+            queue_title = f'**__All commands__**'
+            queue_msg = f'\n**Play a song or playlist**\n {get_commandText('play')} | {get_commandText('playrandom')} '
+            queue_msg+= f'\n\n**Music Player functions**\n {get_commandText('skip')} | {get_commandText('next')} | {get_commandText('previous')} | {get_commandText('pause')}\n {get_commandText('resume')} | {get_commandText('shuffle')} | {get_commandText('loop')}'
+            queue_msg+= f'\n\n**Miscellaneous functions**\n {get_commandText('join')} | {get_commandText('flush')} | {get_commandText('reset')} | {get_commandText('generate')}\n {get_commandText('switchalgorithm')} | {get_commandText('newprefix')} |{get_commandText('help')}'
+        #NEXT AND PREVIOUS SONG #####
+        last_song = data.get_prev_song(guildID)
+
+        if next_text is None:
+            next_text = ''
+        previous_text = ''
+        if last_song is not None: 
+            previous_text = format_song(last_song, length=20)
+        song = data.get_current(guildID)
+        if song is None:
+            song_text = f'No songs ! Queue a song with {get_commandText('play')} '
+        else:
+            if song['thumbnail'] is not None:
+                embed.set_image(url=song['thumbnail'])
+            song_text = format_song(song)
+
+        queue_msg     = queue_msg
+        queue_title   = queue_title
+        next_text     = next_text
+        previous_text = previous_text
+        footer_text   = f'Search Algo : {Setting.get_searchAlgorithm(guildID)}    Prefix : {Setting.get_guildPrefix(guildID)}'
+        footer_url    = bot_avatar
+
+        embed.set_author(name = bot.user.name+' '+'Controller', icon_url=bot_avatar)
         embed.add_field(
             name='', 
             value=line,
             inline=False)
-        #NEXT AND PREVIOUS SONG #####
-        last_song = data.get_prev_song(guild_id)
-        if last_song is None: last_song = '...'
-        else:last_song= title(f'{last_song['title']} by {last_song['title']}',17)
-        if len(next_song) > len(last_song):
-            length_diff = len(next_song)-len(last_song)
-            last_song = last_song + (' '*length_diff)
-        elif len(last_song) > len(next_song):
-            length_diff = len(last_song)-len(next_song)
-            next_song = next_song + (' '*length_diff)
         embed.add_field(
-            name='**Next**', 
-            value = f"*```{next_song}```*",
+            name=f'**{queue_title}**', 
+            value = f"{queue_msg}",
+            inline=False)
+        embed.add_field(
+            name='', 
+            value=line,
+            inline=False)
+        embed.add_field(
+            name='**__Next__**', 
+            value = f"\n{next_text}",
             inline=True)
         embed.add_field(
-            name='**Previous**', 
-            value = f"*```{last_song}```*",
+            name=f'**__Previous__**', 
+            value = f"\n{previous_text}",
             inline=True)
-        current = data.get_current(guild_id)
-        if current is None:
-            current = '...'
-        else:
-            if current['author'] is None:
-                current = current['title']
-            else:
-                current = current['title'] + ' by ' + current['author']
-
         embed.add_field(
             name='', 
             value = line,
             inline=False)
         embed.add_field(
-            name='Now Playing', 
-            value = f'*```{current}```*',
+            name='__Now Playing__', 
+            value = f'\n{song_text}',
             inline=False)
-        features = 'Loop: '
-        if data.get_loop(guild_id) is True:
-            features += 'On '
-        else: 
-            features += 'Off'
-        features += '          Random: '
-        if data.get_random(guild_id) is True:
-            features +='On '
-        else:
-            features +='Off'
-        embed.set_footer(text = features, icon_url=bot_avatar)
+        embed.set_footer(text = footer_text, icon_url=footer_url)
         return embed
     except Exception as e:
         error_log('mainguiprompt', e)
 
-def HelpPrompt(bot):
+def quickInfoPrompt(bot, guildID):
+    embed = discord.Embed(
+        title=f"**__Quick Info__**",
+        color=discord.Color.blurple()) 
+    searchAlgo = Setting.get_searchAlgorithm(guildID)
+    commandPrefix = Setting.get_guildPrefix(guildID)
+    quickinfo = f'Command Prefix : `{commandPrefix}`\n'
+    quickinfo+= f' - Change command prefix with {get_commandText('changeprefix')}\n'
+    quickinfo+= f'Search Algorithm : `{searchAlgo}`\n'
+    quickinfo+= f' - Change search algorithms with {get_commandText('changealgorithm')}\n'
+    quickinfo+= f'Supports : [Spotify](https://open.spotify.com/) | [Youtube](https://www.youtube.com) | [YoutubeMusic](https://music.youtube.com/)\n'
+
+    prefix = Setting.get_guildPrefix(guildID)
+    commandsTitle = f'**__All Commands__**'
+    commandsText = '**Command Format**\n'
+    commandsText+= f' - {get_commandText('slashcommand')} | `/textcommand` - `Description`\n'
+    commandsText+= '\n**Play Song/Playlist Commands**\n'
+    commandsText+= f'- {get_commandText('play')} | `{prefix}p` - `Play a song or playlist`\n'
+    commandsText+= f'- {get_commandText('playrandom')} | `{prefix}pr` - `Play random songs forever (local library)`\n'
+    bot_avatar = bot.user.display_avatar
+    embed.add_field(
+        name='', 
+        value = quickinfo,
+        inline=False)
+    embed.add_field(
+        name='', 
+        value = '',
+        inline=False)
+    embed.add_field(
+        name='', 
+        value = '',
+        inline=False)
+    embed.add_field(
+        name='', 
+        value = '',
+        inline=False)
+    embed.add_field(
+        name=commandsTitle, 
+        value = commandsText,
+        inline=False)
+    embed.set_author(icon_url=bot_avatar, name = 'Quick Info')
+    return embed
+def all_commands_prompt(bot, guildID):
     bot_avatar = bot.user.display_avatar
     embed = discord.Embed(
-        title=f"**Help Menu**",
         color=discord.Color.blurple()) 
+    searchAlgo = Setting.get_searchAlgorithm(guildID)
+    prefix = Setting.get_guildPrefix(guildID)
+    commandsText = '-\n**Music Player Commands**\n'
+    commandsText+= f'- {get_commandText('skip')} | `{prefix}s` - `Skips song`\n'
+    commandsText+= f'- {get_commandText('next')} | `{prefix}n` - `Same as skip`\n'
+    commandsText+= f'- {get_commandText('previous')} | `{prefix}prev` - `Previous song`\n'
+    commandsText+= f'- {get_commandText('pause')} | `{prefix}pa` - `Pauses song`\n'
+    commandsText+= f'- {get_commandText('resume')} | `{prefix}r` - `Resumes song`\n'
+    commandsText+= f'- {get_commandText('shuffle')} | `{prefix}sh` - `Shuffles songs`\n'
+    commandsText+= f'- {get_commandText('loop')} | `{prefix}l` - `Loops currently playing song`\n'
+    commandsText+= '\n**Miscellaneous Commands**\n'
+    commandsText+= f'- {get_commandText('flush')} | `{prefix}f` - `Empty music library`\n'
+    commandsText+= f'- {get_commandText('join')} | `{prefix}j` - `Join PocBot to voice channel`\n'
+    commandsText+= f'- {get_commandText('help')} | `{prefix}h` - `Help information`\n'
+    commandsText+= f'- {get_commandText('reset')} - `Empty music library and disconnect`\n'
+    commandsText+= f'- {get_commandText('generate')} - `Generates music channel for controller`\n'
+    commandsText+= f'- {get_commandText('switch_algorithm')} - `Change music search algorithm`\n'
+    commandsText+= f'- {get_commandText('prefix')} - `Change command prefix`\n'
     
-    embed.add_field(
-        name='', 
-        value = "",
-        inline=False)
-    
-    info_text = '- Plays Spotify, Youtube, and YTMusic\n'
-    info_text+= '- Displays user interface\n'
-    info_text+= '- Non-Link queries search youtube\n'
-    embed.add_field(
-        name=':information_source:  **Quick Info**', 
-        value = f"*```{info_text}```*",
-        inline=False)
+    footer_text = f'Search Algo: {searchAlgo}'
 
     embed.add_field(
-        name='', 
-        value = "",
+        name= '', 
+        value = commandsText,
         inline=False)
-    embed.add_field(
-        name='', 
-        value = "",
-        inline=False)
-    howto_text = 'Slash Command\n'
-    howto_text+= '1. Type slash command prefix /\n'
-    howto_text+= '2. Select command\n'
-    howto_text+= '3. Type query\n'
-    howto_text+= '4. Enter\n\n'
-    howto_text+= 'Text Command (Short Commands)\n'
-    howto_text+= '1. Type text command prefix / ! or ?\n'
-    howto_text+= '2. Type a command\n'
-    howto_text+= '3. Add space then type query\n'
-    howto_text+= '4. Enter'
-    embed.add_field(
-        name='**:tools:  How to Use**', 
-        value = f"*```{howto_text}```*",
-        inline=False)
-    embed.add_field(
-        name='', 
-        value = "",
-        inline=False)
-    embed.add_field(
-        name='', 
-        value = "",
-        inline=False)
-    valid_text = '- Any Song Title\n'
-    valid_text+= '- Youtube Video Link\n'
-    valid_text+= '- Youtube Playlist Link\n'
-    valid_text+= '- Youtube Music Track Link\n'
-    valid_text+= '- Youtube Music Playlist Link\n'
-    valid_text+= '- Spotify Track Link\n'
-    valid_text+= '- Spotify Playlist Link'
-    embed.add_field(
-        name='\n:ballot_box_with_check:  **Valid Query**', 
-        value = f"*```{valid_text}```*",
-        inline=False)
-    
-    embed.add_field(
-        name='', 
-        value = "",
-        inline=False)
-    embed.add_field(
-        name='', 
-        value = "",
-        inline=False)
-    
-
-    command_list = '- /play        /p       (play query)\n'
-    command_list+= '- /skip        /s       (skip song)\n'
-    command_list+= '- /next        /n       (next song)\n'
-    command_list+= '- /previous    /prev    (previous song)\n'
-    command_list+= '- /pause       /pause   (pause song)\n'
-    command_list+= '- /resume      /resume  (resume song)\n'
-    command_list+= '- /loop        /l       (Loops song)\n'
-    command_list+= '- /shuffle     /shuffle (shuffle songs)\n'
-    command_list+= '- /play_random /pr      (random songs)\n'
-    command_list+= '- /reset       /r       (reset bot)\n'
-    command_list+= '- /flush       /f       (empty all songs)\n'
-    command_list+= '- /generate    /g       (Create text channel for PocBot Interface)\n'
-    command_list+= '- /help        /h       (open help menu)'
-    embed.add_field(
-        name=':notepad_spiral:  **Command List**', 
-        value = f"*```  Slash        Text     Description\n{command_list}```*",
-        inline=False)
-    embed.add_field(
-        name='', 
-        value = "",
-        inline=False)
-    embed.add_field(
-        name='', 
-        value = "",
-        inline=False)
-    ex_text = ' - /play i like to move it move it\n'
-    ex_text+= ' - /skip\n'
-    ex_text+= ' - /p youtube.com/watch?v=cpKolP6mMec\n'
-    ex_text+= ' - /flush'
-    embed.add_field(
-        name='**:mag_right:  Example Commands**', 
-        value = f"*```{ex_text}```*",
-        inline=False)
-
-    embed.add_field(
-        name='', 
-        value = "",
-        inline=False)
-    embed.add_field(
-        name='', 
-        value = "",
-        inline=False)
-    
-    ui_text = '\n:track_previous:  -  `Previous song`\n\n'
-    ui_text+= ':play_pause:  -  `Play/Pause`\n\n'
-    ui_text+= ':track_next:  -  `Next Song`\n\n'
-    ui_text+= ':twisted_rightwards_arrows:  -  `Shuffle all songs`\n\n'
-    ui_text+= ':arrows_counterclockwise:  -  `Loop current song`\n\n'
-    ui_text+= ':infinity: Random  -  `Plays random songs forever`\n\n'
-    ui_text+= ':toilet: Flush  -  `Empty all songs`\n\n'
-    ui_text+= ':information_source:  -  `Show help information`'
-    embed.add_field(
-        name='**:musical_note:  Music Player (User Interface)**', 
-        value = f"**{ui_text}**",
-        inline=False)
-
-    embed.set_footer(icon_url=bot_avatar)
+    embed.set_footer(icon_url=bot_avatar, text=footer_text)
     return embed
 
-
-### GREEN EMBED ###
-
 def queued_playlist_prompt(bot, song_names_list, num_of_songs, url, type):
+    bot_avatar = bot.user.display_avatar
     embed = discord.Embed(
         color=discord.Color.green())  
     embed.add_field(
@@ -267,146 +274,170 @@ def queued_playlist_prompt(bot, song_names_list, num_of_songs, url, type):
         name=f'**Queued**  __**{num_of_songs}**__  **Songs!**', 
         value = '',
         inline=False)
+    embed.set_footer(icon_url=bot_avatar)
     return embed
 
-def loop_prompt(bot, loop, song_name):
-    bot_avatar = bot.user.display_avatar
+###################
+def uniform_emb(text, color = None, searchAlgorithm = None, imgUrl = None, searchAlgo = None, bot=None):
+    embed = discord.Embed(description = text)
+    if searchAlgorithm is not None:
+        embed.set_footer()
+    if imgUrl is not None:
+        embed.set_image(url = imgUrl)
+    if searchAlgo is not None:
+        embed.set_footer(icon_url=bot.user.display_avatar, text=f'Search Algo : {searchAlgo.capitalize()}')
+    if color == 'red':
+        embed.color=discord.Color.red()
+        return embed
+    elif color == 'yellow':
+        embed.color=discord.Color.yellow()
+        return embed
+    else:
+        embed.color=discord.Color.green()
+        return embed
+
+### GREEN EMBED ###
+def now_playing_prompt(bot, song, guildID):
+    text = f'Now playing : {format_song(song)}'
+    return uniform_emb(text,color='green',imgUrl=song['thumbnail'], searchAlgo=Setting.get_searchAlgorithm(guildID), bot= bot)
+
+
+def resume_prompt(song):
+    text = f'Resumed : {format_song(song)}'
+    return uniform_emb(text,color='green')
+
+def joined_prompt(channel):
+    guild = channel_emb(channel)
+    text = f'Joined : {guild}'
+    return uniform_emb(text,color='green')
+
+def flush_prompt():
+    text = 'Removed all songs'
+    return uniform_emb(text,color='green')
+
+def generated_prompt():
+    text = 'Generated text channel and music player interface'
+    return uniform_emb(text,color='green')
+
+def reset_prompt():
+    text = 'Reset PocBot'
+    return uniform_emb(text,color='green')
+
+def search_algorithm_prompt(searchAlgo):
+    text = f'Switch to {searchAlgo} search algorithm'
+    return uniform_emb(text,color='green')
+
+def search_algorithm_prompt(searchAlgo):
+    text = f'Switch to {searchAlgo} search algorithm'
+    return uniform_emb(text,color='green')
+
+def changed_prefix_prompt(prefix):
+    text = f'Changed prefix : `{prefix}`'
+    return uniform_emb(text, color='green')
+
+def synced_prompt():
+    text = f'Synced commands'
+    return uniform_emb(text, color='green')
+
+#### YELLOW EMBEDS ###
+def shuffle_prompt():
+    text = 'Shuffled songs'
+    return uniform_emb(text,color='yellow')
+
+def skip_prompt(song):
+    text = f'Skipped : {format_song(song)}'
+    return uniform_emb(text,color='yellow')
+
+def previous_prompt(song):
+    text = f'Skipped back to : {format_song(song)}'
+    return uniform_emb(text,color='yellow')
+
+def queue_prompt(bot, song, guildID):
+    text = f'Queued : {format_song(song)}'
+    return uniform_emb(text,color='yellow', searchAlgo=Setting.get_searchAlgorithm(guildID), bot=bot)
+
+def loop_prompt(loop, song):
     if loop:
         title = 'Now looping'
+        color='green'
     else:
         title = 'Stopped looping'
-    embed = discord.Embed(
-        description= f'{title}: *`{song_name}`*',
-        color=discord.Color.green())  
-    return embed
+        color='yellow'
+    text = f'{title} : {format_song(song)}'
+    return uniform_emb(text,color=color)
 
-def reset_prompt(bot):
-    bot_avatar = bot.user.display_avatar
-    text = Setting.get_resetText()
-    embed = discord.Embed(
-        description=text, 
-        color=discord.Color.green())  
-    return embed
-
-def random_prompt(bot, random):
+def random_prompt(random):
     if random:
         text = 'Playing random songs'
+        color='green'
     else:
         text = 'Stopped random songs'
+        color='yellow'
     embed = discord.Embed(
         description=text, 
-        color=discord.Color.green())  
-    return embed
+        color=color)  
+    return uniform_emb(text,color=color)
 
-def resume_prompt(bot, song_name):
-    embed = discord.Embed(
-        description = f'Resumed: *`{song_name}`*',
-        color=discord.Color.green())  
-    return embed
+def pause_prompt(song):
+    text = f'Paused : {format_song(song)}'
+    return uniform_emb(text,color='yellow')
 
-def pause_prompt(bot, song_name):
-    embed = discord.Embed(
-        description = f'Paused: *`{song_name}`*',
-        color=discord.Color.green())  
-    return embed
+def finished_prompt():
+    text = 'No more songs ! Queue song with'
+    command = get_commandText('play')
+    text = f'No more songs ! Queue song with {command}'
+    return uniform_emb(text,color='yellow')
 
-def skip_prompt(bot, song_name):
-    embed = discord.Embed(
-        description = f'Skipped: *`{song_name}`*',
-        color=discord.Color.green())  
-    return embed
+def already_paused_prompt(song):
+    text = f'Already paused : {format_song(song)}'
+    return uniform_emb(text,color='yellow')
 
-def previous_prompt(bot, song_name):
-    text = Setting.get_previousText()
-    embed = discord.Embed(
-        description = f'{text}: *`{song_name}`*',
-        color=discord.Color.green())  
-    return embed
+def already_playing_prompt(song):
+    text = f'Already playing : {format_song(song)}'
+    return uniform_emb(text,color='yellow')
 
-def shuffle_prompt(bot):
-    text = Setting.get_shuffleText()
-    embed = discord.Embed(
-        description=f'{text}',
-        color=discord.Color.green())  
-    return embed
-
-def queue_prompt(bot, song_name):
-    text = Setting.get_queueText()
-    embed = discord.Embed(
-        description = f'{text}: *`{song_name}`*',
-        color=discord.Color.green())  
-    return embed
-
-def flush_prompt(bot):
-    bot_avatar = bot.user.display_avatar
-    text = Setting.get_flushText()
-    embed = discord.Embed(
-        description=text, 
-        color=discord.Color.green())  
-    return embed
-
-def finished_prompt(bot):
-    bot_avatar = bot.user.display_avatar
-    text = Setting.get_finishedText()
-    embed = discord.Embed(
-        description=text,
-        color=discord.Color.green())  
-    return embed
-
-def generated_prompt(bot):
-    bot_avatar = bot.user.display_avatar
-    text = Setting.get_generatedText()
-    embed = discord.Embed(
-        description=text,
-        color=discord.Color.green())  
-    return embed
 
 #### RED EMBEDS ###
+def blank_prefix_prompt(prefix):
+    text = f'Prefix cannot be blank`'
+    return uniform_emb(text, color='red')
+
+def no_space_prefix_prompt(prefix):
+    text = f'Prefix cannot have spaces`'
+    return uniform_emb(text, color='red')
+
+def invalid_channel_prompt(channel):
+    text = f'Join {channel_emb(channel)} to use the music player'
+    return uniform_emb(text,color='red')
+
+def no_search_result_prompt(query):
+    text = 'Song not found for query : *`{query}`*'
+    return uniform_emb(text,color='red')
+
 def user_disconnected_prompt():
-    text = Setting.get_user_disconnectedText()
-    embed = discord.Embed(
-        description=text,
-        color=discord.Color.red())  
-    return embed
+    text = 'Join a voice channel first'
+    return uniform_emb(text,color='red')
 
 def already_generated_prompt():
-    text = Setting.get_alreadygeneratedText()
-    embed = discord.Embed(
-        description=text,
-        color=discord.Color.red())  
-    return embed
+    text = 'Already generated text channel and music player interface'
+    return uniform_emb(text,color='red')
 
 def bot_disconnected_prompt():
-    text = Setting.get_botdisconnectText()
-    embed = discord.Embed(
-        description=text,
-        color=discord.Color.red())  
-    return embed
+    text = f'Nothing playing ! Queue song with {get_commandText('play')}'
+    return uniform_emb(text,color='red')
 
-def invalid_link(bot, song, platform=''):
-    bot_avatar = bot.user.display_avatar
-    embed = discord.Embed(
-        description=f"Invalid {platform} Link*```{song}```*",
-        color=discord.Color.red()) 
-    return embed
+def invalid_link(song, platform=''):
+    text = f"Invalid {platform.lower()} url : {song}"
+    return uniform_emb(text,color='red')
 
-def no_query_prompt(bot):
-    bot_avatar = bot.user.display_avatar
-    embed = discord.Embed(
-        description=f'Missing Query: *`/p query`*',
-        color=discord.Color.red())  
-    return embed
+def no_query_prompt():
+    text = f'Missing query after {get_commandText('play')}'
+    return uniform_emb(text,color='red')
 
-def nothing_prompt(bot, text):
-    text = text.lower()
-    embed = discord.Embed(
-        description=f'Nothing to {text}', 
-        color=discord.Color.red())  
-    return embed
+def no_songs_prompt():
+    text = f'No songs ! Queue song with {get_commandText('play')}'
+    return uniform_emb(text,color='red')
 
-def invalid_channel_prompt(channelName):
-    text = Setting
-    embed = discord.Embed(
-        description = f'{text}: *`{channelName}`*',
-        color=discord.Color.red())  
-    return embed
+def unauthorized_user_prompt():
+    text = 'Unauthorized user ! You did not call this command'
+    return uniform_emb(text,color='red')
