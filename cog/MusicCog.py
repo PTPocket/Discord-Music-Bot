@@ -250,7 +250,7 @@ class MusicCog(commands.Cog):
             else:
                 song = None
             if song is None:
-                await interaction.followup.send(embed = embed.no_search_result_prompt(query))
+                await interaction.followup.send(embed = embed.no_search_result_prompt(query), ephemeral=True)
                 await GUI_HANDLER(self, guildID, channel)
                 return
             self.data.add_song(guildID, song)
@@ -571,7 +571,7 @@ class MusicCog(commands.Cog):
             log(guildName, 'command', 'switchalgorithm')
             self.data.initialize(guildID)
             view = SearchAlgorithmView(self, user)
-            await interaction.response.send_message(view=view)
+            await interaction.response.send_message(view=view, ephemeral=True)
         except Exception as e:
             error_log('switchalgorithm', e)
 
@@ -1022,7 +1022,9 @@ class MusicCog(commands.Cog):
             await channel.send(embed= embed.changed_prefix_prompt(prefix))
         except Exception as e:
             error_log('prefix_ctx', e)
-            
+
+    async def slashcommand_ctx(self, message:discord.Interaction):
+        return
 ############# LISTENERS ########################################################################
     # Keep music player at bottom of channel and listens for commands
     @commands.Cog.listener() 

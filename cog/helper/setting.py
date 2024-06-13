@@ -88,6 +88,10 @@ def get_searchAlgorithm(guildID):
         file.truncate()
         return 'spotify'
     
+def get_expData():
+    with open(SETTING_PATH, 'r') as file:
+        setting = json.load(file)
+        return setting['Exp Point Data']
 
 def initialize_settings():
     default_setting = {
@@ -97,8 +101,23 @@ def initialize_settings():
             'PocBot Text Channel': {},
             'Last Message'       : {},
             'Guild Prefix'       : {},
-            'Search Algorithm'   : {}
-        }
+            'Search Algorithm'   : {},
+            'Exp Point Data'     : {
+                'play'        : 3,
+                'play_random' : 7,
+                'shuffle'     : 9,
+                'skip'        : 2,
+                'previous'    : 3,
+                'pause'       :-1,
+                'resume'      : 1,
+                'loop'        : 5,
+                'reset'       : 6,
+                'help'        : 10,
+                'generate'    : 10,
+                'join'        : 4,
+                'switch_algorithm' : 10,
+                }
+    }
 
     if os.path.exists(SETTING_PATH) is True:
         with open(SETTING_PATH, 'r') as file:

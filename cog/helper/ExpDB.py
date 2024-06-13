@@ -1,0 +1,72 @@
+import os, json
+from cog.helper.Log import *
+from Setting import get_expData
+LEVEL_PATH   = os.getcwd()+'\\Points Data.json'
+
+
+
+def add_exp(user, command, expPoints = None):
+    exp = 0
+    userID = str(user.id)
+    init_user(userID)
+    if expPoints is None:
+        expPoints = get_expData()[command.lower()]
+
+    with open(LEVEL_PATH, 'r+') as file:
+        expDB = json.load(file)
+        multiplier = int(expDB['multiplier'])
+        level = int(expDB['level'])
+        adjusted_exp = ((150-level)/150)
+        expDB[userID]['experience'] += exp*multiplier*adjusted_exp
+        exp = expDB[userID]['experience']
+        if int(exp/200) > level:
+            
+
+        #RELOAD
+        file.seek(0)
+        json.dump(LEVEL_PATH, file, indent=4)
+        file.truncate()
+def get_data():
+    with open(LEVEL_PATH, 'r+') as file:
+        expDB = json.load(file)
+        return expDB
+def init_user(userID):
+    userID = str(userID)
+    with open(LEVEL_PATH, 'r+') as file:
+        expDB = json.load(file)
+        if userID in expDB:
+            return
+        expDB[userID] = {}
+        expDB[userID]['level']      = 1
+        expDB[userID]['rank']       = 'None'
+        expDB[userID]['experience'] = 0
+        expDB[userID]['multiplier'] = 1
+        #FOR DATA PURPOSE ONLY
+        expDB[userID]['slashcommand_count'] = 0
+        expDB[userID]['play_command_count'] = 0
+        expDB[userID]['skip_command_count'] = 0
+        expDB[userID]['playrandom_command_count'] = 0
+        expDB[userID]['shuffle_command_count'] = 0
+        expDB[userID]['pause_command_count'] = 0
+        expDB[userID]['resume_command_count'] = 0
+        expDB[userID]['loop_command_count'] = 0
+        expDB[userID]['flush_command_count'] = 0
+        expDB[userID]['join_command_count'] = 0
+        expDB[userID]['help_command_count'] = 0
+        expDB[userID]['reset_command_count'] = 0
+        expDB[userID]['switch_algorithm_command_count'] = 0
+        expDB[userID]['prefix_command_count'] = 0
+        
+
+
+
+        file.seek(0)
+        json.dump(LEVEL_PATH, file, indent=4)
+        file.truncate()
+
+def initialize_level_system():
+    default_setting = {}
+    if not os.path.exists(LEVEL_PATH):
+        with open(LEVEL_PATH, 'w') as file:
+            json.dump(default_setting, file, indent=4)
+    log(None, 'initialized', LEVEL_PATH)

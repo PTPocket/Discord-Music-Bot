@@ -10,23 +10,23 @@ COG_NAME = "Pocket Muse"
 SPACE = '\u1CBC'
 NUM_SPACES = 1
 COMMAND_IDS = {
-    'slashcommand'   : 1250539068312260611,
-    'play'           : 1248888415630397563,
-    'playrandom'     : 1250444887112024185,
-    'skip'           : 1248888415630397565,
-    'previous'       : 1248888415630397566,
-    'help'           : 1248888415718736003,
-    'flush'          : 1248888415630397571,
-    'generate'       : 1249561601409810586,
-    'loop'           : 1248888415630397570,
-    'next'           : 1249561601409810585,
-    'pause'          : 1248888415630397567,
-    'resume'         : 1248888415630397568,
-    'shuffle'        : 1248888415630397569,
-    'reset'          : 1248888415630397572,
-    'join'           : 1249975660248829962,
+    'slashcommand'    : 1250539068312260611,
+    'play'            : 1248888415630397563,
+    'playrandom'      : 1250444887112024185,
+    'skip'            : 1248888415630397565,
+    'previous'        : 1248888415630397566,
+    'help'            : 1248888415718736003,
+    'flush'           : 1248888415630397571,
+    'generate'        : 1249561601409810586,
+    'loop'            : 1248888415630397570,
+    'next'            : 1249561601409810585,
+    'pause'           : 1248888415630397567,
+    'resume'          : 1248888415630397568,
+    'shuffle'         : 1248888415630397569,
+    'reset'           : 1248888415630397572,
+    'join'            : 1249975660248829962,
     'switch_algorithm': 1250546813769879634,
-    'prefix'      : 1250546813769879635
+    'prefix'          : 1250546813769879635
 }
 def title(title, length = 37):
     if len(title) > length:
@@ -106,8 +106,8 @@ def MainGuiPrompt(bot, data:Guild_Music_Properties, guildID):
         if queue_msg == '': 
             queue_title = f'**__All commands__**'
             queue_msg = f'\n**Play a song or playlist**\n {get_commandText('play')} | {get_commandText('playrandom')} '
-            queue_msg+= f'\n\n**Music Player functions**\n {get_commandText('skip')} | {get_commandText('next')} | {get_commandText('previous')} | {get_commandText('pause')}\n {get_commandText('resume')} | {get_commandText('shuffle')} | {get_commandText('loop')}'
-            queue_msg+= f'\n\n**Miscellaneous functions**\n {get_commandText('join')} | {get_commandText('flush')} | {get_commandText('reset')} | {get_commandText('generate')}\n {get_commandText('switchalgorithm')} | {get_commandText('newprefix')} |{get_commandText('help')}'
+            queue_msg+= f'\n\n**Music Player functions**\n {get_commandText('skip')} | {get_commandText('next')} {get_commandText('previous')} \n {get_commandText('pause')} | {get_commandText('resume')} \n {get_commandText('shuffle')} | {get_commandText('loop')}'
+            queue_msg+= f'\n\n**Miscellaneous functions**\n {get_commandText('join')} | {get_commandText('flush')} | {get_commandText('generate')}\n {get_commandText('reset')} | {get_commandText('prefix')} |{get_commandText('help')}\n {get_commandText('switch_algorithm')} '
         #NEXT AND PREVIOUS SONG #####
         last_song = data.get_prev_song(guildID)
 
@@ -128,7 +128,7 @@ def MainGuiPrompt(bot, data:Guild_Music_Properties, guildID):
         queue_title   = queue_title
         next_text     = next_text
         previous_text = previous_text
-        footer_text   = f'Search Algo : {Setting.get_searchAlgorithm(guildID)}    Prefix : {Setting.get_guildPrefix(guildID)}'
+        footer_text   = f'Search Algo : {Setting.get_searchAlgorithm(guildID)}'
         footer_url    = bot_avatar
 
         embed.set_author(name = bot.user.name+' '+'Controller', icon_url=bot_avatar)
@@ -172,9 +172,9 @@ def quickInfoPrompt(bot, guildID):
     searchAlgo = Setting.get_searchAlgorithm(guildID)
     commandPrefix = Setting.get_guildPrefix(guildID)
     quickinfo = f'Command Prefix : `{commandPrefix}`\n'
-    quickinfo+= f' - Change command prefix with {get_commandText('changeprefix')}\n'
+    quickinfo+= f' - Change command prefix with {get_commandText('prefix')}\n'
     quickinfo+= f'Search Algorithm : `{searchAlgo}`\n'
-    quickinfo+= f' - Change search algorithms with {get_commandText('changealgorithm')}\n'
+    quickinfo+= f' - Change search algorithm with {get_commandText('switch_algorithm')}\n'
     quickinfo+= f'Supports : [Spotify](https://open.spotify.com/) | [Youtube](https://www.youtube.com) | [YoutubeMusic](https://music.youtube.com/)\n'
 
     prefix = Setting.get_guildPrefix(guildID)
@@ -285,7 +285,7 @@ def uniform_emb(text, color = None, searchAlgorithm = None, imgUrl = None, searc
     if imgUrl is not None:
         embed.set_image(url = imgUrl)
     if searchAlgo is not None:
-        embed.set_footer(icon_url=bot.user.display_avatar, text=f'Search Algo : {searchAlgo.capitalize()}')
+        embed.set_footer(icon_url=bot.user.display_avatar, text=f'Search Algo : {searchAlgo}')
     if color == 'red':
         embed.color=discord.Color.red()
         return embed

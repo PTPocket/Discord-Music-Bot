@@ -12,10 +12,7 @@ from cog.helper.GuildData import Guild_Music_Properties
 from cog.helper.Log       import *
 from cog.helper           import Setting
 
-BLANK = '\u200b'
 LOCAL_MUSIC_PATH = "C:\\Users\\p\\Documents\\SERVER\\music\\Formatted"
-BLUE_GIF = 'blue.gif'
-ICON_PATH = os.getcwd()+'\\'+BLUE_GIF
 async def GUI_HANDLER(Music_Cog, guildID, channel):
     async with Music_Cog.data.get_guiLock(guildID):
         try:
@@ -141,6 +138,16 @@ async def valid_command_slash(interaction:discord.Interaction):
     else: log(guildName, 'ACCESS GRANTED', user) 
     return authorized
 
+
+async def command_check(ctx:commands.context.Context):
+    guildID = ctx.guild.id
+    content = ctx.message.content
+    guildPrefix = Setting.get_guildPrefix(guildID)
+    prefix = content[:len(guildPrefix)]
+    if prefix.lower() == guildPrefix.lower():
+        return True
+    else: return False
+
 # Allows if user is in the same channel as bot
 # or if user is in voice channel and bot is not
 async def valid_play_command_ctx(bot, message:discord.message.Message):
@@ -163,19 +170,10 @@ async def valid_play_command_ctx(bot, message:discord.message.Message):
 
     if not authorized:
         log(guildName, 'ACCESS DENIED', user)
-        await channel.send(embed= msg, ephemeral=True)
+        await channel.send(embed= msg, delete_after=Setting.get_promptDelay())
     else:
         log(guildName, 'ACCESS GRANTED', user)
     return authorized
-
-async def command_check(ctx:commands.context.Context):
-    guildID = ctx.guild.id
-    content = ctx.message.content
-    guildPrefix = Setting.get_guildPrefix(guildID)
-    prefix = content[:len(guildPrefix)]
-    if prefix.lower() == guildPrefix.lower():
-        return True
-    else: return False
 
 # Allows if user is in the same channel as bot
 async def valid_command_ctx(bot, ctx:commands.context.Context, command):
@@ -200,7 +198,7 @@ async def valid_command_ctx(bot, ctx:commands.context.Context, command):
         authorized =  False
     if authorized is False:
         log(guildName, 'ACCESS DENIED', user)
-        await ctx.send(embed= msg, ephemeral=True)
+        await ctx.send(embed= msg, delete_after=Setting.get_promptDelay())
     else: log(guildName, 'ACCESS GRANTED', user) 
     return authorized
 
@@ -581,9 +579,10 @@ class MusicFunctions(View):
 
 
 class SearchAlgorithmView(discord.ui.View):
+
     def __init__(self, music_cog, user):
         super().__init__()
-        self.add_item(SearchAlgorithmSelect(music_cog))
+        self.add_item(SearchAlgorithmSelect(music_cog, user, self))
         self.user = user
     async def interaction_check(self, interaction: discord.Interaction):
         clicked_user = interaction.user
@@ -600,18 +599,30 @@ class SearchAlgorithmView(discord.ui.View):
             await interaction.response.send_message(embed=msg, ephemeral=True, delete_after=Setting.get_promptDelay())
             return False
 class SearchAlgorithmSelect(discord.ui.Select):
-    def __init__(self, music_cog):
+    def __init__(self, music_cog, user, view):
         self.music_cog = music_cog
+        self.superview = view
+        self.user = user
+        currentAlgo = Setting.get_searchAlgorithm(user.guild.id)
+        if currentAlgo == 'spotify':
+            spotify = discord.SelectOption(label='Spotify', description="Choose spotify search algorithm",default=True)
+            youtube = discord.SelectOption(label='Youtube', description="Choose youtube search algorithm")
+        else:
+            spotify = discord.SelectOption(label='Spotify', description="Choose spotify search algorithm")
+            youtube = discord.SelectOption(label='Youtube', description="Choose youtube search algorithm",default=True)
         options = [
-            discord.SelectOption(label="Spotify", description="Choose spotify search algorithm"),
-            discord.SelectOption(label="YouTube", description="Choose youtube search algorithm")
+            spotify,
+            youtube
         ]
         super().__init__(placeholder="Choose a Search Algorithm", min_values=1, max_values=1, options=options)
     
     async def callback(self, interaction: discord.Interaction):
-        guildID = interaction.user.guild.id
-        selected_option = str(self.values[0]).lower()
-        Setting.set_searchAlgorithm(guildID, selected_option)
-        searchalgo = Setting.get_searchAlgorithm(guildID)
-        log('SearchAlgorithmselect','set search algorithm', searchalgo)
-        await interaction.response.send_message(embed=embed.search_algorithm_prompt(searchalgo))
+        try:
+            guildID = interaction.user.guild.id
+            selected_option = str(self.values[0]).lower()
+            Setting.set_searchAlgorithm(guildID, selected_option)
+            searchalgo = Setting.get_searchAlgorithm(guildID)
+            log('SearchAlgorithmselect','set search algorithm', searchalgo)
+            await interaction.response.edit_message(embed=embed.search_algorithm_prompt(searchalgo), view=None)
+        except Exception as e:
+            error_log('SearchAlgorithmSelect',e)
