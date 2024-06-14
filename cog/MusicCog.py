@@ -91,12 +91,14 @@ class MusicCog(commands.Cog):
                     **FFMPEG_OPTIONS,
                     executable= FFMPEG_EXE_PATH)
             elif song['source'] == 'searched':
-                song['source'] == 'query'
-                self.data.set_current(guildID, song)
+                song['source'] = 'query'
+                
                 player = FFmpegPCMAudio(
                     song['query'],
                     **FFMPEG_OPTIONS,
                     executable= FFMPEG_EXE_PATH)
+                song['query'] = song['url']
+                self.data.set_current(guildID, song)
             elif song['source'] == 'spotify':
                 song = GetSpotifyTrack(self.spotify, song['url'])
                 self.data.set_current(guildID, song)
