@@ -55,28 +55,27 @@ async def GUI_HANDLER(Music_Cog, channel, guildID):
         
 
 async def nowPlayingHandler(MusicCog, guildID):
+    if type(guildID) is str:
+        emb = embed.finished_prompt()
+    else: 
+        emb = embed.now_playing_prompt(MusicCog.bot, MusicCog.data.get_current(guildID))
+    guildID = int(guildID)
+    command_channel = MusicCog.data.get_channel(guildID)
+    pocbot_channelID = Setting.get_channelID(guildID)
+    if command_channel.id == pocbot_channelID:
+        return
+    last_channelID, last_messageID = Setting.get_nowPlayingMessage(guildID)
     async with MusicCog.data.get_nowplayingLock(int(guildID)):
-        if type(guildID) is str:
-            emb = embed.finished_prompt()
-        else: 
-            emb = embed.now_playing_prompt(MusicCog.bot, MusicCog.data.get_current(guildID))
-        guildID = int(guildID)
-        command_channel = MusicCog.data.get_channel(guildID)
-        pocbot_channelID = Setting.get_channelID(guildID)
-        if command_channel.id == pocbot_channelID:
-            return
-        last_channelID, last_messageID = Setting.get_nowPlayingMessage(guildID)
-        async with MusicCog.data.get_nowplayingLock(guildID):
-            message = await command_channel.send(embed=emb)
-            Setting.set_nowPlayingMessage(guildID, message.channel.id, message.id)
-            try:
-                if last_channelID is not None:
-                    last_channel = MusicCog.bot.get_channel(last_channelID)
-                    last_message = await last_channel.fetch_message(last_messageID)
-                    await last_message.delete()
-            except Exception as e:
-                error_log('nowPlayingHandler', e)
-                pass
+        message = await command_channel.send(embed=emb)
+        Setting.set_nowPlayingMessage(guildID, message.channel.id, message.id)
+        try:
+            if last_channelID is not None:
+                last_channel = MusicCog.bot.get_channel(last_channelID)
+                last_message = await last_channel.fetch_message(last_messageID)
+                await last_message.delete()
+        except Exception as e:
+            error_log('nowPlayingHandler', e)
+            pass
 
 async def create_bot_channel(guild:discord.guild.Guild):
     try:

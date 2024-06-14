@@ -129,8 +129,8 @@ class MusicCog(commands.Cog):
         try:
             voice_client = await voice_connect(user, guildName, guildID, voice_client)
             if voice_client.is_playing() == voice_client.is_paused() == self.data.get_playing(guildID) == False:
-                await nowPlayingHandler(self, guildID)
                 self.data.set_playing(guildID, True)
+                await nowPlayingHandler(self, guildID)                
                 log(guildName, 'MUSIC PLAYER', 'starting')
                 self.music_player(guildName, guildID, voice_client)
         except Exception as e:
