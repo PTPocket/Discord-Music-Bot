@@ -53,29 +53,30 @@ def SearchYoutube(query):
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             # Search for videos matching the query
             result = ydl.extract_info(f"ytsearch1:{query}", download=False)
-            
     except Exception as e:
         error_log('SearchYoutube', e, query)
         return None
     try:
         song = result['entries'][0]
+        url = f'https://youtube.com/watch?v={song['id']}'
         return {
             'title'    : song['title'], 
             'author'   : song['uploader'],
-            'url'      : song['url'],
-            'query'    : query,
+            'url'      : url,
+            'query'    : song['url'],
             'source'   : 'searched',
             'thumbnail': get_thumbnailYT(song['thumbnails']),
             'duration' : song['duration']}
     except Exception as e:
         error_log('SearchYoutube', e, query)
         song = result['entries']
+        url = f'https://youtube.com/watch?v={song['id']}'
         try:
             return {
                 'title'    : song['title'], 
                 'author'   : song['uploader'],
-                'url'      : song['url'],
-                'query'    : query,
+                'url'      : None,
+                'query'    : song['url'],
                 'source'   : 'searched',
                 'thumbnail': get_thumbnailYT(song['thumbnails']),
                 'duration' : song['duration']}
@@ -131,7 +132,8 @@ def GetRandom(bot):
     return {
         'title' : title, 
         'author': author, 
-        'url'   : f'{LOCAL_MUSIC_PATH}\\{song}',
+        'url'   : None,
+        'query' : f'{LOCAL_MUSIC_PATH}\\{song}',
         'source': 'Local',
         'thumbnail' :f'{bot.user.avatar}',
         'duration'  :duration}

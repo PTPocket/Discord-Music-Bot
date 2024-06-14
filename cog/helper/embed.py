@@ -46,8 +46,6 @@ def duration(dur):
         return f'{minutes}:{seconds}'
     return dur
 def format_song(song, length = 37, ind=None):
-    if song is None:
-        return 'None'
     if song['source'] == 'Local':
         text = f'{song['title']} - {song['author']}'
         if len(text) > length:
@@ -94,16 +92,11 @@ def MainGuiPrompt(bot, data:Guild_Music_Properties, guildID):
             else: 
                 song_title = format_song(song, 25, ind=ind)
                 queue_msg = song_title +"\n" + queue_msg
-            if ind == len(queue)-2:
-                queue_msg = f'...\n' + queue_msg
-                song_title = format_song(queue[len(queue)-1],length=25, ind=len(queue)-1)
-                queue_msg = song_title +'\n'+queue_msg
-                break
+
             if ind > 4 and ind < len(queue)-2:
-                queue_msg = f'{SPACE*(NUM_SPACES)}...\n' + queue_msg
-                song_title = format_song(queue[len(queue)-1],length=25, ind=len(queue)-1)
-                queue_msg = song_title +'\n'+queue_msg
+                queue_msg = f'{SPACE}+ {len(queue)-ind-1} songs\n' + queue_msg
                 break
+
         if queue_msg == '': 
             queue_title= f'**__All commands__**'
             queue_msg = f'\n**Miscellaneous functions**\n'    
@@ -308,9 +301,9 @@ def uniform_emb(text, color = None, searchAlgorithm = None, imgUrl = None, searc
         return embed
 
 ### GREEN EMBED ###
-def now_playing_prompt(bot, song, guildID):
+def now_playing_prompt(bot, song):
     if song is None:
-        text = f'Now playing : `random`'
+        text = f'Now playing...'
         songthumbnail  = ''
     else:
         text = f'Now playing : {format_song(song)}'
@@ -452,4 +445,8 @@ def no_songs_prompt():
 
 def unauthorized_user_prompt():
     text = 'Unauthorized user ! You did not call this command'
+    return uniform_emb(text,color='red')
+
+def already_joined_prompt(channel):
+    text = 'Already joined a voice channel : ' + channel_emb(channel)
     return uniform_emb(text,color='red')

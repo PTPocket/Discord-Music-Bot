@@ -6,10 +6,11 @@ from Paths import SETTING_PATH
 def initialize_settings():
     default_setting = {
             'Timeout Minutes'    : 60,
-            'Prompt Delay'       : 3,
-            'Help Prompt Delay'  : 60,
+            'Prompt Delay'       : 60,
             'PocBot Text Channel': {},
             'Last Message'       : {},
+            'Now Playing ChannelID' : {},
+            'Now Playing MessageID': {},
             'Guild Prefix'       : {},
             'Search Algorithm'   : {},
             'Exp Point Data'     : {
@@ -61,6 +62,16 @@ def set_messageID(guildID, id):
         json.dump(setting, file, indent=4)
         file.truncate()
 
+def set_nowPlayingMessage(guildID, channelID, messageID):
+    setting = None
+    with open(SETTING_PATH, 'r+') as file:
+        setting = json.load(file)
+        setting['Now Playing MessageID'][str(guildID)] = messageID
+        setting['Now Playing ChannelID'][str(guildID)] = channelID
+        file.seek(0)
+        json.dump(setting, file, indent=4)
+        file.truncate()
+
 def set_guildPrefix(guildID, prefix):
     with open(SETTING_PATH, 'r+') as file:
         setting = json.load(file)
@@ -78,6 +89,14 @@ def set_searchAlgorithm(guildID, algorithm):
         file.truncate()
 
 ### GET ###
+def get_nowPlayingMessage(guildID):
+    with open(SETTING_PATH, 'r') as file:
+        setting = json.load(file)
+    if str(guildID) in setting['Now Playing MessageID']:
+        messageID = setting['Now Playing MessageID'][str(guildID)]
+        channelID = setting['Now Playing ChannelID'][str(guildID)]
+        return int(channelID), int(messageID)
+    return None, None
 def get_timeout():
     with open(SETTING_PATH, 'r') as file:
         setting = json.load(file)
@@ -88,23 +107,18 @@ def get_promptDelay():
         setting = json.load(file)
     return setting['Prompt Delay']
 
-def get_helpPromptDelay():
-    with open(SETTING_PATH, 'r') as file:
-        setting = json.load(file)
-    return setting['Help Prompt Delay']
-
 def get_channelID(guildID):
     with open(SETTING_PATH, 'r') as file:
         setting = json.load(file)
     if str(guildID) in setting['PocBot Text Channel']:
-        return setting['PocBot Text Channel'][str(guildID)]
+        return int(setting['PocBot Text Channel'][str(guildID)])
     return None
 
 def get_messageID(guildID):
     with open(SETTING_PATH, 'r') as file:
         setting = json.load(file)
     if str(guildID) in setting['Last Message']:
-        return setting['Last Message'][str(guildID)]
+        return int(setting['Last Message'][str(guildID)])
     return None
 
 def get_guildPrefix(guildID):
