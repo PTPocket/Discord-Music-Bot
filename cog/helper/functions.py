@@ -279,6 +279,7 @@ class MusicFunctions(View):
             self.data = data
             self.music_cog = music_cog
         async def callback(self, interaction: discord.Interaction):
+            await interaction.response.edit_message(view = self.view)
             guildName = interaction.user.guild.name
             guildID = interaction.user.guild.id
             voice_client = interaction.client.get_guild(guildID).voice_client
@@ -298,7 +299,7 @@ class MusicFunctions(View):
                     log(guildName, 'RESUMED',song_name)
                     self.style = discord.ButtonStyle.blurple
                     voice_client.resume()
-                await interaction.response.edit_message(view=self.view)
+                await GUI_HANDLER(self.music_cog, None, guildID)
             except Exception as e:
                 error_log('PlayPause', e, guildName= guildName)
 
@@ -313,6 +314,7 @@ class MusicFunctions(View):
             self.music_cog = music_cog
 
         async def callback(self, interaction: discord.Interaction):
+            await interaction.response.edit_message(view = self.view)
             guildName = interaction.user.guild.name
             guildID = interaction.user.guild.id
             channel = interaction.channel
@@ -323,12 +325,10 @@ class MusicFunctions(View):
                 self.data.set_loop(guildID, False)
                 song= self.data.get_current(guildID)
                 if song is None:
-                    await interaction.response.edit_message(view=self.view)
-                    await interaction.followup.send(embed= embed.no_songs_prompt())
                     await GUI_HANDLER(self.music_cog, None, guildID)
+                    await interaction.channel.send(embed= embed.no_songs_prompt())
                     return
                 self.data.pos_forward(guildID)
-                await interaction.response.edit_message(view=self.view)
                 await GUI_HANDLER(self.music_cog, None, guildID)
                 if (voice_client.is_playing() or voice_client.is_paused()):
                     voice_client.stop()
@@ -347,6 +347,7 @@ class MusicFunctions(View):
             self.music_cog = music_cog
 
         async def callback(self, interaction: discord.Interaction):
+            await interaction.response.edit_message(view = self.view)
             user = interaction.user
             guildName = interaction.user.guild.name
             guildID = interaction.user.guild.id
@@ -354,7 +355,6 @@ class MusicFunctions(View):
             channel = interaction.channel
             log(guildName, 'button', 'previous')
             self.data.initialize(guildID)
-            await interaction.response.defer()
             try:
                 self.data.pos_backward(guildID)
                 song= self.data.get_current(guildID) 

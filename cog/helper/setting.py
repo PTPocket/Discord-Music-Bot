@@ -18,6 +18,7 @@ def initialize_settings():
                 'play_random' : 7,
                 'shuffle'     : 9,
                 'skip'        : 2,
+                'next'        : 2,
                 'previous'    : 3,
                 'pause'       :-1,
                 'resume'      : 1,
@@ -26,7 +27,10 @@ def initialize_settings():
                 'help'        : 10,
                 'generate'    : 10,
                 'join'        : 4,
+                'flush'       : 3,
+                'prefix' : 10,
                 'switch_algorithm' : 10,
+                'slashcommand' : 50
                 }
     }
 

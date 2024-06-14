@@ -164,7 +164,7 @@ class MusicCog(commands.Cog):
                     playlistType = 'YTMusic'
                     playlist_emb = queuePlaylist(guildName,guildID,song_data,playlistType,self.data)
                     msg = embed.queued_playlist_prompt(self.bot, playlist_emb, len(song_data), query, 'YTMusic')
-                    await channel.send(embed=msg)
+                    await channel.send(embed=msg, delete_after=Setting.get_promptDelay()*30)
                     await self.music_player_start(user, guildName, guildID, voice_client)
                     await GUI_HANDLER(self, channel, guildID)                    
                     return
@@ -196,7 +196,7 @@ class MusicCog(commands.Cog):
                     playlistType = 'Youtube'
                     playlist_emb = queuePlaylist(guildName,guildID, song_data, playlistType, self.data)                    
                     msg = embed.queued_playlist_prompt(self.bot, playlist_emb, len(song_data), query, 'Youtube')
-                    await channel.send(embed = msg)
+                    await channel.send(embed = msg, delete_after=Setting.get_promptDelay()*30)
                     await self.music_player_start(user, guildName, guildID, voice_client)
                     await GUI_HANDLER(self, channel, guildID)
                     return
@@ -221,7 +221,7 @@ class MusicCog(commands.Cog):
                     playlist = song_data
                     playlist_emb = queuePlaylist(guildName,guildID,playlist,playlistType,self.data)
                     msg = embed.queued_playlist_prompt(self.bot, playlist_emb, len(playlist), query, 'Spotify')
-                    await channel.send(embed= msg)
+                    await channel.send(embed= msg, delete_after=Setting.get_promptDelay()*30)
                     await self.music_player_start(user, guildName, guildID, voice_client)
                     await GUI_HANDLER(self, channel, guildID)
                     return
