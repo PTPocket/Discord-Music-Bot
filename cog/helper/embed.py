@@ -3,9 +3,6 @@ from   cog.helper.GuildData import Guild_Music_Properties
 from cog.helper.Log  import *
 import cog.helper.Setting  as Setting
 
-MUSIC_ICON = "https://cdn1.iconfinder.com/data/icons/music-audio-9/24/vinyl_player_retro_dj_disk_music_mix_2-512.png"
-ICON_PATH = 'C:/Users/Pocket/Documents/GitHub/Discord-Music-Bot/4105542_audio_melody_music_sound_icon.png'
-COG_NAME = "Pocket Muse"   
 
 SPACE = '\u1CBC'
 NUM_SPACES = 1
@@ -51,8 +48,18 @@ def duration(dur):
 def format_song(song, length = 37, ind=None):
     if song is None:
         return 'None'
+    if song['source'] == 'Local':
+        text = f'{song['title']} - {song['author']}'
+        if len(text) > length:
+            text = f'`{text[:length]}` '
+        else:
+            text = f'`{text}`'
+        if ind is not None:
+            text = f'{SPACE*(NUM_SPACES)}{ind}.  '+ text
+        if song['duration'] is not None:
+            text = f'{text} `{duration(song['duration'])}`'
+        return text
     title = ''
-
     if song['title'] is not None:
         title+=song['title']
     title+=' - '
@@ -62,14 +69,8 @@ def format_song(song, length = 37, ind=None):
         title = title[:length]
     index = ''
     if ind is not None:
-        
-        if ind < 10:
-            index= f'{SPACE*(NUM_SPACES)}{ind}.  '
-        else:
-            index= f'{SPACE*(NUM_SPACES)}{ind}.  '
+        index= f'{SPACE*(NUM_SPACES)}{ind}.  '
     text= f'{index}[{title}]('
-
-
     if song['url'] is not None:
         text+=song['url']
     text+=') '
@@ -104,10 +105,18 @@ def MainGuiPrompt(bot, data:Guild_Music_Properties, guildID):
                 queue_msg = song_title +'\n'+queue_msg
                 break
         if queue_msg == '': 
-            queue_title = f'**__All commands__**'
-            queue_msg = f'\n**Play a song or playlist**\n {get_commandText('play')} | {get_commandText('playrandom')} '
-            queue_msg+= f'\n\n**Music Player functions**\n {get_commandText('skip')} | {get_commandText('next')} {get_commandText('previous')} \n {get_commandText('pause')} | {get_commandText('resume')} \n {get_commandText('shuffle')} | {get_commandText('loop')}'
-            queue_msg+= f'\n\n**Miscellaneous functions**\n {get_commandText('join')} | {get_commandText('flush')} | {get_commandText('generate')}\n {get_commandText('reset')} | {get_commandText('prefix')} |{get_commandText('help')}\n {get_commandText('switch_algorithm')} '
+            queue_title= f'**__All commands__**'
+            queue_msg = f'\n**Miscellaneous functions**\n'    
+            queue_msg+= f'{get_commandText('join')} | {get_commandText('flush')}| {get_commandText('generate')}\n'
+            queue_msg+= f'{get_commandText('reset')} | {get_commandText('prefix')} |{get_commandText('help')}\n'
+            queue_msg+= f'{get_commandText('switch_algorithm')}'
+            queue_msg+= f'\n\n**Music Player functions**\n'
+            queue_msg+= f'{get_commandText('skip')} | {get_commandText('next')} | {get_commandText('previous')}\n'
+            queue_msg+= f'{get_commandText('pause')} | {get_commandText('resume')}\n'
+            queue_msg+= f'{get_commandText('shuffle')} | {get_commandText('loop')}'
+            queue_msg+= f'\n\n**Play a song or playlist**\n'
+            queue_msg+= f'{get_commandText('play')} | {get_commandText('playrandom')}'
+        
         #NEXT AND PREVIOUS SONG #####
         last_song = data.get_prev_song(guildID)
 
@@ -119,6 +128,7 @@ def MainGuiPrompt(bot, data:Guild_Music_Properties, guildID):
         song = data.get_current(guildID)
         if song is None:
             song_text = f'No songs ! Queue a song with {get_commandText('play')} '
+            embed.set_image(url=bot_avatar)
         else:
             if song['thumbnail'] is not None:
                 embed.set_image(url=song['thumbnail'])
@@ -171,11 +181,11 @@ def quickInfoPrompt(bot, guildID):
         color=discord.Color.blurple()) 
     searchAlgo = Setting.get_searchAlgorithm(guildID)
     commandPrefix = Setting.get_guildPrefix(guildID)
-    quickinfo = f'Command Prefix : `{commandPrefix}`\n'
+    quickinfo = f'**Command Prefix : **`{commandPrefix}`\n'
     quickinfo+= f' - Change command prefix with {get_commandText('prefix')}\n'
-    quickinfo+= f'Search Algorithm : `{searchAlgo}`\n'
+    quickinfo+= f'\n**Search Algorithm : **`{searchAlgo}`\n'
     quickinfo+= f' - Change search algorithm with {get_commandText('switch_algorithm')}\n'
-    quickinfo+= f'Supports : [Spotify](https://open.spotify.com/) | [Youtube](https://www.youtube.com) | [YoutubeMusic](https://music.youtube.com/)\n'
+    quickinfo+= f'\n**Supports : **[Spotify](https://open.spotify.com/) | [Youtube](https://www.youtube.com) | [YoutubeMusic](https://music.youtube.com/)\n'
 
     prefix = Setting.get_guildPrefix(guildID)
     commandsTitle = f'**__All Commands__**'
@@ -213,7 +223,7 @@ def all_commands_prompt(bot, guildID):
         color=discord.Color.blurple()) 
     searchAlgo = Setting.get_searchAlgorithm(guildID)
     prefix = Setting.get_guildPrefix(guildID)
-    commandsText = '-\n**Music Player Commands**\n'
+    commandsText = '**Music Player Commands**\n'
     commandsText+= f'- {get_commandText('skip')} | `{prefix}s` - `Skips song`\n'
     commandsText+= f'- {get_commandText('next')} | `{prefix}n` - `Same as skip`\n'
     commandsText+= f'- {get_commandText('previous')} | `{prefix}prev` - `Previous song`\n'
@@ -226,9 +236,10 @@ def all_commands_prompt(bot, guildID):
     commandsText+= f'- {get_commandText('join')} | `{prefix}j` - `Join PocBot to voice channel`\n'
     commandsText+= f'- {get_commandText('help')} | `{prefix}h` - `Help information`\n'
     commandsText+= f'- {get_commandText('reset')} - `Empty music library and disconnect`\n'
+    commandsText+= f'- {get_commandText('prefix')} - `Change command prefix`\n'
     commandsText+= f'- {get_commandText('generate')} - `Generates music channel for controller`\n'
     commandsText+= f'- {get_commandText('switch_algorithm')} - `Change music search algorithm`\n'
-    commandsText+= f'- {get_commandText('prefix')} - `Change command prefix`\n'
+    
     
     footer_text = f'Search Algo: {searchAlgo}'
 
@@ -298,9 +309,13 @@ def uniform_emb(text, color = None, searchAlgorithm = None, imgUrl = None, searc
 
 ### GREEN EMBED ###
 def now_playing_prompt(bot, song, guildID):
-    text = f'Now playing : {format_song(song)}'
-    return uniform_emb(text,color='green',imgUrl=song['thumbnail'], searchAlgo=Setting.get_searchAlgorithm(guildID), bot= bot)
-
+    if song is None:
+        text = f'Now playing : `random`'
+        songthumbnail  = ''
+    else:
+        text = f'Now playing : {format_song(song)}'
+        songthumbnail  = song['thumbnail']
+    return uniform_emb(text,color='green',imgUrl=songthumbnail, bot= bot)
 
 def resume_prompt(song):
     text = f'Resumed : {format_song(song)}'
@@ -373,9 +388,6 @@ def random_prompt(random):
     else:
         text = 'Stopped random songs'
         color='yellow'
-    embed = discord.Embed(
-        description=text, 
-        color=color)  
     return uniform_emb(text,color=color)
 
 def pause_prompt(song):

@@ -1,17 +1,18 @@
 import os
 from datetime import datetime
-LOG_FOLDER    = os.getcwd()+'\\Music Bot Log Folder'
+from Paths import LOG_FOLDER_PATH
+
 def song_name(song):
     title = str(song['title'])
     author = str(song['author'])
     return f'{title} - {author}'
 
 def LogFolderInitialize():
-    if os.path.exists(LOG_FOLDER) is False:
-        os.makedirs(LOG_FOLDER)
+    if os.path.exists(LOG_FOLDER_PATH) is False:
+        os.makedirs(LOG_FOLDER_PATH)
 
 def save_log(log_statement, time):
-    path = LOG_FOLDER + f'\\{str(time.date())}.txt'
+    path = LOG_FOLDER_PATH + f'\\{str(time.date())}.txt'
     if os.path.exists(path) is False:
         LogFolderInitialize()
         with open(path, 'a', encoding='utf-8') as logfile:
@@ -38,7 +39,6 @@ def log(guild_name, action:str, description = ''):
         error_log('log', e)
     
 
-    
 def error_log(location, description, item = None, guildName = 'N/A'):
     try:
         time = datetime.now()

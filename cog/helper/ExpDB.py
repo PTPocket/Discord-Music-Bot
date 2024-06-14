@@ -1,9 +1,7 @@
 import os, json
 from cog.helper.Log import *
 from Setting import get_expData
-LEVEL_PATH   = os.getcwd()+'\\Points Data.json'
-
-
+from Paths import EXP_FILE_PATH
 
 def add_exp(user, command, expPoints = None):
     exp = 0
@@ -12,27 +10,30 @@ def add_exp(user, command, expPoints = None):
     if expPoints is None:
         expPoints = get_expData()[command.lower()]
 
-    with open(LEVEL_PATH, 'r+') as file:
+    with open(EXP_FILE_PATH, 'r+') as file:
         expDB = json.load(file)
         multiplier = int(expDB['multiplier'])
         level = int(expDB['level'])
         adjusted_exp = ((150-level)/150)
         expDB[userID]['experience'] += exp*multiplier*adjusted_exp
         exp = expDB[userID]['experience']
-        if int(exp/200) > level:
-            
-
+        calc_level = int(exp/200)
+        if calc_level > level:
+            expDB['level'] = calc_level
+        
         #RELOAD
         file.seek(0)
-        json.dump(LEVEL_PATH, file, indent=4)
+        json.dump(EXP_FILE_PATH, file, indent=4)
         file.truncate()
+
 def get_data():
-    with open(LEVEL_PATH, 'r+') as file:
+    with open(EXP_FILE_PATH, 'r+') as file:
         expDB = json.load(file)
         return expDB
+    
 def init_user(userID):
     userID = str(userID)
-    with open(LEVEL_PATH, 'r+') as file:
+    with open(EXP_FILE_PATH, 'r+') as file:
         expDB = json.load(file)
         if userID in expDB:
             return
@@ -61,12 +62,12 @@ def init_user(userID):
 
 
         file.seek(0)
-        json.dump(LEVEL_PATH, file, indent=4)
+        json.dump(EXP_FILE_PATH, file, indent=4)
         file.truncate()
 
 def initialize_level_system():
     default_setting = {}
-    if not os.path.exists(LEVEL_PATH):
-        with open(LEVEL_PATH, 'w') as file:
+    if not os.path.exists(EXP_FILE_PATH):
+        with open(EXP_FILE_PATH, 'w') as file:
             json.dump(default_setting, file, indent=4)
-    log(None, 'initialized', LEVEL_PATH)
+    log(None, 'initialized', EXP_FILE_PATH)

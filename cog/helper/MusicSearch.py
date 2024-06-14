@@ -1,92 +1,25 @@
-import youtube_dl, yt_dlp, spotipy, time
-from ytmusicapi     import YTMusic
-from spotipy.oauth2 import SpotifyClientCredentials
-from cog.helper.Log import *
-FFMPEG_LOC = "C:\\Users\\p\\Downloads\\ffmpeg\\bin\\ffmpeg.exe"
+import youtube_dl, yt_dlp, spotipy, time, random
+from tinytag import TinyTag
+from time import perf_counter
+from ytmusicapi       import YTMusic
+from spotipy.oauth2   import SpotifyClientCredentials
+from cog.helper.Log   import *
+from Paths            import LOCAL_MUSIC_PATH
 
-def SearchYoutube(query):
-    ydl_opts = {
-        'quiet': True,
-        'format': 'bestaudio/best'
-    }
-    try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            # Search for videos matching the query
-            result = ydl.extract_info(f"ytsearch1:{query}", download=False)
-            
-    except Exception as e:
-        error_log('SearchYoutube', e, query)
-        return {'title' : '', 
-                'author': '', 
-                'url'   : '', 
-                'query' : query,
-                'source': 'query',
-                'thumbnail': None}
-    try:
-        song = result['entries'][0]
-        thumbnail = get_thumbnailYT(song['thumbnails'])
-        return {
-            'title' : song['title'], 
-            'author': song['uploader'],
-            'url'   : song['url'],
-            'query' : query,
-            'source': 'query',
-            'thumbnail': thumbnail}
-    except Exception as e:
-        error_log('SearchYoutube', e, query)
-        song = result['entries']
-        thumbnail = get_thumbnailYT(song['thumbnails'])
-        try:
-            return {
-            'title' : song['title'], 
-            'author': song['uploader'],
-            'url'   : song['url'],
-            'query' : query,
-            'source': 'query',
-            'thumbnail': thumbnail}
-        except Exception as e:
-            error_log('SearchYoutube', e, query)
-            return {'title' : '', 
-                    'author': '', 
-                    'url'   : '', 
-                    'query' : query,
-                    'source': 'query'}
 
-def SearchSpotify(spotify:spotipy.Spotify, query):
-    try:
-        result = None
-        try:
-            result = spotify.search(q=query, type='track', limit=1)
-        except Exception as e:
-            error_log('SearchSpotify', e)
-            time.sleep(.1)
-            log('N/A', 'trying again')
-        if result is None:
-            result = spotify.track(query)
-        
-        track = result['tracks']['items'][0]
-        title = track['name']
-        url = track['external_urls']['spotify']
-        thumbnail = get_thumbnailSpotify(track['album']['images'])
-        duration = int(track['duration_ms'])/1000
-        author = ''
-        for artist in track['artists']:
-            author += artist['name'] +', '
-        author = author[:-2]
-        return {
-            'title' : title, 
-            'author': author,
-            'query' : f'{title} by {author}',
-            'source':'query',
-            'url':url,
-            'thumbnail':thumbnail,
-            'duration' :duration}
-    except Exception as e:
-        error_log('Searchspotify', e)
+def funcTime(func):
+    def wrapper(*args, **kwargs):
+        start = perf_counter()
+        result = func(*args, **kwargs)
+        end = perf_counter()
+        log(None, f'Finished {func.__name__}', f'{round(end-start,10)} sec')
+        return result
+    return wrapper
+
 ### CONTROLLER FUNCTIONS ###
 def GetYT(link):
     if 'watch?v=' in link:
-        return GetYTSong(link)
+        return SearchYoutube(link)
     if '/playlist' in link: 
         return GetYTPlaylist(link)
     return None
@@ -108,53 +41,103 @@ def GetSpotify(spotify, link):
     if 'open.spotify.com/track' in link:
         return GetSpotifyTrack(spotify, link)
     return None
-############################
 
-############################
-def GetYTSong(link):
+#QUERY SEARCH
+@funcTime
+def SearchYoutube(query):
     ydl_opts = {
         'quiet': True,
         'format': 'bestaudio/best'
     }
     try:
-        link = link.replace(' ','').replace('\n','')
-        link = link.split('&')[0]
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             # Search for videos matching the query
-            result = ydl.extract_info(f"ytsearch1:{link}", download=False)
+            result = ydl.extract_info(f"ytsearch1:{query}", download=False)
+            
     except Exception as e:
-        error_log('SearchYoutube', e, link)
+        error_log('SearchYoutube', e, query)
         return None
     try:
         song = result['entries'][0]
-        thumbnail = get_thumbnailYT(song['thumbnails'])
-        duration = song['duration']
         return {
-            'title' : song['title'], 
-            'author': song['uploader'],
-            'url'   : song['url'],
-            'query' : link,
-            'source': 'YTsong',
-            'thumbnail': thumbnail,
-            'duration' : duration}
+            'title'    : song['title'], 
+            'author'   : song['uploader'],
+            'url'      : song['url'],
+            'query'    : query,
+            'source'   : 'searched',
+            'thumbnail': get_thumbnailYT(song['thumbnails']),
+            'duration' : song['duration']}
     except Exception as e:
-        error_log('SearchYoutube', e, link)
+        error_log('SearchYoutube', e, query)
         song = result['entries']
-        thumbnail = get_thumbnailYT(song['thumbnails'])
-        duration = song['duration']
         try:
             return {
-            'title' : song['title'], 
-            'author': song['uploader'],
-            'url'   : song['url'],
-            'query' : link,
-            'source': 'YTsong',
-            'thumbnail': thumbnail,
-            'duration' : duration}
+                'title'    : song['title'], 
+                'author'   : song['uploader'],
+                'url'      : song['url'],
+                'query'    : query,
+                'source'   : 'searched',
+                'thumbnail': get_thumbnailYT(song['thumbnails']),
+                'duration' : song['duration']}
         except Exception as e:
-            error_log('SearchYoutube', e, link)
+            error_log('SearchYoutube', e, query)
             return None
+
+def SearchSpotify(spotify:spotipy.Spotify, query):
+    try:
+        result = None
+        try:
+            result = spotify.search(q=query, type='track', limit=1)
+        except Exception as e:
+            error_log('SearchSpotify', e)
+            spotify_client_id = os.getenv('SPOTIFY_CLIENT_ID')
+            spotify_client_secret = os.getenv('SPOTIFY_CLIENT_SECRET')
+            client_credentials_manager = SpotifyClientCredentials(client_id=spotify_client_id, client_secret=spotify_client_secret)
+            spotify = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
+
+            log('N/A', 'trying again')
+        if result is None:
+            result = spotify.track(query)
         
+        track = result['tracks']['items'][0]
+        title = track['name']
+        url = track['external_urls']['spotify']
+        thumbnail = get_thumbnailSpotify(track['album']['images'])
+        duration = int(track['duration_ms'])/1000
+        author = ''
+        for artist in track['artists']:
+            author += artist['name'] +', '
+        author = author[:-2]
+        return {
+            'title' : title, 
+            'author': author,
+            'query' : f'{title} by {author}',
+            'source': 'query',
+            'url':url,
+            'thumbnail':thumbnail,
+            'duration' :duration}
+    except Exception as e:
+        error_log('Searchspotify', e)
+
+#LOCAL RANDOM SONG
+def GetRandom(bot):
+    flac_song_list = os.listdir(LOCAL_MUSIC_PATH)
+    song = random.choice(flac_song_list)
+    path = LOCAL_MUSIC_PATH + '\\'+ song
+    song_metadata = TinyTag.get(path)
+    title = song_metadata.title
+    author = song_metadata.artist
+    duration = song_metadata.duration
+    return {
+        'title' : title, 
+        'author': author, 
+        'url'   : f'{LOCAL_MUSIC_PATH}\\{song}',
+        'source': 'Local',
+        'thumbnail' :f'{bot.user.avatar}',
+        'duration'  :duration}
+
+############################
+
 def GetYTPlaylist(link):
     ydl_opts = {
         'quiet': True,
@@ -231,7 +214,8 @@ def GetYTMPlaylist(link:str):
             url = f'https://music.youtube.com/watch?v={song['videoId']}'
             thumbnail = get_thumbnailYT(song['thumbnails'])
             author = get_author(song['artists'])
-            duration = song['duration']
+            durSplit = song['duration'].split(':')
+            duration = int(durSplit[0])*60 + int(durSplit[1])
             formatted_playlist.append({
                 'title'    : title, 
                 'author'   : author,
@@ -244,8 +228,6 @@ def GetYTMPlaylist(link:str):
     except Exception as e:
         error_log('GetYTMPlaylist', e, link)
         return None
-
-
 
 def GetSpotifyTrack(spotify:spotipy.Spotify, link):
     try:

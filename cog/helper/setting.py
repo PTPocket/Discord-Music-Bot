@@ -1,7 +1,48 @@
 import os, json
 from cog.helper.Log import *
+from Paths import SETTING_PATH
 
-SETTING_PATH = os.getcwd()+'\\Music Bot Setting.json'
+### INITIALIZE ###
+def initialize_settings():
+    default_setting = {
+            'Timeout Minutes'    : 60,
+            'Prompt Delay'       : 3,
+            'Help Prompt Delay'  : 60,
+            'PocBot Text Channel': {},
+            'Last Message'       : {},
+            'Guild Prefix'       : {},
+            'Search Algorithm'   : {},
+            'Exp Point Data'     : {
+                'play'        : 3,
+                'play_random' : 7,
+                'shuffle'     : 9,
+                'skip'        : 2,
+                'previous'    : 3,
+                'pause'       :-1,
+                'resume'      : 1,
+                'loop'        : 5,
+                'reset'       : 6,
+                'help'        : 10,
+                'generate'    : 10,
+                'join'        : 4,
+                'switch_algorithm' : 10,
+                }
+    }
+
+    if os.path.exists(SETTING_PATH) is True:
+        with open(SETTING_PATH, 'r') as file:
+            cur_setting = json.load(file)
+        cur_setting_keys = cur_setting.keys()
+        for key in default_setting:
+            if key not in cur_setting_keys:
+                cur_setting[key] = default_setting[key]
+        with open(SETTING_PATH, 'w') as file:
+            json.dump(cur_setting, file, indent=4)
+    else:
+        with open(SETTING_PATH, 'w') as file:
+            json.dump(default_setting, file, indent=4)
+    log(None, 'initialized', SETTING_PATH)
+
 ### SET ###
 def set_channelID(guildID,id):
     setting = None
@@ -37,16 +78,16 @@ def set_searchAlgorithm(guildID, algorithm):
         file.truncate()
 
 ### GET ###
-
-
 def get_timeout():
     with open(SETTING_PATH, 'r') as file:
         setting = json.load(file)
     return int(setting['Timeout Minutes'])*60
+
 def get_promptDelay():
     with open(SETTING_PATH, 'r') as file:
         setting = json.load(file)
     return setting['Prompt Delay']
+
 def get_helpPromptDelay():
     with open(SETTING_PATH, 'r') as file:
         setting = json.load(file)
@@ -92,45 +133,5 @@ def get_expData():
     with open(SETTING_PATH, 'r') as file:
         setting = json.load(file)
         return setting['Exp Point Data']
-
-def initialize_settings():
-    default_setting = {
-            'Timeout Minutes'    : 60,
-            'Prompt Delay'       : 3,
-            'Help Prompt Delay'  : 60,
-            'PocBot Text Channel': {},
-            'Last Message'       : {},
-            'Guild Prefix'       : {},
-            'Search Algorithm'   : {},
-            'Exp Point Data'     : {
-                'play'        : 3,
-                'play_random' : 7,
-                'shuffle'     : 9,
-                'skip'        : 2,
-                'previous'    : 3,
-                'pause'       :-1,
-                'resume'      : 1,
-                'loop'        : 5,
-                'reset'       : 6,
-                'help'        : 10,
-                'generate'    : 10,
-                'join'        : 4,
-                'switch_algorithm' : 10,
-                }
-    }
-
-    if os.path.exists(SETTING_PATH) is True:
-        with open(SETTING_PATH, 'r') as file:
-            cur_setting = json.load(file)
-        cur_setting_keys = cur_setting.keys()
-        for key in default_setting:
-            if key not in cur_setting_keys:
-                cur_setting[key] = default_setting[key]
-        with open(SETTING_PATH, 'w') as file:
-            json.dump(cur_setting, file, indent=4)
-    else:
-        with open(SETTING_PATH, 'w') as file:
-            json.dump(default_setting, file, indent=4)
-    log(None, 'initialized', SETTING_PATH)
 
 

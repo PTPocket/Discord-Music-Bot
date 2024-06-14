@@ -12,12 +12,12 @@ import cog.helper.Setting    as     Setting
 from cog.helper.Log          import *
 from cog.helper.Functions    import *
 from cog.helper.MusicSearch  import *
-
+from Paths                   import FFMPEG_EXE_PATH
 
 FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
-FFMPEG_LOC = "C:\\Users\\p\\Downloads\\ffmpeg\\bin\\ffmpeg.exe"
-LOCAL_MUSIC_PATH1 = "C:\\Users\\p\\Documents\\SERVER\\music\\Formatted"
-LOCAL_MUSIC_PATH = 'S:\\music\\Formatted'
+
+def timeIt(start):
+    print(time.perf_counter()-start)
 
 class MusicCog(commands.Cog):
     def __init__(self, bot:commands.Bot, data:Guild_Music_Properties, gui_print:set, spotify:spotipy.Spotify):
@@ -28,34 +28,35 @@ class MusicCog(commands.Cog):
         self.gui_loop.start()
         self.disconnect_check.start()
         self.funcList = {
-                'p'         : self.play_ctx,
-                'play'      : self.play_ctx,
-                's'         : self.skip_ctx,
-                'skip'      : self.skip_ctx,
-                'n'         : self.skip_ctx,
-                'next'      : self.skip_ctx,
-                'prev'      : self.previous_ctx,
-                'previous'  : self.previous_ctx,
-                'playrandom': self.playrandom_ctx,
-                'pr'        : self.playrandom_ctx,
-                'shuffle'   : self.shuffle_ctx, 
-                'sh'        : self.shuffle_ctx, 
-                'pause'     : self.pause_ctx,
-                'pa'        : self.pause_ctx,
-                'r'         : self.resume_ctx,
-                'resume'    : self.resume_ctx,
-                'loop'      : self.loop_ctx,
-                'l'         : self.loop_ctx,
-                'flush'     : self.flush_ctx,
-                'f'         : self.flush_ctx,
-                'join'      : self.join_ctx,
-                'j'      : self.join_ctx,
-                'h'         : self.help_ctx,
-                'help'      : self.help_ctx,
-                'reset'     : self.reset_ctx,
-                'generate'  : self.generate_ctx,
-                'switch_algorithm' : self.switch_algorithm_ctx,
-                'prefix'    : self.prefix_ctx}
+                'p'         : self.play,
+                'play'      : self.play,
+                's'         : self.skip,
+                'skip'      : self.skip,
+                'n'         : self.skip,
+                'next'      : self.skip,
+                'prev'      : self.previous,
+                'previous'  : self.previous,
+                'playrandom': self.playrandom,
+                'pr'        : self.playrandom,
+                'shuffle'   : self.shuffle, 
+                'sh'        : self.shuffle, 
+                'pause'     : self.pause,
+                'pa'        : self.pause,
+                'r'         : self.resume,
+                'resume'    : self.resume,
+                'loop'      : self.loop,
+                'l'         : self.loop,
+                'flush'     : self.flush,
+                'f'         : self.flush,
+                'join'      : self.join,
+                'j'         : self.join,
+                'h'         : self.help,
+                'help'      : self.help,
+                'reset'     : self.reset,
+                'generate'  : self.generate,
+                'switch_algorithm' : self.switch_algorithm,
+                'prefix'    : self.prefix,
+                'slashcommand' : self.slashcommand_ctx}
         
     #MUSIC PLAYER LOOP (not recursive)
     def music_player(self, guildName, guildID, voice_client, recall = False, last_pos = None):
@@ -71,18 +72,7 @@ class MusicCog(commands.Cog):
             if self.data.get_loop(guildID) is True:
                 self.data.pos_backward(guildID)
             if self.data.empty_queue(guildID) and self.data.get_random(guildID) is True:
-                flac_song_list = os.listdir(LOCAL_MUSIC_PATH)
-                song = random.choice(flac_song_list)
-                path = LOCAL_MUSIC_PATH + '\\'+ song
-                song_metadata = TinyTag.get(path)
-                print(song_metadata)
-                title = song_metadata.title
-                author = song_metadata.artist
-                song = {
-                    'title' : title, 
-                    'author': author, 
-                    'url'   : f'{LOCAL_MUSIC_PATH}\\{song}',
-                    'source': 'local'}
+                song = GetRandom(self.bot)#Get Random may give errors causing problems to musc player
                 self.data.add_song(guildID, song)
             if self.data.empty_queue(guildID):
                 self.data.set_playing(guildID, False)
@@ -93,32 +83,32 @@ class MusicCog(commands.Cog):
             
             #Moves song from queue to current
             song = self.data.get_current(guildID)
-            if song['source'] == 'local':
-                player = FFmpegPCMAudio(
-                    song['url'],
-                    executable=FFMPEG_LOC)
-            elif song['source'] == 'query':
+            if song['source'] in ['query', 'spotify']:
                 query = song['query']
                 song = SearchYoutube(query)
                 player = FFmpegPCMAudio(
                     song['url'],
                     **FFMPEG_OPTIONS,
-                    executable= FFMPEG_LOC)
-            elif song['source'] == 'YTsong':
+                    executable= FFMPEG_EXE_PATH)
+            elif song['source'] == 'searched':
+                song['source'] == 'query'
+                self.data.set_current(guildID, song)
                 player = FFmpegPCMAudio(
                     song['url'],
                     **FFMPEG_OPTIONS,
-                    executable= FFMPEG_LOC)
+                    executable= FFMPEG_EXE_PATH)
             elif song['source'] == 'spotify':
                 song = GetSpotifyTrack(self.spotify, song['url'])
                 self.data.set_current(guildID, song)
-                song = self.data.get_current(guildID)
-                query = song['query']
-                song = SearchYoutube(query)
+                song = SearchYoutube(song['query'])
                 player = FFmpegPCMAudio(
                     song['url'],
                     **FFMPEG_OPTIONS,
-                    executable= FFMPEG_LOC)
+                    executable= FFMPEG_EXE_PATH)
+            else: #LOCAL SONG
+                player = FFmpegPCMAudio(
+                    song['url'],
+                    executable=FFMPEG_EXE_PATH)
             #Queues New Print Statement for GUI
             #Put here cause it will change entered query title to the video title in GUI
             if recall is True:
@@ -134,485 +124,44 @@ class MusicCog(commands.Cog):
             log('music_player', 'restarting')
             self.music_player(guildName, guildID, voice_client, recall=True, last_pos = pos)
             return True
-        
     #CHECKS IF MUSIC_PLAYER LOOP SHOULD START
     async def music_player_start(self, user, guildName, guildID, voice_client, channel):
         try:
             voice_client = await voice_connect(user, guildName, guildID, voice_client)
-            self.data.set_channel(guildID, channel)
             if voice_client.is_playing() == voice_client.is_paused() == self.data.get_playing(guildID) == False:
-                await channel.send(embed=embed.now_playing_prompt(self.bot, self.data.get_current(guildID), guildID))
+                current_song = self.data.get_current(guildID)
+                if current_song is not None:
+                    duration = current_song['duration']
+                    await channel.send(embed=embed.now_playing_prompt(self.bot, self.data.get_current(guildID), guildID), delete_after=duration)
+                else:
+                    await channel.send(embed=embed.now_playing_prompt(self.bot, self.data.get_current(guildID), guildID))
                 self.data.set_playing(guildID, True)
                 log(guildName, 'MUSIC PLAYER', 'starting')
                 self.music_player(guildName, guildID, voice_client)
         except Exception as e:
             error_log('music_player_start', e, guildName=guildName)
-        
-#######PLAY FUNCTIONS######################################################
-    @app_commands.check(valid_play_command_slash)
-    @app_commands.command(name= "play", description="Play a song or playlist with name or playlist url")
-    async def play(self, interaction:discord.Interaction, query:str):
-        user = interaction.user
-        guildName = interaction.user.guild.name
-        guildID = interaction.user.guild.id
-        voice_client = interaction.client.get_guild(guildID).voice_client
-        channel = interaction.channel
-        log(guildName, 'command', 'play')
-        self.data.initialize(guildID)
-        await interaction.response.defer(thinking=True)
-        try:
-            if 'music.youtube.com' in query:
-                song_data = GetYTMusic(query)
-                if type(song_data) is list:
-                    playlistType = 'YTMusic'
-                    playlist_emb = queuePlaylist(guildName,guildID,song_data, playlistType,self.data)
-                    msg = embed.queued_playlist_prompt(self.bot, playlist_emb, len(song_data), query, 'YTMusic')
-                    await interaction.followup.send(embed=msg)
-                    await self.music_player_start(user, guildName, guildID, voice_client, channel)
-                    await GUI_HANDLER(self, guildID, channel)
-                    return
-                if type(song_data) is dict:
-                    self.data.add_song(guildID, song_data)
-                    log(guildName, "queued", song_data)
-                    msg = embed.queue_prompt(self.bot, song_data, guildID)
-                    await interaction.followup.send(embed= msg)
-                    await self.music_player_start(user, guildName, guildID, voice_client, channel)
-                    await GUI_HANDLER(self, guildID, channel)
-                    return
-                msg = embed.invalid_link(query, 'YTMusic Song')
-                await interaction.followup.send(embed= msg, ephemeral=True)
-                log(guildName,'invalid ytmusic url', query)
-                return
-            
-            if 'youtube.com' in query:
-                song_data = GetYT(query)
-                if type(song_data) is dict:
-                    self.data.add_song(guildID, song_data)
-                    log(guildName, "QUEUED", song_data)
-                    msg = embed.queue_prompt(self.bot, song_data, guildID)
-                    await interaction.followup.send(embed= msg)
-                    await self.music_player_start(user, guildName, guildID, voice_client, channel)
-                    await GUI_HANDLER(self, guildID, channel)
-                    return
-                if type(song_data) is list:
-                    playlistType = 'Youtube'
-                    playlist_emb = queuePlaylist(guildName, guildID, song_data, playlistType, self.data)      
-                    msg = embed.queued_playlist_prompt(self.bot, playlist_emb, len(song_data), query, 'Youtube')
-                    await interaction.followup.send(embed = msg)              
-                    await self.music_player_start(user, guildName, guildID, voice_client, channel)
-                    await GUI_HANDLER(self, guildID, channel)
-                    return
-                log(guildName,'invalid youtube url', query)
-                msg = embed.invalid_link(query, 'Youtube')
-                await interaction.followup.send(embed= msg, ephemeral=True)
-                await GUI_HANDLER(self, guildID, channel)
-                return
-            
-            if 'open.spotify.com' in query:
-                song_data = GetSpotify(self.spotify, query)
-                if type(song_data) is dict:
-                    self.data.add_song(guildID, song_data)
-                    log(guildName, "QUEUED", song_data)
-                    msg = embed.queue_prompt(self.bot, song_data, guildID)
-                    await interaction.followup.send(embed= msg)
-                    await self.music_player_start(user, guildName, guildID, voice_client, channel)
-                    await GUI_HANDLER(self, guildID, channel)
-                    return
-                if type(song_data) is list:
-                    playlistType = 'Spotify'
-                    playlist = song_data
-                    playlist_emb = queuePlaylist(guildName,guildID,playlist,playlistType,self.data)
-                    msg = embed.queued_playlist_prompt(self.bot, playlist_emb, len(playlist), query, 'Spotify')
-                    await interaction.followup.send(embed= msg)
-                    await self.music_player_start(user, guildName, guildID, voice_client, channel)
-                    await GUI_HANDLER(self, guildID, channel)
-                    return
-                
-                msg = embed.invalid_link(query, 'Spotify')
-                await interaction.followup.send(embed= msg, ephemeral=True)
-                await GUI_HANDLER(self, guildID, channel)
-                log(guildName,'invalid spotify url', query)
-                return
 
-            if 'https://' in query:
-                log(guildName,'invalid url', query)
-                msg = embed.invalid_link(query)
-                await interaction.followup.send(embed= msg, ephemeral=True)
-                await GUI_HANDLER(self, guildID, channel)
-                return
-            
-            #query is not a link
-            searchAlgorithm = Setting.get_searchAlgorithm(guildID)
-            if searchAlgorithm == 'spotify':
-                song = SearchSpotify(self.spotify, query)
-            elif searchAlgorithm == 'youtube':
-                song = SearchYoutube(query)
-            else:
-                song = None
-            if song is None:
-                await interaction.followup.send(embed = embed.no_search_result_prompt(query), ephemeral=True)
-                await GUI_HANDLER(self, guildID, channel)
-                return
-            self.data.add_song(guildID, song)
-            log(guildName, "QUEUED", f'{query} (query)')
-            await interaction.followup.send(embed = embed.queue_prompt(self.bot, song, guildID))
-            await self.music_player_start(user, guildName, guildID, voice_client, channel)
-            await GUI_HANDLER(self, guildID, channel)
-        except Exception as e:
-            error_log('play', e, guildName=guildName)
-    
-    @app_commands.check(valid_play_command_slash)
-    @app_commands.command(name= "playrandom", description="Play random songs from pocket bot library forever")
-    async def playrandom(self, interaction:discord.Interaction): 
-        try:
-            user = interaction.user
-            guildName = interaction.user.guild.name
-            guildID = interaction.user.guild.id
-            channel = interaction.channel
-            voice_client = interaction.client.get_guild(guildID).voice_client
-            log(guildName, 'command', 'play_random')
-            self.data.initialize(guildID)
-            if self.data.switch_random(guildID) is True:
-                log(guildName, 'RANDOM', 'On')
-            else: 
-                log(guildName, 'RANDOM', 'Off')
-            await interaction.response.send_message(embed= embed.random_prompt(self.data.get_random(guildID)))
-            await self.music_player_start(user, guildName, guildID, voice_client, channel)
-            await GUI_HANDLER(self, guildID, channel)
-        except Exception as e:
-            error_log('play_random', e)
+####### MAIN FUNCTIONS ######################################################
 
-    @app_commands.check(valid_command_slash)
-    @app_commands.command(name= "skip", description="Skips song")
-    async def skip(self, interaction:discord.Interaction):
-        try:
-            guildName = interaction.user.guild.name
-            guildName = interaction.user.guild.name
-            guildID = interaction.user.guild.id
-            channel = interaction.channel
-            voice_client = interaction.client.get_guild(guildID).voice_client
-            log(guildName, 'command', 'skip')
-            self.data.initialize(guildID)
-            self.data.set_loop(guildID, False)
-            song= self.data.get_current(guildID)
-            self.data.pos_forward(guildID)
-            if song is None:
-                await interaction.response.send_message(embed= embed.no_songs_prompt())
-                await GUI_HANDLER(self, guildID, channel)
-                return
-            if (voice_client.is_playing() or voice_client.is_paused()):
-                voice_client.stop()
-                await interaction.response.send_message(embed= embed.skip_prompt(song))
-                await GUI_HANDLER(self, guildID, channel)
-                return
-            await interaction.response.send_message(embed= embed.skip_prompt(song))
-            await GUI_HANDLER(self, guildID, channel)
-        except Exception as e:
-            error_log('skip', e)
-
-    @app_commands.check(valid_command_slash)
-    @app_commands.command(name= "next", description="Goes to next song")
-    async def next(self, interaction:discord.Interaction):
-        try:
-            guildName = interaction.user.guild.name
-            guildName = interaction.user.guild.name
-            guildID = interaction.user.guild.id
-            channel = interaction.channel
-            voice_client = interaction.client.get_guild(guildID).voice_client
-            log(guildName, 'command', 'next')
-            self.data.initialize(guildID)
-            self.data.set_loop(guildID, False)
-            song= self.data.get_current(guildID)
-            self.data.pos_forward(guildID)
-            if song is None:
-                await interaction.response.send_message(embed= embed.no_songs_prompt())
-                await GUI_HANDLER(self, guildID, channel)
-                return
-            if (voice_client.is_playing() or voice_client.is_paused()):
-                voice_client.stop()
-                await interaction.response.send_message(embed= embed.skip_prompt(song))
-                await GUI_HANDLER(self, guildID, channel)
-                return
-            await interaction.response.send_message(embed= embed.skip_prompt(song))
-            await GUI_HANDLER(self, guildID, channel)
-        except Exception as e:
-            error_log('next', e)
-    
-    @app_commands.check(valid_command_slash)
-    @app_commands.command(name= "previous", description="Previous song")
-    async def previous(self, interaction:discord.Interaction):
-        try:
-            user = interaction.user
-            guildName = interaction.user.guild.name
-            guildID = interaction.user.guild.id
-            channel = interaction.channel
-            voice_client = interaction.client.get_guild(guildID).voice_client
-            log(guildName, 'COMMAND', 'previous')
-            self.data.initialize(guildID)
-            self.data.pos_backward(guildID)
-            song= self.data.get_current(guildID) 
-            if song is None:
-                await interaction.response.send_message(embed= embed.no_songs_prompt())
-                await GUI_HANDLER(self, guildID, channel)
-                return
-            self.data.set_loop(guildID, False)
-            if voice_client.is_playing() or voice_client.is_paused():
-                voice_client.stop()
-                await interaction.response.send_message(embed= embed.previous_prompt(song))
-                await GUI_HANDLER(self, guildID, channel)
-                return
-            await interaction.response.send_message(embed= embed.previous_prompt(song))
-            await GUI_HANDLER(self, guildID, channel)
-            await self.music_player_start(user, guildName, guildID, voice_client, channel)
-            return
-        except Exception as e:
-            error_log('previous', e, guildName= guildName)
-
-    @app_commands.check(valid_command_slash)
-    @app_commands.command(name= "pause", description="Pause song")
-    async def pause(self, interaction:discord.Interaction):
-        try:
-            guildName = interaction.user.guild.name
-            guildID = interaction.user.guild.id
-            channel = interaction.channel
-            voice_client = interaction.client.get_guild(guildID).voice_client
-            log(guildName, 'COMMAND', 'pause')
-            self.data.initialize(guildID)
-            song = self.data.get_current(guildID)
-            if voice_client.is_playing() and not voice_client.is_paused():
-                log(guildName, 'PAUSED', song)
-                voice_client.pause()
-                await interaction.response.send_message(embed= embed.pause_prompt(song))
-                await GUI_HANDLER(self, guildID, channel)
-                return
-            if not voice_client.is_playing() and voice_client.is_paused():
-                await interaction.response.send_message(embed= embed.already_paused_prompt(song))
-                await GUI_HANDLER(self, guildID, channel)
-                return
-            await interaction.response.send_message(embed= embed.no_songs_prompt())
-            await GUI_HANDLER(self, guildID, channel)
-        except Exception as e:
-            error_log('pause', e)
-        await interaction.delete_original_response()
-
-    @app_commands.check(valid_command_slash)
-    @app_commands.command(name= "resume", description="Resume song")
-    async def resume(self, interaction:discord.Interaction):
-        try:
-            guildName = interaction.user.guild.name
-            guildID = interaction.user.guild.id
-            channel = interaction.channel
-            voice_client = interaction.client.get_guild(guildID).voice_client
-            log(guildName, 'COMMAND', 'previous')
-            self.data.initialize(guildID)
-            song = self.data.get_current(guildID)
-            if not voice_client.is_playing() and voice_client.is_paused():
-                log(guildName, 'RESUME', song)
-                voice_client.resume()
-                await interaction.response.send_message(embed= embed.resume_prompt(song))
-                await GUI_HANDLER(self, guildID, channel)
-                return
-            if voice_client.is_playing() and not voice_client.is_paused():
-                await interaction.response.send_message(embed= embed.already_playing_prompt(song))
-                await GUI_HANDLER(self, guildID, channel)
-                return
-            await interaction.response.send_message(embed= embed.no_songs_prompt())
-            await GUI_HANDLER(self, guildID, channel)
-        except Exception as e:
-            error_log('RESUME', e)
-
-    @app_commands.check(valid_command_slash)
-    @app_commands.command(name= "shuffle", description="Shuffle song")
-    async def shuffle(self, interaction:discord.Interaction):
-        try:
-            user = interaction.user
-            guildName = interaction.user.guild.name
-            guildID = interaction.user.guild.id
-            channel = interaction.channel
-            voice_client = interaction.client.get_guild(guildID).voice_client
-            log(guildName, 'COMMAND', 'shuffle')
-            self.data.initialize(guildID)
-            current_song = self.data.get_current(guildID)
-            library = self.data.get_queue(guildID)+self.data.get_history(guildID)
-            if library == [] and current_song is None:
-                await interaction.response.send_message(embed= embed.no_songs_prompt())
-                await GUI_HANDLER(self, guildID, channel)
-                return
-            random.shuffle(library)
-            if current_song is not None:
-                library.insert(0, current_song)
-            self.data.set_new_library(guildID, library)
-            await interaction.response.send_message(embed= embed.shuffle_prompt())
-            await GUI_HANDLER(self, guildID, channel)
-            await self.music_player_start(user, guildName, guildID, voice_client, channel)
-        except Exception as e:
-            error_log('shuffle', e, guildName= guildName)
-
-    @app_commands.check(valid_command_slash)
-    @app_commands.command(name= "loop", description="Loop current song")
-    async def loop(self, interaction:discord.Interaction):
-        try:
-            guildName = interaction.user.guild.name
-            guildID = interaction.user.guild.id
-            channel = interaction.channel
-            voice_client = interaction.client.get_guild(guildID).voice_client
-            log(guildName, 'COMMAND', 'loop')
-            self.data.initialize(guildID)
-            if voice_client.is_playing() or voice_client.is_paused():
-                song = self.data.get_current(guildID)
-                self.data.switch_loop(guildID)
-                self.data.set_random(guildID, False)
-                loop_var = self.data.get_loop(guildID)
-                if loop_var is True:
-                    log(guildName, 'now looping', song)
-                else:
-                    log(guildName, 'stopped looping', song)
-            loop_var = self.data.get_loop(guildID)
-            song= self.data.get_current(guildID)
-            await interaction.response.send_message(embed= embed.loop_prompt(loop_var, song))
-            await GUI_HANDLER(self, guildID, channel)
-            return
-        except Exception as e:
-            error_log('loop', e, guildName= guildName)
-    
-    @app_commands.check(valid_command_slash)
-    @app_commands.command(name= "flush", description="Empty current data and stop music player")
-    async def flush(self, interaction:discord.Interaction):
-        try:
-            guildName = interaction.user.guild.name
-            guildID = interaction.user.guild.id
-            channel = interaction.channel
-            voice_client = interaction.client.get_guild(guildID).voice_client
-            log(guildName, 'COMMAND', 'flush')
-            await interaction.response.defer()
-            self.data.initialize(guildID)
-            self.data.reset(guildID)
-            await GUI_HANDLER(self, guildID, channel)
-            if voice_client.is_playing() or voice_client.is_paused():
-                voice_client.stop()
-            self.data.full_reset(guildID)
-            await interaction.followup.send(embed= embed.flush_prompt())
-    
-        except Exception as e:
-            error_log('flush', e, guildName= guildName)
-
-    @app_commands.check(valid_command_slash)
-    @app_commands.command(name= "reset", description="Full reset bot")
-    async def reset(self, interaction:discord.Interaction):
-        try:
-            guildName = interaction.user.guild.name
-            guildID = interaction.user.guild.id
-            channel = interaction.channel
-            voice_client = interaction.client.get_guild(guildID).voice_client
-            log(guildName, 'COMMAND', 'reset')
-            self.data.initialize(guildID)
-            self.data.full_reset(guildID)
-            if voice_client is not None:
-                channel_name = voice_client.channel.name
-                if voice_client.is_playing() or voice_client.is_paused():
-                    voice_client.stop()
-                await voice_client.disconnect()
-                log(guildName, 'DISCONNECTED (force)', channel_name)
-            await interaction.response.send_message(embed= embed.reset_prompt())
-            await GUI_HANDLER(self, guildID, channel)
-        except Exception as e:
-            error_log('reset', e, guildName= guildName)
-
-    @app_commands.check(valid_play_command_slash)
-    @app_commands.command(name= "join", description="Bot joins your current voice channel")
-    async def join(self, interaction:discord.Interaction):
-        try:
-            user = interaction.user
-            guildName = interaction.user.guild.name
-            guildID = interaction.user.guild.id
-            self.data.initialize(guildID)
-            voice_client = interaction.client.get_guild(guildID).voice_client
-            voice_client = await voice_connect(user, guildName, guildID, voice_client)
-            await interaction.response.send_message(embed= embed.joined_prompt(voice_client.channel))
-        except Exception as e:
-            error_log('join', e)
-
-    @app_commands.command(name= "help", description="Shows bot use information")
-    async def help(self, interaction:discord.Interaction):
-        guildName = interaction.user.guild.name
-        guildID = interaction.user.guild.id
-        channel = interaction.channel
-        log(guildName, 'command', 'help')
-        self.data.initialize(guildID)
-        await printHelpPrompt(interaction, self.bot, guildID)
-        await asyncio.sleep(Setting.get_helpPromptDelay())
-        await GUI_HANDLER(self,guildID, channel)
-
-    @app_commands.command(name= "generate", description="Creates a dedicated text channel for PocBot's Music Interface")
-    async def generate(self, interaction:discord.Interaction):
-        try:
-            guildName = interaction.user.guild.name
-            guildID = interaction.user.guild.id
-            log(guildName, 'command', 'generate')
-            self.data.initialize(guildID)
-            channel = await create_bot_channel(self.data, interaction.guild)
-            if channel is None: 
-                await interaction.response.send_message(embed= embed.already_generated_prompt())
-                return
-            if channel == 'error':
-                return
-            await printHelpPrompt(interaction, self.bot, guildID)
-            await GUI_HANDLER(self, guildID, channel.id)
-            await interaction.response.send_message(embed=embed.generated_prompt())
-        except Exception as e:
-            error_log('generate', e)
-
-    @app_commands.command(name= "switch_algorithm", description="Change the music search algorithm")
-    async def switch_algorithm(self, interaction:discord.Interaction):
-        try:
-            user = interaction.user
-            guildName = interaction.user.guild.name
-            guildID = interaction.user.guild.id
-            log(guildName, 'command', 'switchalgorithm')
-            self.data.initialize(guildID)
-            view = SearchAlgorithmView(self, user)
-            await interaction.response.send_message(view=view, ephemeral=True)
-        except Exception as e:
-            error_log('switchalgorithm', e)
-
-    @app_commands.command(name= "prefix", description="Change command prefix")
-    async def prefix(self, interaction:discord.Interaction, prefix:str):
-        try:
-            user = interaction.user
-            guildName = interaction.user.guild.name
-            guildID = interaction.user.guild.id
-            log(guildName, 'command', 'prefix')
-            self.data.initialize(guildID)
-            if prefix == '' or  ' ' in prefix:
-                await interaction.response.send_message(embed= embed.blank_prefix_prompt(prefix))
-                return
-            Setting.set_guildPrefix(guildID, prefix)
-            log(guildName, 'changed prefix', prefix)
-            await interaction.response.send_message(embed= embed.changed_prefix_prompt(prefix))
-        except Exception as e:
-            error_log('prefix', e)
-
-    @app_commands.command(name= "slashcommand", description="What does this do?")
-    async def slashcommand(self, interaction:discord.Interaction):
-        await interaction.response.defer()
-        await interaction.delete_original_response()
-### TEXT COMMANDS ##############################################################
-
-    async def play_ctx(self, message:discord.message.Message, query):
-        query = query
-        user = message.author
-        guildName = str(message.channel.guild.name)
-        guildID = message.channel.guild.id
+    async def play(self, message, query):
+        if type(message) == discord.Interaction:
+            user = message.user
+        else: user = message.author
+        user = user
+        guildName = message.guild.name
+        guildID   = message.guild.id
         channel = message.channel
         voice_client = self.bot.get_guild(guildID).voice_client
-        log(guildName, 'command', 'play_ctx')
-        self.data.initialize(guildID)
-        if await valid_play_command_ctx(self.bot, message) is False:return
+        log(guildName, 'command', 'play')
+
+        if await valid_play_command_ctx(self.data, user, channel, voice_client) is False:return
+        
         if query == '' or query.count(' ') == len(query):
             msg = embed.no_query_prompt()
             await channel.send(embed = msg)
             await GUI_HANDLER(self, guildID, channel)
             return
+        
         try:
             if 'music.youtube.com' in query:
                 song_data = GetYTMusic(query)
@@ -714,18 +263,21 @@ class MusicCog(commands.Cog):
             await GUI_HANDLER(self, guildID, channel)
             return
         except Exception as e:
-            error_log('play_tc', e, guildName=guildName)
+            error_log('play', e, guildName=guildName)
 
-    async def playrandom_ctx(self, message:discord.message.Message):
+    async def playrandom(self, message):
+        
+        if type(message) == discord.Interaction:
+            user = message.user
+        else: user = message.author
+        user = user
+        guildName = message.guild.name
+        guildID   = message.guild.id
+        channel = message.channel
+        voice_client = self.bot.get_guild(guildID).voice_client
+        log(guildName, 'command', 'play_random')
         try:
-            user = message.author
-            guildName = str(message.channel.guild.name)
-            guildID = message.channel.guild.id
-            channel = message.channel
-            voice_client = self.bot.get_guild(guildID).voice_client
-            log(guildName, 'command', 'play_random_tc')
-            self.data.initialize(guildID)
-            if await valid_play_command_ctx(self.bot, message) is False:return
+            if await valid_play_command_ctx(self.data, user, channel, voice_client) is False:return
             if self.data.switch_random(guildID) is True:
                 log(guildName, 'RANDOM', 'On')
             else: 
@@ -734,18 +286,20 @@ class MusicCog(commands.Cog):
             await self.music_player_start(user, guildName, guildID, voice_client, channel)
             await GUI_HANDLER(self, guildID, channel)
         except Exception as e:
-            error_log('play_random_tc', e, guildName=guildName)
+            error_log('play_random', e, guildName=guildName)
     
-    async def shuffle_ctx(self, message:discord.message.Message):
+    async def shuffle(self, message):
+        if type(message) == discord.Interaction:
+            user = message.user
+        else: user = message.author
+        user = user
+        guildName = message.guild.name
+        guildID   = message.guild.id
+        channel = message.channel
+        voice_client = self.bot.get_guild(guildID).voice_client
+        log(guildName, 'command', 'shuffle')
         try:
-            user = message.author
-            guildName = str(message.channel.guild.name)
-            guildID = message.channel.guild.id
-            channel = message.channel
-            voice_client = self.bot.get_guild(guildID).voice_client
-            log(guildName, 'command', 'shuffle_ctx')
-            self.data.initialize(guildID)
-            if await valid_command_ctx(self.bot, message) is False : return
+            if await valid_command_ctx(self.data, user, channel, voice_client) is False : return
             song = self.data.get_current(guildID)
             library = self.data.get_queue(guildID)+self.data.get_history(guildID)
             if library == [] and song is None:
@@ -765,18 +319,20 @@ class MusicCog(commands.Cog):
             
             await GUI_HANDLER(self, guildID, channel)
         except Exception as e:
-            error_log('shuffle_ctx', e)
+            error_log('shuffle', e)
     
-    async def skip_ctx(self, message:discord.message.Message):
+    async def skip(self, message):
+        if type(message) == discord.Interaction:
+            user = message.user
+        else: user = message.author
+        user = user
+        guildName = message.guild.name
+        guildID   = message.guild.id
+        channel = message.channel
+        voice_client = self.bot.get_guild(guildID).voice_client
+        log(guildName, 'command', 'skip')
         try:
-            user = message.author
-            guildName = str(message.channel.guild.name)
-            guildID = message.channel.guild.id
-            channel = message.channel
-            voice_client = self.bot.get_guild(guildID).voice_client
-            log(guildName, 'command', 'skip_ctx')
-            self.data.initialize(guildID)
-            if await valid_command_ctx(self.bot, message) is False:return
+            if await valid_command_ctx(self.data, user, channel, voice_client) is False:return
             song= self.data.get_current(guildID)
             self.data.pos_forward(guildID)
             if song is None:
@@ -792,18 +348,20 @@ class MusicCog(commands.Cog):
             await channel.send(embed= embed.skip_prompt(song))
             await GUI_HANDLER(self, guildID, channel)
         except Exception as e:
-            error_log('skip_ctx', e)
+            error_log('skip', e)
 
-    async def previous_ctx(self, message:discord.message.Message):
+    async def previous(self, message):
+        if type(message) == discord.Interaction:
+            user = message.user
+        else: user = message.author
+        user = user
+        guildName = message.guild.name
+        guildID   = message.guild.id
+        channel = message.channel
+        voice_client = self.bot.get_guild(guildID).voice_client
+        log(guildName, 'command', 'previous')
         try:
-            user = message.author
-            guildName = str(message.channel.guild.name)
-            guildID = message.channel.guild.id
-            channel = message.channel
-            voice_client = self.bot.get_guild(guildID).voice_client
-            log(guildName, 'COMMAND', 'previous_ctx')
-            self.data.initialize(guildID)
-            if await valid_command_ctx(self.bot, message) is False:return
+            if await valid_command_ctx(self.data, user, channel, voice_client) is False:return
             self.data.pos_backward(guildID)
             song= self.data.get_current(guildID) 
             if song is None:
@@ -822,16 +380,18 @@ class MusicCog(commands.Cog):
         except Exception as e:
             error_log('previous_ctx', e, guildName= guildName)
     
-    async def pause_ctx(self, message:discord.message.Message):
+    async def pause(self, message):
+        if type(message) == discord.Interaction:
+            user = message.user
+        else: user = message.author
+        user = user
+        guildName = message.guild.name
+        guildID   = message.guild.id
+        channel = message.channel
+        voice_client = self.bot.get_guild(guildID).voice_client
+        log(guildName, 'command', 'pause')
         try:
-            user = message.author
-            guildName = str(message.channel.guild.name)
-            guildID = message.channel.guild.id
-            channel = message.channel
-            voice_client = self.bot.get_guild(guildID).voice_client
-            log(guildName, 'COMMAND', 'pause_ctx')
-            self.data.initialize(guildID)
-            if await valid_command_ctx(self.bot, message) is False:return
+            if await valid_command_ctx(self.data, user, channel, voice_client) is False:return
             song = self.data.get_current(guildID)
             if voice_client.is_playing() and not voice_client.is_paused():
                 log(guildName, 'PAUSED', song)
@@ -846,21 +406,23 @@ class MusicCog(commands.Cog):
             await channel.send(embed= embed.no_songs_prompt())
             await GUI_HANDLER(self, guildID, channel)
         except Exception as e:
-            error_log('pause_ctx', e, guildName=guildName)
+            error_log('pause', e, guildName=guildName)
             
-    async def resume_ctx(self, message:discord.message.Message):
+    async def resume(self, message):
+        if type(message) == discord.Interaction:
+            user = message.user
+        else: user = message.author
+        user = user
+        guildName = message.guild.name
+        guildID   = message.guild.id
+        channel = message.channel
+        voice_client = self.bot.get_guild(guildID).voice_client
+        log(guildName, 'command', 'pause')
         try:
-            user = message.author
-            guildName = str(message.channel.guild.name)
-            guildID = message.channel.guild.id
-            channel = message.channel
-            voice_client = self.bot.get_guild(guildID).voice_client
-            log(guildName, 'COMMAND', 'resume_ctx')
-            self.data.initialize(guildID)
-            if await valid_command_ctx(self.bot, message) is False:return
+            if await valid_command_ctx(self.data, user, channel, voice_client) is False:return
             song = self.data.get_current(guildID)
             if not voice_client.is_playing() and voice_client.is_paused():
-                log(guildName, 'resume_ctx', song)
+                log(guildName, 'resume', song)
                 voice_client.resume()
                 await channel.send(embed= embed.resume_prompt(song))
                 await GUI_HANDLER(self, guildID, channel)
@@ -872,18 +434,20 @@ class MusicCog(commands.Cog):
             await channel.send(embed= embed.no_songs_prompt('Resume'))
             await GUI_HANDLER(self, guildID, channel)
         except Exception as e:
-            error_log('resume_ctx', e, guildName= guildName)
+            error_log('resume', e, guildName= guildName)
 
-    async def loop_ctx(self, message:discord.message.Message):
+    async def loop(self, message):
+        if type(message) == discord.Interaction:
+            user = message.user
+        else: user = message.author
+        user = user
+        guildName = message.guild.name
+        guildID   = message.guild.id
+        channel = message.channel
+        voice_client = self.bot.get_guild(guildID).voice_client
+        log(guildName, 'command', 'loop')
         try:
-            user = message.author
-            guildName = str(message.channel.guild.name)
-            guildID = message.channel.guild.id
-            channel = message.channel
-            voice_client = self.bot.get_guild(guildID).voice_client
-            log(guildName, 'COMMAND', 'loop_ctx')
-            self.data.initialize(guildID)
-            if await valid_command_ctx(self.bot, message) is False:return
+            if await valid_command_ctx(self.data, user, channel, voice_client) is False:return
             if voice_client.is_playing() or voice_client.is_paused():
                 song = self.data.get_current(guildID)
                 self.data.switch_loop(guildID)
@@ -901,18 +465,20 @@ class MusicCog(commands.Cog):
             await channel.send(embed= embed.no_songs_prompt('loop'))
             await GUI_HANDLER(self, guildID, channel)
         except Exception as e:
-            error_log('loop_ctx', e, guildName= guildName)
+            error_log('loop', e, guildName= guildName)
     
-    async def reset_ctx(self, message:discord.message.Message):
+    async def reset(self, message):
+        if type(message) == discord.Interaction:
+            user = message.user
+        else: user = message.author
+        user = user
+        guildName = message.guild.name
+        guildID   = message.guild.id
+        channel = message.channel
+        voice_client = self.bot.get_guild(guildID).voice_client
+        log(guildName, 'command', 'reset')
         try:
-            user = message.author
-            guildName = str(message.channel.guild.name)
-            guildID = message.channel.guild.id
-            channel = message.channel
-            voice_client = self.bot.get_guild(guildID).voice_client
-            log(guildName, 'command', 'reset_ctx')
-            self.data.initialize(guildID)
-            if await valid_play_command_ctx(self.bot,message) is False:
+            if await valid_play_command_ctx(self.data, user, channel, voice_client) is False:
                 return
             self.data.full_reset(guildID)
             await GUI_HANDLER(self, guildID, channel)
@@ -921,22 +487,24 @@ class MusicCog(commands.Cog):
                 if voice_client.is_playing() or voice_client.is_paused():
                     voice_client.stop()
                 await voice_client.disconnect()
-                log(guildName, 'DISCONNECTED (force)', channel_name)
+                log(guildName, 'DISCONNECTED (user reset)', channel_name)
             self.data.full_reset(guildID)
             await channel.send(embed= embed.reset_prompt())
         except Exception as e:
-            error_log('reset_ctx', e, guildName= guildName)
+            error_log('reset', e, guildName= guildName)
 
-    async def flush_ctx(self, message:discord.message.Message):
+    async def flush(self, message):
+        if type(message) == discord.Interaction:
+            user = message.user
+        else: user = message.author
+        user = user
+        guildName = message.guild.name
+        guildID   = message.guild.id
+        channel = message.channel
+        voice_client = self.bot.get_guild(guildID).voice_client
+        log(guildName, 'command', 'flush')
         try:
-            user = message.author
-            guildName = str(message.channel.guild.name)
-            guildID = message.channel.guild.id
-            channel = message.channel
-            voice_client = self.bot.get_guild(guildID).voice_client
-            log(guildName, 'command', 'flush_ctx')
-            self.data.initialize(guildID)
-            if await valid_play_command_ctx(self.bot, message) is False:
+            if await valid_play_command_ctx(self.data, user, channel, voice_client) is False:
                 return
             self.data.reset(guildID)
             await GUI_HANDLER(self, guildID, channel)
@@ -947,73 +515,90 @@ class MusicCog(commands.Cog):
             msg = embed.flush_prompt()
             await channel.send(embed=msg)
         except Exception as e:
-            error_log('flush_ctx', e, guildName= guildName)
+            error_log('flush', e, guildName= guildName)
 
-    async def help_ctx(self, message:discord.message.Message):
-        user = message.author
-        guildName = str(message.channel.guild.name)
-        guildID = message.channel.guild.id
+    async def help(self, message):
+        if type(message) == discord.Interaction:
+            user = message.user
+        else: user = message.author
+        user = user
+        guildName = message.guild.name
+        guildID   = message.guild.id
         channel = message.channel
-        log(guildName, 'command', 'help_ctx')
+        log(guildName, 'command', 'help')
         self.data.initialize(guildID)
         try:
             await printHelpPrompt(channel, self.bot, guildID)
             await asyncio.sleep(Setting.get_helpPromptDelay())
             await GUI_HANDLER(self,guildID, channel)
         except Exception as e:
-            error_log('help_ctx', e, guildName= guildName)
+            error_log('help', e, guildName= guildName)
 
-    async def generate_ctx(self, message:discord.message.Message):
+    async def generate(self, message):
+        if type(message) == discord.Interaction:
+            user = message.user
+        else: user = message.author
+        user = user
+        guildName = message.guild.name
+        guildID   = message.guild.id
+        channel = message.channel
+        log(guildName, 'command', 'generate')
+        self.data.initialize(guildID)
         try:
-            user = message.author
-            guildName = str(message.channel.guild.name)
-            guildID = message.channel.guild.id
-            channel = message.channel
-            log(guildName, 'command', 'generate_ctx')
-            self.data.initialize(guildID)
-            channel = await create_bot_channel(self.data, message.guild)
-            if channel is None: 
+            new_channel = await create_bot_channel(self.data, message.guild)
+            if new_channel is None: 
                 await channel.send(embed=embed.already_generated_prompt())
                 return
-            await printHelpPrompt(channel, self.bot, guildID)
-            await GUI_HANDLER(self, guildID, channel.id)
+            await printHelpPrompt(new_channel, self.bot, guildID)
+            await GUI_HANDLER(self, guildID, new_channel)
             await channel.send(embed=embed.generated_prompt())
         except Exception as e:
-            error_log('generate_ctx', e)
+            error_log('generate', e)
     
-    async def join_ctx(self, message:discord.message.Message):
-        user = message.author
-        guildName = str(message.channel.guild.name)
-        guildID = message.channel.guild.id
+    async def join(self, message):
+        if type(message) == discord.Interaction:
+            user = message.user
+        else: user = message.author
+        user = user
+        guildName = message.guild.name
+        guildID   = message.guild.id
         channel = message.channel
         voice_client = self.bot.get_guild(guildID).voice_client
-        self.data.initialize(guildID)
-        if await valid_play_command_ctx(self.bot,message) is False:
-            return
-        voice_client = await voice_connect(user, guildName, guildID, voice_client)
-        await channel.send(embed= embed.joined_prompt(voice_client.channel))
-
-    async def switch_algorithm_ctx(self, message:discord.message.Message):
+        log(guildName, 'command', 'join')
         try:
-            user = message.author
-            guildName = str(message.channel.guild.name)
-            guildID = message.channel.guild.id
-            channel = message.channel
-            log(guildName, 'command', 'switch_algorithm_ctx')
-            self.data.initialize(guildID)
+            if await valid_play_command_ctx(self.data, user, channel, voice_client) is False:return
+            voice_client = await voice_connect(user, guildName, guildID, voice_client)
+            await channel.send(embed= embed.joined_prompt(voice_client.channel))
+        except Exception as e:
+            error_log('join', e)
+
+    async def switch_algorithm(self):
+        if type(message) == discord.Interaction:
+            user = message.user
+        else: user = message.author
+        user = user
+        guildName = message.guild.name
+        guildID   = message.guild.id
+        channel = message.channel
+        log(guildName, 'command', 'switch_algorithm')
+        self.data.initialize(guildID)
+        try:
             view = SearchAlgorithmView(self, user)
             await channel.send(view=view, delete_after=Setting.get_helpPromptDelay())
         except Exception as e:
-            error_log('switch_algorithm_ctx', e)
+            error_log('switch_algorithm', e)
 
-    async def prefix_ctx(self, message:discord.Interaction, prefix:str):
+    async def prefix(self, message, prefix:str):
+        if type(message) == discord.Interaction:
+            user = message.user
+        else: user = message.author
+        user = user
+        guildName = message.guild.name
+        guildID   = message.guild.id
+        channel = message.channel
+        log(guildName, 'command', 'prefix')
+        self.data.initialize(guildID)
         try:
-            user = message.author
-            guildName = str(message.channel.guild.name)
-            guildID = message.channel.guild.id
-            channel = message.channel
-            log(guildName, 'command', 'prefix_ctx')
-            self.data.initialize(guildID)
             if prefix == ''or  ' ' in prefix:
                 await channel.send(embed= embed.blank_prefix_prompt(prefix))
                 return
@@ -1021,20 +606,24 @@ class MusicCog(commands.Cog):
             log(guildName, 'changed prefix', prefix)
             await channel.send(embed= embed.changed_prefix_prompt(prefix))
         except Exception as e:
-            error_log('prefix_ctx', e)
-
-    async def slashcommand_ctx(self, message:discord.Interaction):
+            error_log('prefix', e)
+    
+    async def slashcommand_ctx(self, message):
         return
+
 ############# LISTENERS ########################################################################
     # Keep music player at bottom of channel and listens for commands
+    # CHECKS TEXT COMMANDS AND CALLS IF VALID
     @commands.Cog.listener() 
     async def on_message(self, message:discord.message.Message):
+        if message is None:
+            return
+        guildName = message.guild.name
+        guildID = message.guild.id
+        channel = message.channel
+        user = message.author
+        content = str(message.content)
         try:
-            guildName = message.guild.name
-            guildID = message.guild.id
-            channel = message.channel
-            user = message.author
-            content = str(message.content)
             try:
                 first_space = content.index(' ')
                 command = content[:first_space]
@@ -1042,7 +631,7 @@ class MusicCog(commands.Cog):
             except: 
                 command = content
                 query = ''
-            
+            self.data.initialize(guildID)
             guildPrefix = Setting.get_guildPrefix(guildID).lower()
             prefix = str(command[:len(guildPrefix)]).lower()
             command = str(command[len(guildPrefix):]).lower()
@@ -1050,7 +639,7 @@ class MusicCog(commands.Cog):
                 and message.channel.id == Setting.get_channelID(guildID)\
                 and prefix not in guildPrefix\
                 and command not in self.funcList:
-                await GUI_HANDLER(self, guildID, message.channel.id)
+                await GUI_HANDLER(self, guildID, message.channel)
             if guildPrefix != prefix: return
             if command in self.funcList:
                 if command in ['p','play','changeprefix']:
@@ -1060,7 +649,7 @@ class MusicCog(commands.Cog):
                     log(guildName, 'access','granted')
                     await self.funcList[command](message)
         except Exception as e :
-            print(e)
+            error_log('on_message', e)
         
 
     # RESET BOT FOR GUILD IF DISCONNECTED FROM VOICE CHANNEL
@@ -1095,9 +684,9 @@ class MusicCog(commands.Cog):
             if channel is None: 
                 return
             await printHelpPrompt(channel, self.bot, guildID)
-            await GUI_HANDLER(self, guildID, channel.id)
+            await GUI_HANDLER(self, guildID, channel)
         except Exception as e:
-            print(e)
+            error_log('on_guild_join',e)
 
 
 ######## LOOP TO AUTO CHANGE GUI ##############################################################
@@ -1114,10 +703,12 @@ class MusicCog(commands.Cog):
                     continue
                 channel = self.data.get_channel(guildID)
                 if channel.id != Setting.get_channelID(guildID):
-                    await channel.send(embed=embed.now_playing_prompt(self.bot, self.data.get_current(guildID), guildID))
+                    current_song = self.data.get_current(guildID)
+                    duration = current_song['duration']
+                    await channel.send(embed=embed.now_playing_prompt(self.bot, self.data.get_current(guildID), guildID), delete_after=float(duration))
                 await GUI_HANDLER(self, guildID, None)
         except Exception as e:
-            error_log('gui_loop', e, self.gui_print)
+            error_log('gui_loop', e)
 
 ####### Auto Disconnect Bot After X Seconds idle
     @tasks.loop(minutes=5)
@@ -1150,3 +741,103 @@ class MusicCog(commands.Cog):
             await ctx.send(embed= embed.synced_prompt())
         except Exception as e:
             print(e)
+####################### SLASH COMMANDS #####################################################################
+    @app_commands.command(name= "play", description="Play a song or playlist with name or playlist url")
+    async def play_slash(self, interaction:discord.Interaction, query:str):
+        await interaction.response.defer()
+        await self.play(interaction, query)
+        await interaction.delete_original_response()
+
+    @app_commands.command(name= "playrandom", description="Play random songs from pocket bot library forever")
+    async def playrandom_slash(self, interaction:discord.Interaction): 
+        await interaction.response.defer()
+        await self.playrandom(interaction)
+        await interaction.delete_original_response()
+
+    @app_commands.command(name= "skip", description="Skips song")
+    async def skip_slash(self, interaction:discord.Interaction):
+        await interaction.response.defer()
+        await self.skip(interaction)
+        await interaction.delete_original_response()
+
+    @app_commands.command(name= "next", description="Goes to next song")
+    async def next_slash(self, interaction:discord.Interaction):
+        await interaction.response.defer()
+        await self.skip(interaction)
+        await interaction.delete_original_response()
+    
+    @app_commands.command(name= "previous", description="Previous song")
+    async def previous_slash(self, interaction:discord.Interaction):
+        await interaction.response.defer()
+        await self.previous(interaction)
+        await interaction.delete_original_response()
+
+    @app_commands.command(name= "pause", description="Pause song")
+    async def pause_slash(self, interaction:discord.Interaction):
+        await interaction.response.defer()
+        await self.pause(interaction)
+        await interaction.delete_original_response()
+
+    @app_commands.command(name= "resume", description="Resume song")
+    async def resume_slash(self, interaction:discord.Interaction):
+        await interaction.response.defer()
+        await self.resume(interaction)
+        await interaction.delete_original_response()
+
+    @app_commands.command(name= "shuffle", description="Shuffle song")
+    async def shuffle_slash(self, interaction:discord.Interaction):
+        await interaction.response.defer()
+        await self.shuffle(interaction)
+        await interaction.delete_original_response()
+
+    @app_commands.command(name= "loop", description="Loop current song")
+    async def loop_slash(self, interaction:discord.Interaction):
+        await interaction.response.defer()
+        await self.loop(interaction)
+        await interaction.delete_original_response()
+    
+    @app_commands.command(name= "flush", description="Empty current data and stop music player")
+    async def flush_slash(self, interaction:discord.Interaction):
+        await interaction.response.defer()
+        await self.flush(interaction)
+        await interaction.delete_original_response()
+    @app_commands.command(name= "reset", description="Full reset bot")
+    async def reset_slash(self, interaction:discord.Interaction):
+        await interaction.response.defer()
+        await self.reset(interaction)
+        await interaction.delete_original_response()
+
+    @app_commands.command(name= "join", description="Bot joins your current voice channel")
+    async def join_slash(self, interaction:discord.Interaction):
+        await interaction.response.defer()
+        await self.join(interaction)
+        await interaction.delete_original_response()
+    @app_commands.command(name= "help", description="Shows bot use information")
+    async def help_slash(self, interaction:discord.Interaction):
+        await interaction.response.defer()
+        await self.help(interaction)
+        await interaction.delete_original_response()
+
+    @app_commands.command(name= "generate", description="Creates a dedicated text channel for PocBot's Music Interface")
+    async def generate_slash(self, interaction:discord.Interaction):
+        await interaction.response.defer()
+        await self.generate(interaction)
+        await interaction.delete_original_response()
+
+    @app_commands.command(name= "switch_algorithm", description="Change the music search algorithm")
+    async def switch_algorithm_slash(self, interaction:discord.Interaction):
+        await interaction.response.defer()
+        await self.switch_algorithm(interaction)
+        await interaction.delete_original_response()
+
+    @app_commands.command(name= "prefix", description="Change command prefix")
+    async def prefix_slash(self, interaction:discord.Interaction, prefix:str):
+        await interaction.response.defer()
+        await self.prefix(interaction, prefix)
+        await interaction.delete_original_response()
+    
+    @app_commands.command(name= "slashcommand", description="What does this do?")
+    async def slashcommand_slash(self, interaction:discord.Interaction):
+        await interaction.response.defer()
+        await self.slashcommand(interaction)
+        await interaction.delete_original_response()

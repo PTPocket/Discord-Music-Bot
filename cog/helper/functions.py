@@ -8,11 +8,12 @@ from cog.helper           import embed
 from cog.helper.GuildData import Guild_Music_Properties
 from discord.ui           import View, Select, Button
 from discord.ext          import commands
-from cog.helper.GuildData import Guild_Music_Properties
 from cog.helper.Log       import *
 from cog.helper           import Setting
+from Paths                import LOCAL_MUSIC_PATH
 
-LOCAL_MUSIC_PATH = "C:\\Users\\p\\Documents\\SERVER\\music\\Formatted"
+
+
 async def GUI_HANDLER(Music_Cog, guildID, channel):
     async with Music_Cog.data.get_guiLock(guildID):
         try:
@@ -62,6 +63,11 @@ async def GUI_HANDLER(Music_Cog, guildID, channel):
             await message.delete()
         except Exception as e:
             error_log('Gui_handler', e, guildName= guildName)
+        
+
+async def promptHandler(embed, channel):
+    
+    pass
 
 async def create_bot_channel(data:Guild_Music_Properties, guild:discord.guild.Guild):
     try:
@@ -84,79 +90,19 @@ async def create_bot_channel(data:Guild_Music_Properties, guild:discord.guild.Gu
         error_log('create_bot_channel', e)
         return 'error'
 
-# Allows if user is in the same channel as bot
-# or if user is in voice channel and bot is not
-async def valid_play_command_slash(interaction:discord.Interaction):
-    user = interaction.user
-    guildName = interaction.user.guild.name
-    guildID = interaction.user.guild.id
-    voice_client = interaction.client.get_guild(guildID).voice_client
-    authorized = None
-    if user.voice is None:
-        msg = embed.user_disconnected_prompt()
-        authorized = False
-    elif voice_client is None or not voice_client.is_connected():
-        authorized = True
-    elif user.voice.channel.id == voice_client.channel.id:
-        authorized = True
-    else:
-        msg = embed.invalid_channel_prompt(voice_client.channel)
-        authorized = False
-    if not authorized:
-        log(guildName, 'ACCESS DENIED', user)
-        await interaction.response.send_message(embed= msg, ephemeral=True)
-    else:
-        log(guildName, 'ACCESS GRANTED', user)
-    return authorized
-
-# Allows if user is in the same channel as bot
-async def valid_command_slash(interaction:discord.Interaction):
-    user = interaction.user
-    guildName = interaction.user.guild.name
-    guildID = interaction.user.guild.id
-    authorized = None
-    voice_client = interaction.client.get_guild(guildID).voice_client
-
-    if user.voice is None:
-        authorized = False
-        msg = embed.user_disconnected_prompt()
-    elif voice_client is None:
-        authorized = False
-        msg = embed.bot_disconnected_prompt()
-    elif not voice_client.is_connected():
-        authorized = False
-        msg = embed.bot_disconnected_prompt()
-    elif voice_client.channel.id == user.voice.channel.id:
-        authorized =  True
-    else: 
-        msg = embed.invalid_channel_prompt(voice_client.channel)
-        authorized =  False
-
-    if authorized is False:
-        log(guildName, 'ACCESS DENIED', user)
-        await interaction.response.send_message(embed= msg, ephemeral=True)
-    else: log(guildName, 'ACCESS GRANTED', user) 
-    return authorized
-
-
 async def command_check(ctx:commands.context.Context):
     guildID = ctx.guild.id
     content = ctx.message.content
     guildPrefix = Setting.get_guildPrefix(guildID)
     prefix = content[:len(guildPrefix)]
-    if prefix.lower() == guildPrefix.lower():
-        return True
-    else: return False
+    return prefix.lower() == guildPrefix.lower()
 
 # Allows if user is in the same channel as bot
 # or if user is in voice channel and bot is not
-async def valid_play_command_ctx(bot, message:discord.message.Message):
-    user = message.author
-    guildName = str(message.channel.guild.name)
-    guildID = message.channel.guild.id
-    channel = message.channel
-    voice_client = bot.get_guild(guildID).voice_client
-    authorized = None
+async def valid_play_command_ctx(data:Guild_Music_Properties, user, channel, voice_client):
+    guildName = channel.guild.name
+    guildID   = channel.guild.id
+    data.initialize(guildID)
     if user.voice is None:
         authorized = False
         msg = embed.user_disconnected_prompt()
@@ -173,15 +119,14 @@ async def valid_play_command_ctx(bot, message:discord.message.Message):
         await channel.send(embed= msg, delete_after=Setting.get_promptDelay())
     else:
         log(guildName, 'ACCESS GRANTED', user)
+        data.set_channel(guildID, channel)
     return authorized
 
 # Allows if user is in the same channel as bot
-async def valid_command_ctx(bot, ctx:commands.context.Context, command):
-    guildID = ctx.guild.id
-    user = ctx.author
-    guildName = str(ctx.guild)
-    guildID = ctx.guild.id
-    voice_client = bot.get_guild(guildID).voice_client
+async def valid_command_ctx(data, user, channel, voice_client):
+    guildName = channel.guild.name
+    guildID   = channel.guild.id
+    data.initialize(guildID)
     if user.voice is None:
         authorized = False
         msg = embed.user_disconnected_prompt()
@@ -198,8 +143,10 @@ async def valid_command_ctx(bot, ctx:commands.context.Context, command):
         authorized =  False
     if authorized is False:
         log(guildName, 'ACCESS DENIED', user)
-        await ctx.send(embed= msg, delete_after=Setting.get_promptDelay())
-    else: log(guildName, 'ACCESS GRANTED', user) 
+        await channel.send(embed= msg, delete_after=Setting.get_promptDelay())
+    else: 
+        log(guildName, 'ACCESS GRANTED', user) 
+        data.set_channel(guildID, channel)
     return authorized
 
 async def voice_connect(user, guildName, guildID, voice_client):
@@ -212,13 +159,9 @@ async def voice_connect(user, guildName, guildID, voice_client):
             log(guildName, 'Voice Reconnected', voice_client.channel.name)
     return voice_client
 
-async def printHelpPrompt(ctx, bot, guildID):
-    if type(ctx) == discord.Interaction:
-        await ctx.response.defer()
-        await ctx.delete_original_response()
-        ctx = ctx.channel
-    await ctx.send(embed= embed.quickInfoPrompt(bot,guildID))
-    await ctx.send(embed= embed.all_commands_prompt(bot,guildID))
+async def printHelpPrompt(channel, bot, guildID):
+    await channel.send(embed= embed.quickInfoPrompt(bot,guildID))
+    await channel.send(embed= embed.all_commands_prompt(bot,guildID))
 
 def add_random_song(data, guildID):
     flac_song_list = os.listdir(LOCAL_MUSIC_PATH)
@@ -307,12 +250,12 @@ class MusicFunctions(View):
             self.data = data
             self.music_cog = music_cog
         async def callback(self, interaction: discord.Interaction):
+            guildName = interaction.user.guild.name
+            guildID = interaction.user.guild.id
+            voice_client = interaction.client.get_guild(guildID).voice_client
+            channel = interaction.channel
+            log(guildName, 'BUTTON', 'play/pause')
             try:
-                guildName = interaction.user.guild.name
-                guildID = interaction.user.guild.id
-                voice_client = interaction.client.get_guild(guildID).voice_client
-                channel = interaction.channel
-                log(guildName, 'BUTTON', 'play/pause')
                 song = self.data.get_current(guildID)
                 if voice_client is None:
                     self.style = discord.ButtonStyle.grey
@@ -341,21 +284,22 @@ class MusicFunctions(View):
             self.music_cog = music_cog
 
         async def callback(self, interaction: discord.Interaction):
+            guildName = interaction.user.guild.name
+            guildID = interaction.user.guild.id
+            channel = interaction.channel
+            voice_client = interaction.client.get_guild(guildID).voice_client
+            log(guildName, 'button', 'skip')
+            self.data.initialize(guildID)
             try:
-                guildName = interaction.user.guild.name
-                guildID = interaction.user.guild.id
-                channel = interaction.channel
-                voice_client = interaction.client.get_guild(guildID).voice_client
-                log(guildName, 'button', 'skip')
-                self.data.initialize(guildID)
                 self.data.set_loop(guildID, False)
                 song= self.data.get_current(guildID)
                 if song is None:
-                    await interaction.response.send_message(embed= embed.no_songs_prompt())
-                    await GUI_HANDLER(self, guildID, channel)
+                    await interaction.response.edit_message(view=self.view)
+                    await interaction.followup.send(embed= embed.no_songs_prompt())
+                    await GUI_HANDLER(self.music_cog, guildID, channel)
                     return
                 self.data.pos_forward(guildID)
-                await interaction.response.defer()
+                await interaction.response.edit_message(view=self.view)
                 await GUI_HANDLER(self.music_cog, guildID, channel)
                 if (voice_client.is_playing() or voice_client.is_paused()):
                     voice_client.stop()
@@ -374,14 +318,14 @@ class MusicFunctions(View):
             self.music_cog = music_cog
 
         async def callback(self, interaction: discord.Interaction):
+            user = interaction.user
+            guildName = interaction.user.guild.name
+            guildID = interaction.user.guild.id
+            voice_client = interaction.client.get_guild(guildID).voice_client
+            channel = interaction.channel
+            log(guildName, 'button', 'previous')
+            self.data.initialize(guildID)
             try:
-                user = interaction.user
-                guildName = interaction.user.guild.name
-                guildID = interaction.user.guild.id
-                voice_client = interaction.client.get_guild(guildID).voice_client
-                channel = interaction.channel
-                log(guildName, 'button', 'previous')
-                self.data.initialize(guildID)
                 self.data.pos_backward(guildID)
                 song= self.data.get_current(guildID) 
                 if song is None:
@@ -410,14 +354,14 @@ class MusicFunctions(View):
             self.music_cog = music_cog
 
         async def callback(self, interaction: discord.Interaction):
+            user = interaction.user
+            guildName = interaction.user.guild.name
+            guildID = interaction.user.guild.id
+            voice_client = interaction.client.get_guild(guildID).voice_client
+            channel = interaction.channel
+            log(guildName, 'button', 'shuffle')
+            self.data.initialize(guildID)
             try:
-                user = interaction.user
-                guildName = interaction.user.guild.name
-                guildID = interaction.user.guild.id
-                voice_client = interaction.client.get_guild(guildID).voice_client
-                channel = interaction.channel
-                log(guildName, 'button', 'shuffle')
-                self.data.initialize(guildID)
                 current_song = self.data.get_current(guildID)
                 library = self.data.get_queue(guildID)+self.data.get_history(guildID)
                 if library == [] and current_song is None:
@@ -443,13 +387,13 @@ class MusicFunctions(View):
             self.music_cog = music_cog
             self.data = data
         async def callback(self, interaction: discord.Interaction):
+            guildName = interaction.user.guild.name
+            guildID = interaction.user.guild.id
+            channel = interaction.channel
+            log(guildName, 'button', 'loop')
+            self.data.initialize(guildID)
+            voice_client = interaction.client.get_guild(guildID).voice_client
             try:
-                guildName = interaction.user.guild.name
-                guildID = interaction.user.guild.id
-                channel = interaction.channel
-                log(guildName, 'button', 'loop')
-                self.data.initialize(guildID)
-                voice_client = interaction.client.get_guild(guildID).voice_client
                 if voice_client is None:
                     await interaction.response.defer()
                     return
@@ -483,19 +427,19 @@ class MusicFunctions(View):
             self.music_cog = music_cog
 
         async def callback(self, interaction: discord.Interaction):
+            user = interaction.user
+            guildName = interaction.user.guild.name
+            guildID = interaction.user.guild.id
+            voice_client = interaction.client.get_guild(guildID).voice_client
+            channel = interaction.channel
+            log(guildName, 'button', 'play_random')
+            self.data.initialize(guildID)
             try:
-                user = interaction.user
-                guildName = interaction.user.guild.name
-                guildID = interaction.user.guild.id
-                voice_client = interaction.client.get_guild(guildID).voice_client
-                channel = interaction.channel
-                log(guildName, 'button', 'play_random')
-                self.data.initialize(guildID)
                 if self.data.switch_random(guildID) is True:
                     log(guildName, 'RANDOM', 'On')
                 else: 
                     log(guildName, 'RANDOM', 'Off')
-                await interaction.response.send_message(embed= embed.random_prompt(self.data.get_random(guildID)), delete_after=Setting.get_promptDelay())
+                await interaction.followup.send(embed= embed.random_prompt(self.data.get_random(guildID)), delete_after=Setting.get_promptDelay())
                 await self.music_cog.music_player_start(user, guildName, guildID, voice_client, channel)
                 await GUI_HANDLER(self.music_cog, guildID, None)
             except Exception as e:
@@ -512,13 +456,13 @@ class MusicFunctions(View):
             self.music_cog = music_cog
             self.data = data
         async def callback(self, interaction: discord.Interaction):
+            guildName = interaction.user.guild.name
+            guildID = interaction.user.guild.id
+            channel = interaction.channel
+            voice_client = interaction.client.get_guild(guildID).voice_client
+            log(guildName, 'button', 'flush')
+            self.data.initialize(guildID)
             try:
-                guildName = interaction.user.guild.name
-                guildID = interaction.user.guild.id
-                channel = interaction.channel
-                voice_client = interaction.client.get_guild(guildID).voice_client
-                log(guildName, 'button', 'flush')
-                self.data.initialize(guildID)
                 self.data.reset(guildID)
                 if voice_client.is_playing() or voice_client.is_paused():
                     voice_client.stop()
@@ -539,13 +483,13 @@ class MusicFunctions(View):
             self.music_cog = music_cog
             self.data = data
         async def callback(self, interaction: discord.Interaction):
+            guildName = interaction.user.guild.name
+            guildID = interaction.user.guild.id
+            channel = interaction.channel
+            voice_client = interaction.client.get_guild(guildID).voice_client
+            log(guildName, 'button', 'reset')
+            self.data.initialize(guildID)
             try:
-                guildName = interaction.user.guild.name
-                guildID = interaction.user.guild.id
-                channel = interaction.channel
-                voice_client = interaction.client.get_guild(guildID).voice_client
-                log(guildName, 'button', 'reset')
-                self.data.initialize(guildID)
                 self.data.full_reset(guildID)
                 if voice_client is not None:
                     channel_name = voice_client.channel.name
@@ -563,18 +507,18 @@ class MusicFunctions(View):
             self.music_cog = music_cog
             self.data = data
         async def callback(self, interaction: discord.Interaction):
+            guildName = interaction.user.guild.name
+            guildID = interaction.user.guild.id
+            channel = interaction.channel
+            log(guildName, 'command', 'HelpButton')
+            self.data.initialize(guildID)
             try:
-                guildName = interaction.user.guild.name
-                guildID = interaction.user.guild.id
-                channel = interaction.channel
-                log(guildName, 'command', 'help')
-                self.data.initialize(guildID)
-                msg = embed.HelpPrompt(interaction.client, guildID)
-                await interaction.response.send_message(embed= msg)
+                await printHelpPrompt(channel, self.music_cog.bot, guildID)
                 await asyncio.sleep(Setting.get_helpPromptDelay())
                 await GUI_HANDLER(self.music_cog, guildID, channel)
             except Exception as e:
                 error_log('HelpButton', e, guildName= guildName)
+            
 
 
 
