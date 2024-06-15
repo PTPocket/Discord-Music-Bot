@@ -19,15 +19,15 @@ def funcTime(func):
 ### CONTROLLER FUNCTIONS ###
 def GetYT(link):
     if 'watch?v=' in link:
-        return SearchYoutube(link)
-    if '/playlist' in link: 
+        return GetYTSong(link)
+    if 'list=' in link: 
         return GetYTPlaylist(link)
     return None
 
 def GetYTMusic(link):
     if 'watch?v=' in link:
         return GetYTMSong(link)
-    if '?list=' in link:
+    if 'list=' in link:
         return GetYTMPlaylist(link)
     return
 
@@ -139,7 +139,52 @@ def GetRandom(bot):
         'duration'  :duration}
 
 ############################
-
+@funcTime
+def GetYTSong(link):
+    ydl_opts = {
+        'quiet': True,
+        'format': 'bestaudio/best'
+    }
+    link = link.replace(' ','').replace('\n','')
+    videoID = link.split('&si=')[0]
+    videoID = videoID.split('&index=')[0]
+    videoID = videoID.split('&list=')[0]
+    videoID = videoID.split('watch?v=')[1]
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            # Search for videos matching the query
+            result = ydl.extract_info(f"ytsearch1:{videoID}", download=False)
+    except Exception as e:
+        error_log('GetYTSong', e, link)
+        return None
+    try:
+        song = result['entries'][0]
+        url = f'https://youtube.com/watch?v={song['id']}'
+        return {
+            'title'    : song['title'], 
+            'author'   : song['uploader'],
+            'url'      : url,
+            'query'    : song['url'],
+            'source'   : 'searched',
+            'thumbnail': get_thumbnailYT(song['thumbnails']),
+            'duration' : song['duration']}
+    except Exception as e:
+        error_log('GetYTSong', e, link)
+        song = result['entries']
+        url = f'https://youtube.com/watch?v={song['id']}'
+        try:
+            return {
+                'title'    : song['title'], 
+                'author'   : song['uploader'],
+                'url'      : None,
+                'query'    : song['url'],
+                'source'   : 'searched',
+                'thumbnail': get_thumbnailYT(song['thumbnails']),
+                'duration' : song['duration']}
+        except Exception as e:
+            error_log('GetYTSong', e, link)
+            return None
+        
 def GetYTPlaylist(link):
     ydl_opts = {
         'quiet': True,
@@ -148,11 +193,12 @@ def GetYTPlaylist(link):
     }
     link = link.replace(' ','').replace('\n','')
     playlistID = link.split('list=')[1]
-    link = 'https://www.youtube.com/playlist?list='+playlistID
-    
+    playlistID = playlistID.split('&index=')[0]    
+    playlistID = playlistID.split('&si=')[0]  
+    playlistUrl = f'https://www.youtube.com/playlist?list={playlistID}'
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            result = ydl.extract_info(link,download=False)
+            result = ydl.extract_info(playlistUrl,download=False)
             playlist = []
             for item in result['entries']:
                 if item['title']=='[Private video]' and item['title'] == '[Deleted video]':
@@ -179,9 +225,10 @@ def GetYTMSong(link:str):
     try:
         link = link.replace(' ','').replace('\n','')
         ytmusic = YTMusic()
-        splitURL = link.split('&list=')[0]
-        splitURL = link.split('watch?v=')[1]
-        songID = splitURL.split('&')[0]
+        songID = link.split('&si')[0]
+        songID = songID.split('&list=')[0]
+        songID = songID.split('watch?v=')[1]
+        
         song = ytmusic.get_song(songID)
         title = song['videoDetails']['title']
         author = song['videoDetails']['author']
@@ -206,6 +253,7 @@ def GetYTMPlaylist(link:str):
         ytmusic = YTMusic()
         # Extract playlistId from the URL
         playlist_id = link.split('list=')[1]
+        playlist_id = playlist_id.split('&si=')[0]
         # Get playlist details
         playlist = ytmusic.get_playlist(playlist_id)
         # Extract playlist items

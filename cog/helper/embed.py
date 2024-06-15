@@ -2,7 +2,7 @@ import discord, os
 from   cog.helper.GuildData import Guild_Music_Properties
 from cog.helper.Log  import *
 import cog.helper.Setting  as Setting
-
+import cog.helper.InvalidUrlFile as invalidurl
 
 SPACE = '\u1CBC'
 NUM_SPACES = 1
@@ -59,12 +59,16 @@ def format_song(song, length = 37, ind=None):
         return text
     title = ''
     if song['title'] is not None:
-        title+=song['title']
+        song_title = song['title'].replace('[','')
+        song_title = song_title.replace(']','')
+        title+=song_title
     title+=' - '
     if song['author'] is not None:
-        title+=song['author']
+        author = song['author'].replace('[','')
+        author = author.replace(']','')
+        title+=author
     if len(title) > length:
-        title = title[:length]
+        title = title[:length-3]+'...'
     index = ''
     if ind is not None:
         index= f'{SPACE*(NUM_SPACES)}{ind}.  '
@@ -94,15 +98,12 @@ def MainGuiPrompt(bot, data:Guild_Music_Properties, guildID):
                 queue_msg = song_title +"\n" + queue_msg
 
             if ind > 4 and ind < len(queue)-2:
-                queue_msg = f'{SPACE}+ {len(queue)-ind-1} songs\n' + queue_msg
+                queue_title += f' +({len(queue)-ind-1} songs)'
+                #queue_msg = f'{SPACE}+ {len(queue)-ind-1} songs\n' + queue_msg
                 break
 
         if queue_msg == '': 
             queue_title= f'**__All commands__**'
-            queue_msg = f'\n**Miscellaneous functions**\n'    
-            queue_msg+= f'{get_commandText('join')} | {get_commandText('flush')}| {get_commandText('generate')}\n'
-            queue_msg+= f'{get_commandText('reset')} | {get_commandText('prefix')} |{get_commandText('help')}\n'
-            queue_msg+= f'{get_commandText('switch_algorithm')}'
             queue_msg+= f'\n\n**Music Player functions**\n'
             queue_msg+= f'{get_commandText('skip')} | {get_commandText('next')} | {get_commandText('previous')}\n'
             queue_msg+= f'{get_commandText('pause')} | {get_commandText('resume')}\n'
@@ -140,7 +141,7 @@ def MainGuiPrompt(bot, data:Guild_Music_Properties, guildID):
             value=line,
             inline=False)
         embed.add_field(
-            name=f'**{queue_title}**', 
+            name=f'{queue_title}', 
             value = f"{queue_msg}",
             inline=False)
         embed.add_field(
@@ -431,8 +432,9 @@ def bot_disconnected_prompt():
     text = f'Nothing playing ! Queue song with {get_commandText('play')}'
     return uniform_emb(text,color='red')
 
-def invalid_link(song, platform=''):
-    text = f"Invalid {platform.lower()} url : {song}"
+def invalid_link(query, platform=''):
+    text = f"Invalid {platform.lower()} url : {query}"
+    invalidurl.save(platform, query)
     return uniform_emb(text,color='red')
 
 def no_query_prompt():

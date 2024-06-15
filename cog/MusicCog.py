@@ -14,6 +14,8 @@ from cog.helper.Functions    import *
 from cog.helper.MusicSearch  import *
 from Paths                   import FFMPEG_EXE_PATH
 
+
+
 FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
 
 def timeIt(start):
@@ -128,15 +130,16 @@ class MusicCog(commands.Cog):
             return True
     #CHECKS IF MUSIC_PLAYER LOOP SHOULD START
     async def music_player_start(self, user, guildName, guildID, voice_client):
-        try:
-            voice_client = await voice_connect(user, guildName, guildID, voice_client)
-            if voice_client.is_playing() == voice_client.is_paused() == self.data.get_playing(guildID) == False:
-                self.data.set_playing(guildID, True)
-                await nowPlayingHandler(self, guildID)                
-                log(guildName, 'MUSIC PLAYER', 'starting')
-                self.music_player(guildName, guildID, voice_client)
-        except Exception as e:
-            error_log('music_player_start', e, guildName=guildName)
+        async with self.data.get_musicplayerLock(guildID): 
+            try:
+                voice_client = await voice_connect(user, guildName, guildID, voice_client)
+                if voice_client.is_playing() == voice_client.is_paused() == self.data.get_playing(guildID) == False:
+                    self.data.set_playing(guildID, True)
+                    await nowPlayingHandler(self, guildID)                
+                    log(guildName, 'MUSIC PLAYER', 'starting')
+                    self.music_player(guildName, guildID, voice_client)
+            except Exception as e:
+                error_log('music_player_start', e, guildName=guildName)
 
 ####### MAIN FUNCTIONS ######################################################
 
@@ -546,7 +549,7 @@ class MusicCog(commands.Cog):
             if new_channel is None: 
                 await channel.send(embed=embed.already_generated_prompt())
                 return
-            await printHelpPrompt(new_channel, self.bot, guildID)
+            await printHelpPrompt(new_channel, self.bot, guildID, permanent = True)
             await GUI_HANDLER(self, new_channel, guildID)
             await channel.send(embed=embed.generated_prompt())
         except Exception as e:
@@ -608,6 +611,7 @@ class MusicCog(commands.Cog):
     async def slashcommand(self, message):
         return
 
+
 ######## LOOP TO AUTO CHANGE GUI ##############################################################
     @tasks.loop(seconds = 5)
     async def gui_loop(self):
@@ -658,7 +662,8 @@ class MusicCog(commands.Cog):
                 else:
                     log(guildName, 'access','granted')
                     await self.funcList[command](message)
-            await message.delete()
+            if message.author.id != self.bot.user.id and message.channel.id == Setting.get_channelID(guildID):
+                await message.delete()
         except Exception as e :
             error_log('on_message', e)
         
@@ -691,11 +696,11 @@ class MusicCog(commands.Cog):
         try:
             guildID = guild.id
             self.data.initialize(guildID)
-            channel = await create_bot_channel(self.data, guild)
-            if channel is None: 
+            new_channel = await create_bot_channel(self.data, guild)
+            if new_channel is None: 
                 return
-            await printHelpPrompt(channel, self.bot, guildID)
-            await GUI_HANDLER(self, channel, guildID)
+            await printHelpPrompt(new_channel, self.bot, guildID, permanent=True)
+            await GUI_HANDLER(self, new_channel, guildID)
         except Exception as e:
             error_log('on_guild_join',e)
 
@@ -831,3 +836,4 @@ class MusicCog(commands.Cog):
         await interaction.response.defer()
         await self.slashcommand(interaction)
         await interaction.delete_original_response()
+

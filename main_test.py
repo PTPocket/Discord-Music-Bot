@@ -6,6 +6,7 @@ from cog.MusicCog          import MusicCog
 from cog.helper.GuildData import Guild_Music_Properties
 from cog.helper.Log        import *
 import cog.helper.Setting  as     Setting
+import cog.helper.InvalidUrlFile as InvalidUrl
 #SECRET KEYS
 from dotenv import load_dotenv
 #spotify api
@@ -23,9 +24,10 @@ if __name__ == '__main__':
     intents.message_content = True
     client = commands.Bot(command_prefix=['//'], intents = intents)
     Setting.initialize_settings()
+    InvalidUrl.initialize()
     data = Guild_Music_Properties()
     gui_print = set()
-    @client.event 
+    @client.event
     async def on_ready():
         activity = discord.CustomActivity('The Music Bot')
         await client.change_presence(activity=activity)

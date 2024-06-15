@@ -66,9 +66,9 @@ async def nowPlayingHandler(MusicCog, guildID):
         return
     last_channelID, last_messageID = Setting.get_nowPlayingMessage(guildID)
     async with MusicCog.data.get_nowplayingLock(int(guildID)):
-        message = await command_channel.send(embed=emb)
-        Setting.set_nowPlayingMessage(guildID, message.channel.id, message.id)
         try:
+            message = await command_channel.send(embed=emb)
+            Setting.set_nowPlayingMessage(guildID, message.channel.id, message.id)
             if last_channelID is not None:
                 last_channel = MusicCog.bot.get_channel(last_channelID)
                 last_message = await last_channel.fetch_message(last_messageID)
@@ -188,7 +188,11 @@ async def voice_connect(user, guildName, guildID, voice_client):
             log(guildName, 'Voice Reconnected', voice_client.channel.name)
     return voice_client
 
-async def printHelpPrompt(channel, bot, guildID):
+async def printHelpPrompt(channel, bot, guildID, permanent= False):
+    if permanent:
+        await channel.send(embed= embed.quickInfoPrompt(bot,guildID))
+        await channel.send(embed= embed.all_commands_prompt(bot,guildID))
+        return
     await channel.send(embed= embed.quickInfoPrompt(bot,guildID), delete_after=Setting.get_promptDelay()*2)
     await channel.send(embed= embed.all_commands_prompt(bot,guildID), delete_after=Setting.get_promptDelay()*2)
 

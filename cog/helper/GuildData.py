@@ -16,6 +16,7 @@ class Guild_Music_Properties():
         #Other
         self.channel = {}
         self.npLocks = {}
+        self.mpLocks = {}
         self.guiLocks = {}
     def initialize(self, guildID):
         if guildID not in self.library:
@@ -28,6 +29,7 @@ class Guild_Music_Properties():
             self.channel [guildID] = None
             self.guiLocks[guildID] = asyncio.Lock()
             self.npLocks [guildID] = asyncio.Lock()
+            self.mpLocks [guildID] = asyncio.Lock()
     #SET VALUE FUNCTIONS
     def set_new_library(self, guildID, new_library):
         self.library[guildID] = new_library
@@ -101,7 +103,9 @@ class Guild_Music_Properties():
     def get_channel(self, guildID):
         return self.channel[guildID]
     def get_nowplayingLock(self, guildID):
-        return self.guiLocks[guildID]
+        return self.npLocks[guildID]
+    def get_musicplayerLock(self, guildID):
+        return self.mpLocks[guildID]
     #SWITCH FUNCTIONS
     def switch_playing(self, guildID):
         if self.playing[guildID] is True:
