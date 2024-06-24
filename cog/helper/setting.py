@@ -1,6 +1,6 @@
 import os, json
 from cog.helper.Log import *
-from Paths import SETTING_PATH
+from GlobVar import SETTING_PATH
 
 ### INITIALIZE ###
 def initialize_settings():
