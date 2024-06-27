@@ -161,8 +161,14 @@ class GuildData():
         self.pos[guildID]-=1
     
     def add_song(self, guildID, song):
-        self.library[guildID].append(song)
+        if self.pos[guildID] is None:
+            self.library[guildID].append(song)
+            return
+        self.library[guildID].insert(self.pos[guildID]+1, song)
         
+        
+
+
     def add_playlist(self,guildID, playlist):
         self.library[guildID] += playlist
 

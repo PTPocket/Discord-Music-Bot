@@ -10,7 +10,6 @@ from tinytag          import TinyTag
 from time             import perf_counter
 from cog.helper.Log   import *
 from GlobVar          import LOCAL_MUSIC_PATH
-from ytmusicapi       import YTMusic
 from cog.helper.Embed import Embeds
 from cog.helper.GuildData import GuildData
 
@@ -45,7 +44,6 @@ class MusicOrb():
         self.baseUrl = 'https://api.spotify.com/v1'
         self.spotifyLock = asyncio.Lock()
         self.youtubeLock = asyncio.Lock()
-        self.ytmusic = YTMusic()
         self.get_spotifyAccessToken()
 
 #### LEVEL 1 #####################################
