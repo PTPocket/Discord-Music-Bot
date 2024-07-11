@@ -599,7 +599,7 @@ class MusicCog(commands.Cog):
         try:
             guildID = guild.id
             self.dataObj.initialize(guildID)
-            new_channel = await create_bot_channel(self.dataObj, guild)
+            new_channel = await create_bot_channel(guild)
             if new_channel is None: 
                 return
             await self.pHandler.printHelpPrompt(new_channel, permanent=True)

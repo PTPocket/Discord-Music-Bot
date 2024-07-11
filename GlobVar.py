@@ -1,8 +1,6 @@
 
 import os
-if 'Pocket' in os.getcwd():
-    SERVER = ''
-else: SERVER = '\\Database'
+SERVER = '\\Database'
 MAIN_PATH        = f'S:{SERVER}\\Music Bot Files'
 FFMPEG_EXE_PATH  = MAIN_PATH + '\\ffmpeg\\ffmpeg.exe'
 LOCAL_MUSIC_PATH = MAIN_PATH + '\\music\\Formatted'
