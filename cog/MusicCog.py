@@ -527,7 +527,31 @@ class MusicCog(commands.Cog):
         except Exception as e:
             error_log('gui_loop', e)
 
-############# LISTENERS ########################################################################
+####### Auto Disconnect Bot After X Seconds idle
+    @tasks.loop(minutes=5)
+    async def disconnect_check(self):
+        try:
+            all_voice_connections = self.bot.voice_clients
+            for voice in all_voice_connections:    
+                if voice is None or not voice.is_connected():
+                    continue
+                guildID = voice.guild.id
+                last_idle = self.dataObj.get_time(guildID)
+                if last_idle is None or voice.is_playing():
+                    self.dataObj.set_idle_timestamp(guildID)
+                    continue
+                time_passed = (datetime.today()-last_idle).seconds
+                timeout = Setting.get_timeout()
+                if  time_passed > timeout:
+                    self.dataObj.full_reset(guildID)
+                    channelName = voice.channel.name
+                    await voice.disconnect()
+                    log(voice.guild.name, 'disconnected (timeout)', channelName)
+        except Exception as e:
+            error_log('disconnect_check', e)
+
+
+############# LISTENERS #######################################################################
     # Keep music player at bottom of channel and listens for commands
     # CHECKS TEXT COMMANDS AND CALLS IF VALID
     @commands.Cog.listener() 
@@ -570,8 +594,7 @@ class MusicCog(commands.Cog):
         except Exception as e :
             error_log('on_message', e)
         
-
-    # RESET BOT FOR GUILD IF DISCONNECTED FROM VOICE CHANNEL
+# RESET BOT FOR GUILD IF DISCONNECTED FROM VOICE CHANNEL
     @commands.Cog.listener()
     async def on_voice_state_update(self, member:discord.member.Member, before, after):
         if after.channel is not None:return
@@ -587,13 +610,11 @@ class MusicCog(commands.Cog):
             self.dataObj.reset(guildID)
             if voice_client is not None:
                 if voice_client.is_playing() or voice_client.is_paused():
-                    self.gui_print.add(guildID)
                     voice_client.stop()
                 await voice_client.disconnect()
             log(guildName, 'disconnected (empty)', before.channel.name)
-            await self.pHandler.GUI_HANDLER(None, guildID)
             return
-        
+
     @commands.Cog.listener()
     async def on_guild_join(self, guild:discord.guild.Guild):
         try:
@@ -608,30 +629,6 @@ class MusicCog(commands.Cog):
             error_log('on_guild_join',e)
 
 
-####### Auto Disconnect Bot After X Seconds idle
-    @tasks.loop(minutes=5)
-    async def disconnect_check(self):
-        try:
-            all_voice_connections = self.bot.voice_clients
-            for voice in all_voice_connections:    
-                if voice is None or not voice.is_connected():
-                    continue
-                guildID = voice.guild.id
-                last_idle = self.dataObj.get_time(guildID)
-                if last_idle is None or voice.is_playing():
-                    self.dataObj.set_idle_timestamp(guildID)
-                    continue
-                time_passed = (datetime.today()-last_idle).seconds
-                timeout = Setting.get_timeout()
-                if  time_passed > timeout:
-                    self.dataObj.full_reset(guildID)
-                    channelName = voice.channel.name
-                    await voice.disconnect()
-                    await self.pHandler.GUI_HANDLER(None, guildID)
-                    log(voice.guild.name, 'disconnected (timeout)', channelName)
-        except Exception as e:
-            error_log('disconnect_check', e)
-
     @commands.command(name= "sync")
     async def sync(self,ctx):
         guildName = ctx.guild.name
@@ -641,8 +638,6 @@ class MusicCog(commands.Cog):
             await ctx.send(embed= self.embObj.synced_prompt())
         except Exception as e:
             print(e)
-
-
 
 
 

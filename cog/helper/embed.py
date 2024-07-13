@@ -392,7 +392,6 @@ class Embeds():
         return self.uniform_emb(text,color='yellow')
 
     def finished_prompt(self):
-        text = 'No more songs ! Queue song with'
         command = self.get_commandText('play')
         text = f'No more songs ! Queue song with {command}'
         return self.uniform_emb(text,color='yellow')
