@@ -1,10 +1,10 @@
 import discord, asyncio, os
-from discord.ext import commands
+from discord.ext           import commands
 #Cog import
-from cog.MusicCog          import MusicCog
+from cog.musicCog          import MusicCog
 #Extra Functions
-from cog.helper.Log     import *
-import cog.helper.Setting  as     Setting
+from cog.helper.log        import *
+import cog.helper.setting  as     Setting
 #SECRET KEYS
 from dotenv import load_dotenv
 
