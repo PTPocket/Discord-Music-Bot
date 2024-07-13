@@ -1,7 +1,7 @@
 import discord
 from cog.helper.embed     import Embeds
 from cog.helper.log       import *
-from cog.helper           import Setting
+import cog.helper.setting as Setting
 
 
 async def create_bot_channel(guild:discord.guild.Guild):
