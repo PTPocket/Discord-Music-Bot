@@ -1,6 +1,6 @@
 import os, json
-from cog.helper.Log import *
-from Setting import get_expData
+from cog.helper.log import *
+from setting import get_expData
 from GlobVar import EXP_FILE_PATH
 
 def add_exp(user, command, expPoints = None):

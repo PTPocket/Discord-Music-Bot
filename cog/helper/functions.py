@@ -1,6 +1,6 @@
 import discord
-from cog.helper.Embed     import Embeds
-from cog.helper.Log       import *
+from cog.helper.embed     import Embeds
+from cog.helper.log       import *
 from cog.helper           import Setting
 
 

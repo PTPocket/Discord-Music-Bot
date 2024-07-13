@@ -4,14 +4,14 @@ import requests
 import asyncio
 import yt_dlp
 import random
-import cog.helper.Setting as Setting
+import cog.helper.setting as Setting
 from discord.ext        import commands
 from tinytag          import TinyTag
 from time             import perf_counter
-from cog.helper.Log   import *
+from cog.helper.log   import *
 from GlobVar          import LOCAL_MUSIC_PATH
-from cog.helper.Embed import Embeds
-from cog.helper.GuildData import GuildData
+from cog.helper.embed import Embeds
+from cog.helper.guildData import GuildData
 
 
 def funcTime(func):

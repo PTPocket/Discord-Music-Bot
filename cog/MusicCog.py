@@ -5,13 +5,13 @@ import asyncio
 
 from discord                import app_commands, FFmpegPCMAudio
 from discord.ext            import commands, tasks
-from cog.helper.Embed       import Embeds
-from cog.helper.PrintHandler import PrintHandler
-from cog.helper.GuildData   import GuildData
-import cog.helper.Setting   as     Setting
-from cog.helper.Log         import *
-from cog.helper.Functions   import *
-from cog.helper.SearchMusic import MusicOrb
+from cog.helper.embed       import Embeds
+from cog.helper.printhandler import PrintHandler
+from cog.helper.guildData   import GuildData
+import cog.helper.setting   as     Setting
+from cog.helper.log         import *
+from cog.helper.functions   import *
+from cog.helper.searchMusic import MusicOrb
 from GlobVar                import FFMPEG_EXE_PATH
 
 

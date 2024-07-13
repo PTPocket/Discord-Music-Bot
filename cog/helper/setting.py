@@ -1,5 +1,5 @@
 import os, json
-from cog.helper.Log import *
+from cog.helper.log import *
 from GlobVar import SETTING_PATH
 
 ### INITIALIZE ###

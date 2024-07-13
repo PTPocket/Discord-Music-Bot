@@ -1,8 +1,8 @@
 import discord, os
-from   cog.helper.GuildData import GuildData
-from discord.ext            import commands
-from cog.helper.Log  import *
-import cog.helper.Setting  as Setting
+from cog.helper.guildData import GuildData
+from discord.ext          import commands
+from cog.helper.log       import *
+import cog.helper.setting as Setting
 
 SPACE = '\u1CBC'
 NUM_SPACES = 1
