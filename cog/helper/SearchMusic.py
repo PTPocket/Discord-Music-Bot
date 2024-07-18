@@ -205,7 +205,7 @@ class MusicOrb():
                 result = ydl.extract_info(playlistUrl,download=False)
                 playlist = []
                 for song in result['entries']:
-                    if song['title']=='[Private video]' and song['title'] == '[Deleted video]':
+                    if song['title']=='[Private video]' or song['title'] == '[Deleted video]':
                         continue
                     playlist.append({
                         'title'     : song['title'], 
