@@ -62,3 +62,6 @@ cog/helper/__pycache__/PrintHandler.cpython-312.pyc
 cog/helper/__pycache__/SearchMusic.cpython-312.pyc
 cog/helper/__pycache__/Spotify.cpython-312.pyc
 __pycache__/GlobVar.cpython-312.pyc
+cog/__pycache__/music_cog.cpython-312.pyc
+cog/helper/__pycache__/print_handler.cpython-312.pyc
+cog/helper/__pycache__/search_music.cpython-312.pyc

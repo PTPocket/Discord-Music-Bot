@@ -1,7 +1,7 @@
 import discord, asyncio, os
 from discord.ext import commands
 #Cog import
-from cog.musicCog          import MusicCog
+from cog.music_cog          import MusicCog
 #Extra Functions
 from cog.helper.log     import *
 import cog.helper.setting  as     Setting

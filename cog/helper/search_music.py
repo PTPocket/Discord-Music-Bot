@@ -11,7 +11,7 @@ from time             import perf_counter
 from cog.helper.log   import *
 from GlobVar          import LOCAL_MUSIC_PATH
 from cog.helper.embed import Embeds
-from cog.helper.guildData import GuildData
+from cog.helper.guild_data import GuildData
 
 
 def funcTime(func):
