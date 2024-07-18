@@ -549,6 +549,7 @@ class MusicCog(commands.Cog):
                     self.dataObj.full_reset(guildID)
                     channelName = voice.channel.name
                     await voice.disconnect()
+                    await self.pHandler.GUI_HANDLER(None, guildID)
                     log(voice.guild.name, 'disconnected (timeout)', channelName)
         except Exception as e:
             error_log('disconnect_check', e)
