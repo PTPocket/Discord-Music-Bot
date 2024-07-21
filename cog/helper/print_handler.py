@@ -387,8 +387,10 @@ class MusicFunctions(View):
                     self.dataObj.set_random(guildID, False)
                     loop_var = self.dataObj.get_loop(guildID)
                     if loop_var is True:
+                        self.style = discord.ButtonStyle.blurple
                         log(guildName, 'now looping', song)
                     else:
+                        self.style = discord.ButtonStyle.grey
                         log(guildName, 'stopped looping', song)
                     await interaction.response.edit_message(view=self.view)
                     song= self.dataObj.get_current(guildID) 
