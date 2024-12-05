@@ -54,7 +54,7 @@ def error_log(location, description, item = None, guildName = 'N/A'):
 def save_invalidUrl(platform, url):
     try:
         with open(INVALID_URL_PATH, 'w') as file:
-            text = platform + ':' + url 
+            text = url 
             file.write(text+'\n')
             log(None, 'saved invalid url', text)
     except Exception as e:
