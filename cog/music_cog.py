@@ -59,7 +59,7 @@ class MusicCog(commands.Cog):
         self.dataObj = GuildData()
         self.embObj = Embeds(self.bot, self.dataObj)
         self.pHandler = PrintHandler(self, self.bot, self.dataObj, self.embObj)
-        self.music = MusicOrb(self.bot, self.dataObj, self.embObj)
+        self.music = MusicOrb(self.dataObj, self.embObj)
         self.gui_print = set()
         self.gui_loop.start()
         self.disconnect_check.start()

@@ -4,6 +4,7 @@ import requests
 import asyncio
 import yt_dlp
 import random
+import re
 import cog.helper.setting as Setting
 from discord.ext        import commands
 from tinytag          import TinyTag
@@ -12,6 +13,7 @@ from cog.helper.log   import *
 from GlobVar          import LOCAL_MUSIC_PATH
 from cog.helper.embed import Embeds
 from cog.helper.guild_data import GuildData
+
 
 
 def funcTime(func):
@@ -24,7 +26,7 @@ def funcTime(func):
     return wrapper
 
 class MusicOrb():
-    def __init__(self,bot:commands.Bot, dataObj:GuildData, embObj:Embeds ):
+    def __init__(self, dataObj:GuildData = None, embObj:Embeds = None):
         #For Spotify API Call
         self.client_id    = os.getenv('SPOTIFY_CLIENT_ID')
         self.client_secret= os.getenv('SPOTIFY_CLIENT_SECRET')
@@ -37,7 +39,6 @@ class MusicOrb():
         }
         self.dataObj = dataObj
         self.embObj = embObj
-        self.bot = bot
         self.access_token = None
         self.refresh_token = None
         self.headers = None
@@ -297,9 +298,9 @@ class MusicOrb():
             'thumbnail':thumbnail,
             'duration' :duration}
     
-    def GetSpotifyTrack(self, link):
-        splitLink = link.split('track/')[1]
-        id = splitLink.split('?si')[0]
+    def GetSpotifyTrack(self, track_link):
+        match = re.search(r"track/([a-zA-Z0-9]+)", track_link)
+        id = match.group(1)
         url = f'{self.baseUrl}/tracks/{id}'
         result = self.get_spotifyRequest(url)
         if result.status_code != 200:
@@ -319,9 +320,9 @@ class MusicOrb():
             'thumbnail':thumbnail,
             'duration' :duration}
 
-    def GetSpotifyPlaylist(self, link):
-        splitLink = link.split('playlist/')[1]
-        id = splitLink.split('?si')[0]
+    def GetSpotifyPlaylist(self, playlist_link):
+        match = re.search(r"playlist/([a-zA-Z0-9]+)", playlist_link)
+        id = match.group(1)
         url = f'{self.baseUrl}/playlists/{id}'
         result = self.get_spotifyRequest(url)
         if result.status_code != 200:
@@ -344,10 +345,10 @@ class MusicOrb():
                 'thumbnail':thumbnail,
                 'duration' :duration})
         return playlist
-    
-    def GetSpotifyAlbum(self, link):
-        splitLink = link.split('album/')[1]
-        id = splitLink.split('?si')[0]
+
+    def GetSpotifyAlbum(self, album_link):
+        match = re.search(r"album/([a-zA-Z0-9]+)", album_link)
+        id = match.group(1)
         url = f'{self.baseUrl}/albums/{id}/tracks'
         result = self.get_spotifyRequest(url)
         if result.status_code != 200:
@@ -369,9 +370,9 @@ class MusicOrb():
                 'duration': duration})
         return playlist
 
-    def GetSpotifyArtist10(self, link):
-        splitLink = link.split('artist/')[1]
-        id = splitLink.split('?si')[0]
+    def GetSpotifyArtist10(self, artist10_link):
+        match = re.search(r"artist/([a-zA-Z0-9]+)", artist10_link)
+        id = match.group(1)
         url = f'{self.baseUrl}/artists/{id}/top-tracks'
         result = self.get_spotifyRequest(url)
         if result.status_code != 200:
@@ -408,7 +409,7 @@ class MusicOrb():
             'url'   : None,
             'query' : f'{LOCAL_MUSIC_PATH}\\{song}',
             'source': 'Local',
-            'thumbnail' :f'{self.bot.user.avatar}',
+            'thumbnail' : None,
             'duration'  :duration}
 
 #### Extra Functions ###########################################################
