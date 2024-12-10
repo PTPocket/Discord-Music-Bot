@@ -7,7 +7,7 @@ from discord.ext import commands, tasks
 MODEL_SONNET = 'claude-3-5-sonnet-20241022'
 MODEL_OPUS   = 'claude-3-opus-20240229	'
 MODEL_HAIKU = 'claude-3-5-haiku-20241022'
-SYSTEM_CHARACTERISTICS = 'You are a helpful assistant named PocBot created by Pocket Man. You keep your responses as short.'
+SYSTEM_CHARACTERISTICS = 'You are a helpful assistant named PocBot created by Pocket Man. You keep your responses as short. Do not add any unneccessary information.'
 MAX_TOKENS = 1000
 TEMPERATURE = 1
 
