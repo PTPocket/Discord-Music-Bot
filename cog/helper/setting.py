@@ -57,6 +57,7 @@ def set_channelID(guildID,id):
         file.seek(0)
         json.dump(setting, file, indent=4)
         file.truncate()
+        
 def set_messageID(guildID, id):
     setting = None
     with open(SETTING_PATH, 'r+') as file:
