@@ -65,7 +65,6 @@ class GPTCog(commands.Cog):
     
     async def GPTResponse(self,  channel:discord.channel.TextChannel, prompt:str):
         self.channel_info.SaveUserPrompt(channel, prompt)
-        print(self.channel_info.GetMsgHistory(channel.id))
         # Modify the API call to use OpenAI's chat completions
         response = openai.chat.completions.create(
             model=MODEL_GPT4O_MINI,
