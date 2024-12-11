@@ -36,7 +36,7 @@ if __name__ == '__main__':
             try:
                 await client.add_cog(MusicCog(client))
                 #await client.add_cog(ClaudeCog(client))
-                await client.add_cog(GPTCog(client, os.getenv('OPENAI_API_KEY')))
+                await client.add_cog(GPTCog(client))
                 await client.start(bot_api_key, reconnect=True)
             except Exception as e:
                 print(e)

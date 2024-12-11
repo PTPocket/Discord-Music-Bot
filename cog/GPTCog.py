@@ -1,10 +1,11 @@
 import openai
 import discord
+import os
 from datetime import datetime
 from discord.ext import commands, tasks
 
 MODEL_GPT4O_MINI = 'gpt-4o-mini'
-SYSTEM_CHARACTERISTICS = 'You are a helpful assistant named PocBot created by Pocket Man. You keep your responses as short. Do not add any unnecessary information.'
+SYSTEM_CHARACTERISTICS = 'You are a helpful assistant named PocBot created by Pocket who keeps their responses short.'
 MAX_TOKENS = 1000
 TEMPERATURE = 1
 
@@ -42,9 +43,8 @@ class ChannelInformation():
         self.msg_history.pop(channel_id)
 
 class GPTCog(commands.Cog):
-    def __init__(self, bot:commands.Bot, openai_api_key:str):
+    def __init__(self, bot:commands.Bot):
         self.bot = bot
-        openai.api_key = openai_api_key
         self.channel_info = ChannelInformation()
         self.PurgeChannels.start()
     
@@ -76,8 +76,8 @@ class GPTCog(commands.Cog):
         gpt_output = response.choices[0].message.content
         self.channel_info.SaveAssistantPrompt(channel, gpt_output)
         return gpt_output
-    
-    @tasks.loop(seconds=180)
+
+    @tasks.loop(seconds=150)
     async def PurgeChannels(self):
         timestamps = self.channel_info.GetTimestamps()
         curr_time = datetime.today()
@@ -85,7 +85,7 @@ class GPTCog(commands.Cog):
         for channel_id in timestamps:
             prev_time = timestamps.get(channel_id)
             diff_time = (curr_time-prev_time).seconds
-            if diff_time > 180:
+            if diff_time > 150:
                 to_delete.append(channel_id)
                 channel = self.channel_info.GetChannel(channel_id)
                 self.channel_info.RemoveChannel(channel_id)
