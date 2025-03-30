@@ -491,7 +491,7 @@ class MusicCog(commands.Cog):
         log(guildName, 'command', 'switch_algorithm')
         self.dataObj.initialize(guildID)
         try:
-            view = SearchAlgorithmView(self, user)
+            view = SearchAlgorithmView(self,self.embObj, user)
             await channel.send(view=view, delete_after=Setting.get_promptDelay())
         except Exception as e:
             error_log('switch_algorithm', e)
