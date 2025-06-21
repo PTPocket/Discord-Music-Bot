@@ -27,11 +27,11 @@ if __name__ == '__main__':
     async def on_ready():
         activity = discord.CustomActivity('The Music Bot')
         await client.change_presence(activity=activity)
-        log(None, client.user, 'Connected to Discord')
+        log(None, str(client.user), 'Connected to Discord')
 
     async def main():
         configure()
-        bot_api_key = os.getenv('TEST_TOKEN')
+        bot_api_key = str(os.getenv('TEST_TOKEN'))
         async with client:
             try:
                 await client.add_cog(MusicCog(client))
