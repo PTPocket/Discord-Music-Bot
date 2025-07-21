@@ -20,6 +20,8 @@ if __name__ == '__main__':
     #Discord Bot Setup##################################################
     intents = discord.Intents.default()
     intents.message_content = True
+    intents.voice_states = True
+
     client = commands.Bot(command_prefix=['//'], intents = intents)
     Setting.initialize_settings()
     initialize_Log()
