@@ -1,7 +1,7 @@
 
 import os
 
-MAIN_PATH        = f''
+MAIN_PATH        = f'C:\\Users\\Main Server\\Documents\\Music Bot Files'
 FFMPEG_EXE_PATH  = MAIN_PATH + '\\ffmpeg\\ffmpeg.exe'
 LOCAL_MUSIC_PATH = MAIN_PATH + '\\music\\Formatted'
 SETTING_PATH     = MAIN_PATH + '\\DB\\Music Bot Setting.json'
